@@ -1,0 +1,7 @@
+/myco
+*.test
+.claude/worktrees/
+
+# scratch: specs, plans, SDD progress ledger — not project history
+docs/superpowers/
+.superpowers/
