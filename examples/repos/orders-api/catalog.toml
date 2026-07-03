@@ -1,0 +1,10 @@
+name    = "orders-api"
+summary = "Order processing and lifecycle service"
+kind    = "service"
+status  = "active"
+tags    = ["orders", "billing"]
+stack   = ["go", "postgres"]
+
+[[provides]]
+name    = "order-events"
+summary = "Publishes order lifecycle events on the message bus"

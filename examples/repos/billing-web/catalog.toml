@@ -1,0 +1,10 @@
+name    = "billing-web"
+summary = "Customer-facing billing dashboard"
+kind    = "app"
+status  = "active"
+tags    = ["billing", "frontend"]
+stack   = ["typescript", "react"]
+
+[[provides]]
+name    = "billing-ui"
+summary = "Web UI for invoices and payment methods"

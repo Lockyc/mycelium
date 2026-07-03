@@ -19,3 +19,12 @@ services exist and when each applies — instead of relying on a human to point.
     myco build --manifests <dir> --overlay overlay.toml --out ./catalog
     myco audit --catalog ./catalog
     myco serve --catalog ./catalog --addr :8080
+
+## Demo
+
+See a populated catalog built from the bundled examples — no real repos needed:
+
+    ./scripts/demo.sh
+
+It materialises [`examples/`](examples/) into throwaway git repos in a temp dir
+and runs the full scan → build → audit pipeline.

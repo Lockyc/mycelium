@@ -1,0 +1,6 @@
+name    = "shared-lib"
+summary = "Shared domain types and helpers used across services"
+kind    = "library"
+status  = "active"
+tags    = ["shared"]
+stack   = ["go"]

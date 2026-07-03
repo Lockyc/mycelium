@@ -1,0 +1,28 @@
+# Example private overlay — internal nodes and relationship edges.
+# In a real deployment this file is kept private (never committed to a public
+# repo) and merged in at `myco build` time.
+
+[[node]]
+name     = "shared-postgres"
+summary  = "Shared Postgres instance"
+provides = ["postgres"]
+
+[[edge]]
+from = "orders-api"
+to   = "postgres"
+type = "consumes"
+
+[[edge]]
+from = "orders-api"
+to   = "shared-lib"
+type = "depends-on"
+
+[[edge]]
+from = "billing-web"
+to   = "order-events"
+type = "consumes"
+
+[[edge]]
+from = "billing-web"
+to   = "shared-lib"
+type = "depends-on"
