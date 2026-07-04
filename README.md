@@ -6,8 +6,9 @@ it with a private relationship overlay into one agent-readable catalog
 HTTP. It gives a coding agent a proactive map of an ecosystem — which repos and
 services exist and when each applies — instead of relying on a human to point.
 
-**Status:** early WIP. v1 builds the CLI (`scan`/`build`/`serve`/`audit`/
-`validate`) and runs as a single hub node.
+**Status:** early WIP. v1.1 implements a distributed architecture: **nodes** scan
+repo roots and push manifests to a central **hub**, which ingests and rebuilds the
+catalog, then serves it over HTTP.
 
 ## Build
 
@@ -26,7 +27,7 @@ tags this manifest; used by a hub to track which node pushed it.
 ### Node (scan where the repos live, push to a hub)
 
     myco scan --roots <repo-store> --node <id> \
-      --exclude-owners vendor --fallback-host <host> \
+      --source local-checkout --exclude-owners vendor --fallback-host <host> \
       --push https://<hub> --token-file /path/to/token
 
 Reads each repo's committed `catalog.toml` (bare repos and working trees alike),
