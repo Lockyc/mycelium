@@ -18,13 +18,13 @@ func TestSidecarAtHEADAndID(t *testing.T) {
 	r := Repo{Dir: dir, Owner: "acme", Name: "widgets"}
 
 	// Not committed yet -> not in HEAD -> found=false.
-	if _, found, err := sidecarAtHEAD(r); err != nil || found {
+	if _, found, err := sidecarAtRef(r, "HEAD"); err != nil || found {
 		t.Fatalf("uncommitted: found=%v err=%v (want found=false)", found, err)
 	}
 	run(t, dir, "add", "catalog.toml")
 	run(t, dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x")
 
-	data, found, err := sidecarAtHEAD(r)
+	data, found, err := sidecarAtRef(r, "HEAD")
 	if err != nil || !found {
 		t.Fatalf("committed: found=%v err=%v (want found=true)", found, err)
 	}

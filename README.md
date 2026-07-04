@@ -45,10 +45,12 @@ tags this manifest; used by a hub to track which node pushed it.
 
     myco scan --roots <repo-store> --node <id> \
       --source local-checkout --exclude-owners vendor --fallback-host <host> \
-      --push https://<hub> --token-file /path/to/token
+      --ref dev --push https://<hub> --token-file /path/to/token
 
 Reads each repo's committed `catalog.toml` (bare repos and working trees alike),
-skips denied owners, and POSTs the manifest to the hub.
+skips denied owners, and POSTs the manifest to the hub. `--ref <branch>` reads
+the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
+per-repo when the branch is absent; omit it to read each repo's default branch.
 
 ### Hub (ingest manifests, rebuild, serve)
 

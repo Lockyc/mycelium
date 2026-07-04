@@ -10,6 +10,7 @@ type Options struct {
 	Now           string
 	FallbackHost  string
 	ExcludeOwners []string
+	Ref           string // git ref to read sidecars from; "" or absent → HEAD
 }
 
 func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
@@ -29,7 +30,8 @@ func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
 		if deny[r.Owner] {
 			continue
 		}
-		data, found, err := sidecarAtHEAD(r)
+		ref := resolveRef(r, opts.Ref)
+		data, found, err := sidecarAtRef(r, ref)
 		if err != nil {
 			return catalog.Manifest{}, nil, err
 		}
@@ -41,7 +43,7 @@ func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
 		if err != nil {
 			return catalog.Manifest{}, nil, err
 		}
-		commit, _ := r.Git("rev-parse", "HEAD").Output()
+		commit, _ := r.Git("rev-parse", ref).Output()
 		m.Components = append(m.Components, catalog.Component{
 			ID:      repoID(r, opts.FallbackHost),
 			Name:    sc.Name,

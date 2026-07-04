@@ -49,3 +49,62 @@ func TestScanComponentsOrphansAndDenylist(t *testing.T) {
 		t.Fatalf("orphans = %v", orphans)
 	}
 }
+
+func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
+	root := t.TempDir()
+
+	// Repo A: catalog.toml exists ONLY on dev; the default branch (main) has none.
+	a := filepath.Join(root, "acme", "onlydev")
+	if err := os.MkdirAll(a, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	run(t, a, "init", "-q", "-b", "main")
+	run(t, a, "remote", "add", "origin", "git@github.com:acme/onlydev.git")
+	run(t, a, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init")
+	run(t, a, "checkout", "-q", "-b", "dev")
+	commitSidecar(t, a, "name=\"onlydev\"\nsummary=\"d\"\n")
+	run(t, a, "checkout", "-q", "main") // leave HEAD on main (no sidecar)
+
+	// Repo B: catalog.toml on main only, no dev branch — --ref dev must fall back to HEAD.
+	b := filepath.Join(root, "acme", "onlymain")
+	if err := os.MkdirAll(b, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	run(t, b, "init", "-q", "-b", "main")
+	run(t, b, "remote", "add", "origin", "git@github.com:acme/onlymain.git")
+	commitSidecar(t, b, "name=\"onlymain\"\nsummary=\"m\"\n")
+
+	// With Ref="dev": A is read from dev (found); B has no dev, falls back to HEAD (found).
+	m, orphans, err := Scan([]string{root}, Options{
+		Node: "test", Source: "local", Now: "t",
+		FallbackHost: "git.example.com", Ref: "dev",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, c := range m.Components {
+		got[c.Name] = true
+	}
+	if !got["onlydev"] || !got["onlymain"] {
+		t.Fatalf("ref=dev: want onlydev+onlymain, got components=%+v orphans=%v", m.Components, orphans)
+	}
+
+	// Without Ref: A is an orphan (main has no sidecar); B still found via HEAD.
+	m2, _, err := Scan([]string{root}, Options{
+		Node: "test", Source: "local", Now: "t", FallbackHost: "git.example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got2 := map[string]bool{}
+	for _, c := range m2.Components {
+		got2[c.Name] = true
+	}
+	if got2["onlydev"] {
+		t.Fatalf("no ref: onlydev should be orphan (main has no sidecar), got %+v", m2.Components)
+	}
+	if !got2["onlymain"] {
+		t.Fatalf("no ref: onlymain should be found via HEAD, got %+v", m2.Components)
+	}
+}

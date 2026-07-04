@@ -33,6 +33,7 @@ func runScan(args []string) error {
 	source := fs.String("source", "local-checkout", "source type")
 	fallbackHost := fs.String("fallback-host", "", "host for repos with no origin remote")
 	excludeOwners := fs.String("exclude-owners", "", "comma-separated owner dirs to skip (e.g. vendor)")
+	ref := fs.String("ref", "", "git ref to read sidecars from; falls back to HEAD per-repo when absent (e.g. dev)")
 	out := fs.String("out", "", "manifest output path")
 	push := fs.String("push", "", "hub URL to POST the manifest to (optional)")
 	tokenFile := fs.String("token-file", "", "file holding the hub bearer token")
@@ -45,6 +46,7 @@ func runScan(args []string) error {
 		Now:           time.Now().UTC().Format(time.RFC3339),
 		FallbackHost:  *fallbackHost,
 		ExcludeOwners: splitRoots(*excludeOwners),
+		Ref:           *ref,
 	})
 	if err != nil {
 		return err

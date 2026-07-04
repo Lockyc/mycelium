@@ -9,14 +9,28 @@ import (
 	"github.com/lockyc/mycelium/internal/catalog"
 )
 
-// sidecarAtHEAD returns the committed catalog.toml at HEAD. found=false when the
-// file is not present in HEAD (an orphan); error only on an unexpected failure.
-func sidecarAtHEAD(r Repo) ([]byte, bool, error) {
-	out, err := r.Git("show", "HEAD:catalog.toml").Output()
+// resolveRef picks the git ref to read a repo's sidecar from. An empty ref (or
+// one this repo doesn't have) resolves to HEAD — so a node can prefer an active
+// trunk like "dev" fleet-wide while repos that only have a default branch fall
+// back to HEAD instead of being dropped as orphans.
+func resolveRef(r Repo, ref string) string {
+	if ref == "" {
+		return "HEAD"
+	}
+	if err := r.Git("rev-parse", "--verify", "--quiet", ref+"^{commit}").Run(); err == nil {
+		return ref
+	}
+	return "HEAD"
+}
+
+// sidecarAtRef returns the committed catalog.toml at ref. found=false when the
+// file is not present at ref (an orphan); error only on an unexpected failure.
+func sidecarAtRef(r Repo, ref string) ([]byte, bool, error) {
+	out, err := r.Git("show", ref+":catalog.toml").Output()
 	if err == nil {
 		return out, true, nil
 	}
-	// git ran but exited non-zero: the path is absent at HEAD (or HEAD is unborn)
+	// git ran but exited non-zero: the path is absent at ref (or ref is unborn)
 	// — a genuine "no sidecar". Any non-ExitError (git not runnable, permission
 	// denied) is infrastructure breakage: surface it rather than silently
 	// dropping every scanned repo as an orphan.
@@ -24,7 +38,7 @@ func sidecarAtHEAD(r Repo) ([]byte, bool, error) {
 	if errors.As(err, &exitErr) {
 		return nil, false, nil
 	}
-	return nil, false, fmt.Errorf("read sidecar at HEAD in %s: %w", r.Dir, err)
+	return nil, false, fmt.Errorf("read sidecar at %s in %s: %w", ref, r.Dir, err)
 }
 
 func repoID(r Repo, fallbackHost string) string {

@@ -18,8 +18,10 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
   overlay only.
 - Repo roots are always configurable — never hardcode a path.
 - Only third-party dep: `go-toml/v2`. Git via `os/exec`, JSON/HTTP via stdlib.
-- **Sidecars are read from git HEAD** — only committed `catalog.toml` is seen; working-tree
-  edits are not scanned.
+- **Sidecars are read from a committed ref, default HEAD** — only committed `catalog.toml`
+  is seen; working-tree edits are not scanned. A node may pass `--ref <branch>` (e.g. `dev`)
+  to read the active trunk instead; it falls back to HEAD per-repo when the branch is absent,
+  so a mixed fleet (some repos `main`-only, some `main`+`dev`) needs no per-repo config.
 - **Nodes are read-only on repos** — a node may not write to the git store it scans; it only
   reads and pushes manifests to the hub.
 - **Hub stores manifests keyed by node id** — re-pushing from the same node replaces its
