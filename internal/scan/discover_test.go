@@ -35,8 +35,8 @@ func run(t *testing.T, dir string, args ...string) {
 
 func TestDiscoverReposBareAndWorking(t *testing.T) {
 	root := t.TempDir()
-	mkWorking(t, filepath.Join(root, "acme", "widgets"))       // working tree
-	mkBare(t, filepath.Join(root, "vendor", "upstream.git"))   // bare
+	mkWorking(t, filepath.Join(root, "acme", "widgets"))     // working tree
+	mkBare(t, filepath.Join(root, "vendor", "upstream.git")) // bare
 	// a worktree dir that must be skipped entirely:
 	mkWorking(t, filepath.Join(root, "acme", "widgets", ".claude", "worktrees", "feat"))
 
