@@ -18,6 +18,16 @@ catalog, then serves it over HTTP.
 ## Build
 
     go build -o myco ./cmd/myco
+    myco version          # or --version, -v
+
+## Contributing
+
+Work lands on the `dev` integration branch; `main` is the release branch and only
+fast-forwards to a tagged release. Branch feature/fix work off `dev`, run `just gate`
+(gofmt + vet + tests) before merging, and merge back to `dev`. Releases follow
+[semantic versioning](https://semver.org): the root `VERSION` file is the single source
+of truth (embedded into the binary), and `just release` tags `v<VERSION>` and publishes
+the matching GitHub release.
 
 ## Use
 

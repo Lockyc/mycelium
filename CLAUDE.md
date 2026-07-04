@@ -28,3 +28,16 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 ## Test / build
     go test ./...
     go build -o myco ./cmd/myco
+
+## Branching & versioning
+- **`main` + `dev`.** `dev` is the integration trunk — all work flows through it. `main`
+  is the release branch: it only fast-forwards to a tagged release commit and stays a
+  clean ancestor of `dev`. **Never commit directly to `main`** — a direct commit drifts it
+  ahead and breaks the fast-forward; fix by back-merging `main` into `dev`, never force-push.
+- Feature / fix / scratch branches off `dev`, merge back to `dev`. Short descriptive names.
+- **Semver, `v`-prefixed tags.** The tracked root **`VERSION`** file is the single source of
+  truth, `go:embed`-ed via `version.go` (root `mycelium` package) so `myco version`
+  self-reports — never restate the version elsewhere.
+- **Cut a release** from `dev` with `VERSION` bumped and committed: `just release`
+  runs `gate`, fast-forwards `main`, tags `v<VERSION>`, and publishes the GitHub release.
+  Plain Go CLI — no signing/updater.

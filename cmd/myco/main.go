@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/lockyc/mycelium"
 )
 
 func usage() string {
@@ -16,6 +18,7 @@ commands:
   serve      build, then serve the catalog over HTTP
   audit      check the catalog for orphans, dangling edges, staleness
   validate   lint a single catalog.toml against the schema
+  version    print the myco version (also --version, -v)
 `
 }
 
@@ -23,6 +26,11 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprint(os.Stderr, usage())
 		os.Exit(2)
+	}
+	switch os.Args[1] {
+	case "version", "--version", "-v":
+		fmt.Println("myco " + mycelium.Version)
+		return
 	}
 	var err error
 	switch os.Args[1] {

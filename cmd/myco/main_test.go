@@ -4,7 +4,7 @@ import "testing"
 
 func TestUsageMentionsSubcommands(t *testing.T) {
 	got := usage()
-	for _, sub := range []string{"scan", "build", "serve", "audit", "validate"} {
+	for _, sub := range []string{"scan", "build", "serve", "audit", "validate", "version"} {
 		if !contains(got, sub) {
 			t.Errorf("usage() missing subcommand %q", sub)
 		}
