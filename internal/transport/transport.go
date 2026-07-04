@@ -57,6 +57,10 @@ func IngestHandler(manifestsDir, token string, onIngest func()) http.Handler {
 			http.Error(w, "manifest missing node id", http.StatusBadRequest)
 			return
 		}
+		if strings.ContainsAny(m.Node, `/\`) || m.Node == "." || m.Node == ".." {
+			http.Error(w, "invalid node id", http.StatusBadRequest)
+			return
+		}
 		data, err := json.MarshalIndent(m, "", "  ")
 		if err != nil {
 			http.Error(w, "encode", http.StatusInternalServerError)

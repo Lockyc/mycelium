@@ -63,6 +63,41 @@ func TestIngestStoresPerNodeAndRebuilds(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("want 1 manifest file, got %d", len(entries))
 	}
+	if rebuilt != 2 {
+		t.Fatalf("rebuilt=%d after re-push, want 2", rebuilt)
+	}
+}
+
+func TestIngestRejectsPathTraversal(t *testing.T) {
+	dir := t.TempDir()
+	h := IngestHandler(dir, "", nil)
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+
+	// Count files before attempt
+	entriesBefore, _ := os.ReadDir(dir)
+	countBefore := len(entriesBefore)
+
+	// Try to push with path traversal node id
+	if err := Push(srv.URL, "", catalog.Manifest{Node: "../evil"}); err == nil {
+		t.Fatal("want error on path traversal node id")
+	}
+
+	// Verify no new file was created
+	entriesAfter, _ := os.ReadDir(dir)
+	countAfter := len(entriesAfter)
+	if countAfter != countBefore {
+		t.Fatalf("want %d files after rejection, got %d", countBefore, countAfter)
+	}
+
+	// Also test other unsafe node ids
+	unsafeIds := []string{".", "..", "foo/bar", "baz\\qux"}
+	for _, unsafeId := range unsafeIds {
+		err := Push(srv.URL, "", catalog.Manifest{Node: unsafeId})
+		if err == nil {
+			t.Fatalf("want error on node id %q", unsafeId)
+		}
+	}
 }
 
 func TestIngestRejectsEmptyNode(t *testing.T) {
