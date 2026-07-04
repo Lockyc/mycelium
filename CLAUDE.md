@@ -31,6 +31,14 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
     go test ./...
     go build -o myco ./cmd/myco
 
+## Regenerating the served catalog
+After adding or editing a `catalog.toml` sidecar (in any scanned repo), changing the
+overlay, or shipping a `myco` change, **regenerate the served catalog** rather than
+waiting for the scheduled scan — otherwise the live catalog lags the sources. A node
+scan (`myco scan --push`) rebuilds the hub on receipt. Deployment mechanics (how the
+reference deployment triggers a rescan, and the mirror-lag caveat for repos read via a
+pull-mirror) are deployment-specific and live with that private deployment's docs.
+
 ## Branching & versioning
 - **`main` + `dev`.** `dev` is the integration trunk — all work flows through it. `main`
   is the release branch: it only fast-forwards to a tagged release commit and stays a
