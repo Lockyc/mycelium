@@ -49,7 +49,10 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 		t.Fatalf("no node manifest: %v", err)
 	}
 	// CATALOG.md served
-	md, _ := http.Get(srv.URL + "/CATALOG.md")
+	md, err := http.Get(srv.URL + "/CATALOG.md")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer md.Body.Close()
 	if md.StatusCode != 200 {
 		t.Fatalf("CATALOG.md status %d", md.StatusCode)
