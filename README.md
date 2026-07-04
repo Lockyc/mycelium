@@ -15,10 +15,35 @@ services exist and when each applies — instead of relying on a human to point.
 
 ## Use
 
+### Scan and collect metadata
+
     myco scan --roots <dir>[,<dir>] --node <id> --out manifest.json
+
+Walks the repo roots, reads each committed `catalog.toml` sidecar, gathers git
+metadata (origin remote, tags), and writes a manifest (JSON). The `--node` id
+tags this manifest; used by a hub to track which node pushed it.
+
+### Node (scan where the repos live, push to a hub)
+
+    myco scan --roots <repo-store> --node <id> \
+      --exclude-owners vendor --fallback-host <host> \
+      --push https://<hub> --token-file /path/to/token
+
+Reads each repo's committed `catalog.toml` (bare repos and working trees alike),
+skips denied owners, and POSTs the manifest to the hub.
+
+### Hub (ingest manifests, rebuild, serve)
+
+    myco serve --manifests <dir> --overlay overlay.toml \
+      --catalog ./catalog --ingest-token-file /path/to/token --addr :8080
+
+Serves `/CATALOG.md` and `/catalog.json`, and accepts `POST /manifests`
+(node-keyed, bearer-authenticated); each push rebuilds the served catalog.
+
+### Legacy: single-node build and audit
+
     myco build --manifests <dir> --overlay overlay.toml --out ./catalog
     myco audit --catalog ./catalog
-    myco serve --catalog ./catalog --addr :8080
 
 ## Demo
 
