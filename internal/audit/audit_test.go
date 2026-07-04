@@ -6,7 +6,10 @@ import "github.com/lockyc/mycelium/internal/catalog"
 func TestAuditFindsAllKinds(t *testing.T) {
 	cat := catalog.Catalog{
 		Components:    []catalog.Component{{ID: "github.com/acme/widgets"}},
-		DanglingEdges: []catalog.Edge{{From: "x", To: "ghost", Type: "consumes"}},
+		DanglingEdges: []catalog.DanglingEdge{{
+			Edge:   catalog.Edge{From: "x", To: "ghost", Type: "consumes"},
+			Reason: `target "ghost" is not provided by anything`,
+		}},
 	}
 	findings := Audit(cat, nil,
 		[]string{"/repos/gadgets"},          // orphan path

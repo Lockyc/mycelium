@@ -1,12 +1,23 @@
 package catalog
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 type Catalog struct {
 	Components    []Component         `json:"components"`
 	Capabilities  map[string][]string `json:"capabilities"`
 	Edges         []Edge              `json:"edges"`
-	DanglingEdges []Edge              `json:"dangling_edges"`
+	DanglingEdges []DanglingEdge      `json:"dangling_edges"`
+}
+
+// DanglingEdge is an overlay edge that failed to resolve: its source must be a
+// known component or overlay node, and its target a known component, node, or
+// capability. Reason names the offending side for the audit report.
+type DanglingEdge struct {
+	Edge
+	Reason string `json:"reason"`
 }
 
 func Merge(manifests []Manifest, ov Overlay) Catalog {
@@ -67,12 +78,24 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		capIndex[capName] = list
 	}
 
-	var edges, dangling []Edge
+	var edges []Edge
+	var dangling []DanglingEdge
 	for _, e := range ov.Edges {
-		if _, isCap := capIndex[e.To]; isCap || names[e.To] {
+		_, toIsCap := capIndex[e.To]
+		fromOK := names[e.From] // a source is an actor: a component or overlay node
+		toOK := toIsCap || names[e.To]
+		switch {
+		case fromOK && toOK:
 			edges = append(edges, e)
-		} else {
-			dangling = append(dangling, e)
+		case !fromOK && !toOK:
+			dangling = append(dangling, DanglingEdge{e,
+				fmt.Sprintf("source %q and target %q both unresolved", e.From, e.To)})
+		case !fromOK:
+			dangling = append(dangling, DanglingEdge{e,
+				fmt.Sprintf("source %q is not a known component or node", e.From)})
+		default:
+			dangling = append(dangling, DanglingEdge{e,
+				fmt.Sprintf("target %q is not provided by anything", e.To)})
 		}
 	}
 

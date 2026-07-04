@@ -18,7 +18,7 @@ func Audit(cat catalog.Catalog, manifests []catalog.Manifest, orphanPaths, previ
 	}
 	for _, e := range cat.DanglingEdges {
 		out = append(out, Finding{Kind: "dangling-edge",
-			Detail: fmt.Sprintf("%s %s %s — target not provided by anything", e.From, e.Type, e.To)})
+			Detail: fmt.Sprintf("%s %s %s — %s", e.From, e.Type, e.To, e.Reason)})
 	}
 	present := map[string]bool{}
 	for _, c := range cat.Components {
