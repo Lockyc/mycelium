@@ -1,66 +1,61 @@
 package scan
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-
 	"github.com/lockyc/mycelium/internal/catalog"
 )
 
-func gitOutput(dir string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	return strings.TrimSpace(string(out)), err
+type Options struct {
+	Node          string
+	Source        string
+	Now           string
+	FallbackHost  string
+	ExcludeOwners []string
 }
 
-// Scan walks each root one level deep. A child dir with a .git is a repo:
-// if it has catalog.toml it becomes a component; otherwise its path is an orphan.
-func Scan(roots []string, node, source, now string) (catalog.Manifest, []string, error) {
-	m := catalog.Manifest{Node: node, Source: source, ScannedAt: now}
+func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
+	deny := map[string]bool{}
+	for _, o := range opts.ExcludeOwners {
+		deny[o] = true
+	}
+
+	repos, err := DiscoverRepos(roots)
+	if err != nil {
+		return catalog.Manifest{}, nil, err
+	}
+
+	m := catalog.Manifest{Node: opts.Node, Source: opts.Source, ScannedAt: opts.Now}
 	var orphans []string
-	for _, root := range roots {
-		entries, err := os.ReadDir(root)
+	for _, r := range repos {
+		if deny[r.Owner] {
+			continue
+		}
+		data, found, err := sidecarAtHEAD(r)
 		if err != nil {
 			return catalog.Manifest{}, nil, err
 		}
-		for _, e := range entries {
-			if !e.IsDir() || e.Name() == ".claude" {
-				continue
-			}
-			dir := filepath.Join(root, e.Name())
-			if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
-				continue // not a repo
-			}
-			scPath := filepath.Join(dir, "catalog.toml")
-			data, err := os.ReadFile(scPath)
-			if err != nil {
-				orphans = append(orphans, dir)
-				continue
-			}
-			sc, err := catalog.ParseSidecar(data)
-			if err != nil {
-				return catalog.Manifest{}, nil, err
-			}
-			remote, err := gitOutput(dir, "remote", "get-url", "origin")
-			if err != nil || strings.TrimSpace(remote) == "" {
-				// No resolvable origin → no stable catalog identity. Surface as an
-				// orphan rather than emitting a component with an empty ID, which
-				// would collapse distinct repos together during merge dedup.
-				orphans = append(orphans, dir)
-				continue
-			}
-			commit, _ := gitOutput(dir, "rev-parse", "HEAD")
-			m.Components = append(m.Components, catalog.Component{
-				ID:      catalog.CanonicalID(remote),
-				Name:    sc.Name,
-				Path:    dir,
-				Commit:  commit,
-				Sidecar: sc,
-			})
+		if !found {
+			orphans = append(orphans, r.Dir)
+			continue
 		}
+		sc, err := catalog.ParseSidecar(data)
+		if err != nil {
+			return catalog.Manifest{}, nil, err
+		}
+		commit, _ := r.Git("rev-parse", "HEAD").Output()
+		m.Components = append(m.Components, catalog.Component{
+			ID:      repoID(r, opts.FallbackHost),
+			Name:    sc.Name,
+			Commit:  trim(commit),
+			Sidecar: sc,
+		})
 	}
 	return m, orphans, nil
+}
+
+func trim(b []byte) string {
+	s := string(b)
+	for len(s) > 0 && (s[len(s)-1] == '\n' || s[len(s)-1] == '\r') {
+		s = s[:len(s)-1]
+	}
+	return s
 }

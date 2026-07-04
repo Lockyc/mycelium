@@ -31,16 +31,24 @@ func runScan(args []string) error {
 	roots := fs.String("roots", "", "comma-separated repo roots")
 	node := fs.String("node", "", "node id")
 	source := fs.String("source", "local-checkout", "source type")
+	fallbackHost := fs.String("fallback-host", "", "host for repos with no origin remote")
+	excludeOwners := fs.String("exclude-owners", "", "comma-separated owner dirs to skip (e.g. vendor)")
 	out := fs.String("out", "", "manifest output path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	m, orphans, err := scan.Scan(splitRoots(*roots), *node, *source, time.Now().UTC().Format(time.RFC3339))
+	m, orphans, err := scan.Scan(splitRoots(*roots), scan.Options{
+		Node:          *node,
+		Source:        *source,
+		Now:           time.Now().UTC().Format(time.RFC3339),
+		FallbackHost:  *fallbackHost,
+		ExcludeOwners: splitRoots(*excludeOwners),
+	})
 	if err != nil {
 		return err
 	}
 	for _, o := range orphans {
-		fmt.Fprintln(os.Stderr, "warning: orphan (no catalog.toml):", o)
+		fmt.Fprintln(os.Stderr, "warning: orphan (no committed catalog.toml):", o)
 	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
