@@ -84,11 +84,15 @@ type = "consumes"
 
 ## Merging and Output
 
-When `myco build` runs, it:
+Sidecars are gathered by **nodes** (`myco scan`), which walk their repo roots,
+read each committed `catalog.toml`, and emit a manifest. The **hub** (`myco build`
+or `myco serve`) then:
 
-1. Scans all configured repo roots for `catalog.toml` sidecars.
-2. Merges the sidecars and overlay into a unified graph.
-3. Validates schema and consistency (no orphans, no undefined targets in edges).
-4. Renders the catalog as `CATALOG.md` (human-readable) and `catalog.json` (machine-readable).
+1. Loads all node manifests from the manifests dir.
+2. Merges the manifests' components and the overlay into a unified graph.
+3. Renders the catalog as `CATALOG.md` (human-readable) and `catalog.json` (machine-readable).
+
+Consistency checks (orphans, dangling edges, staleness) are a separate step,
+`myco audit`, run against the rendered `catalog.json`.
 
 The overlap between sidecar and overlay (when a repo has an entry in both) is valid: the sidecar documents the public face; the overlay can add internal edges, private capabilities, or infrastructure relationships.
