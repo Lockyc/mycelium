@@ -12,6 +12,7 @@ import (
 
 	"github.com/lockyc/mycelium/internal/audit"
 	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/hub"
 	"github.com/lockyc/mycelium/internal/scan"
 	"github.com/lockyc/mycelium/internal/serve"
 )
@@ -61,29 +62,6 @@ func runScan(args []string) error {
 	return os.WriteFile(*out, data, 0o644)
 }
 
-func loadManifests(dir string) ([]catalog.Manifest, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	var ms []catalog.Manifest
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
-		if err != nil {
-			return nil, err
-		}
-		var m catalog.Manifest
-		if err := json.Unmarshal(data, &m); err != nil {
-			return nil, err
-		}
-		ms = append(ms, m)
-	}
-	return ms, nil
-}
-
 func runBuild(args []string) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	manifests := fs.String("manifests", "", "dir of manifest .json files")
@@ -92,32 +70,7 @@ func runBuild(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	ms, err := loadManifests(*manifests)
-	if err != nil {
-		return err
-	}
-	var ov catalog.Overlay
-	if *overlayPath != "" {
-		data, err := os.ReadFile(*overlayPath)
-		if err != nil {
-			return err
-		}
-		if ov, err = catalog.ParseOverlay(data); err != nil {
-			return err
-		}
-	}
-	cat := catalog.Merge(ms, ov)
-	if err := os.MkdirAll(*out, 0o755); err != nil {
-		return err
-	}
-	jsonData, err := catalog.RenderJSON(cat)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(*out, "catalog.json"), jsonData, 0o644); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(*out, "CATALOG.md"), []byte(catalog.RenderMarkdown(cat)), 0o644)
+	return hub.Build(*manifests, *overlayPath, *out)
 }
 
 func runValidate(args []string) error {
