@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/lockyc/mycelium/internal/catalog"
 	"github.com/lockyc/mycelium/internal/hub"
 	"github.com/lockyc/mycelium/internal/scan"
-	"github.com/lockyc/mycelium/internal/serve"
 	"github.com/lockyc/mycelium/internal/transport"
 )
 
@@ -155,13 +153,19 @@ func runServe(args []string) error {
 	manifests := fs.String("manifests", "", "dir of manifest .json files")
 	overlayPath := fs.String("overlay", "", "overlay.toml path (optional)")
 	catDir := fs.String("catalog", ".", "catalog output/serve dir")
+	ingestToken := fs.String("ingest-token-file", "", "file holding the ingest bearer token")
 	addr := fs.String("addr", ":8080", "listen address")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := runBuild([]string{"--manifests", *manifests, "--overlay", *overlayPath, "--out", *catDir}); err != nil {
-		return err
+	token := ""
+	if *ingestToken != "" {
+		b, err := os.ReadFile(*ingestToken)
+		if err != nil {
+			return err
+		}
+		token = strings.TrimSpace(string(b))
 	}
-	fmt.Println("serving catalog on", *addr)
-	return http.ListenAndServe(*addr, serve.Handler(*catDir))
+	fmt.Println("serving catalog + ingest on", *addr)
+	return hub.Serve(*manifests, *overlayPath, *catDir, token, *addr)
 }

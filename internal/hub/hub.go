@@ -2,11 +2,15 @@ package hub
 
 import (
 	"encoding/json"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/serve"
+	"github.com/lockyc/mycelium/internal/transport"
 )
 
 func loadManifests(dir string) ([]catalog.Manifest, error) {
@@ -61,4 +65,29 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(outDir, "CATALOG.md"), []byte(catalog.RenderMarkdown(cat)), 0o644)
+}
+
+// Handler builds the mux: static catalog routes plus the authenticated ingest
+// endpoint, whose onIngest re-runs Build (serialized).
+func Handler(manifestsDir, overlayPath, catalogDir, ingestToken string) http.Handler {
+	var mu sync.Mutex
+	rebuild := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		_ = Build(manifestsDir, overlayPath, catalogDir)
+	}
+	mux := http.NewServeMux()
+	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
+	// static catalog routes (/CATALOG.md, /catalog.json, /) come last as the fallback.
+	mux.Handle("/", serve.Handler(catalogDir))
+	return mux
+}
+
+// Serve builds the catalog once then listens on addr, serving static catalog
+// routes and the authenticated ingest endpoint. Blocks until the server exits.
+func Serve(manifestsDir, overlayPath, catalogDir, ingestToken, addr string) error {
+	if err := Build(manifestsDir, overlayPath, catalogDir); err != nil {
+		return err
+	}
+	return http.ListenAndServe(addr, Handler(manifestsDir, overlayPath, catalogDir, ingestToken))
 }
