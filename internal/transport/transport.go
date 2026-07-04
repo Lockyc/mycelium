@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,6 +14,10 @@ import (
 )
 
 const ManifestPath = "/manifests"
+
+// maxManifestBytes caps an ingest request body so an oversized (or streamed)
+// POST can't exhaust hub memory. Manifests are small; 32 MiB is generous.
+const maxManifestBytes = 32 << 20
 
 func Push(hubURL, token string, m catalog.Manifest) error {
 	body, err := json.Marshal(m)
@@ -44,10 +49,14 @@ func IngestHandler(manifestsDir, token string, onIngest func() error) http.Handl
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if token != "" && r.Header.Get("Authorization") != "Bearer "+token {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
+		if token != "" {
+			// constant-time compare so a matching request can't be found by timing.
+			if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+token)) != 1 {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxManifestBytes)
 		var m catalog.Manifest
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, "bad manifest json", http.StatusBadRequest)

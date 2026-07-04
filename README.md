@@ -45,6 +45,8 @@ skips denied owners, and POSTs the manifest to the hub.
 
 Serves `/CATALOG.md` and `/catalog.json`, and accepts `POST /manifests`
 (node-keyed, bearer-authenticated); each push rebuilds the served catalog.
+`--ingest-token-file` is optional — omit it only behind a trusted network
+boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
 ### Legacy: single-node build and audit
 

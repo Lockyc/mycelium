@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -108,6 +109,33 @@ func TestIngestRejectsEmptyNode(t *testing.T) {
 	// no token configured; empty node -> 400
 	if err := Push(srv.URL, "", catalog.Manifest{Node: ""}); err == nil {
 		t.Fatal("want error on empty node")
+	}
+}
+
+func TestIngestRejectsOversizedBody(t *testing.T) {
+	dir := t.TempDir()
+	stored := 0
+	h := IngestHandler(dir, "", func() error { stored++; return nil })
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+
+	// A body just over the cap must be refused before decode/store.
+	body := make([]byte, maxManifestBytes+1)
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+ManifestPath, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 == 2 {
+		t.Fatalf("oversized body accepted: %s", resp.Status)
+	}
+	if stored != 0 {
+		t.Fatalf("oversized body triggered rebuild %d time(s), want 0", stored)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+		t.Fatalf("oversized body wrote %d file(s), want 0", len(entries))
 	}
 }
 

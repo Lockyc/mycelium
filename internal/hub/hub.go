@@ -94,5 +94,9 @@ func Serve(manifestsDir, overlayPath, catalogDir, ingestToken, addr string) erro
 	if err := Build(manifestsDir, overlayPath, catalogDir); err != nil {
 		return err
 	}
+	if ingestToken == "" {
+		fmt.Fprintf(os.Stderr, "WARNING: ingest endpoint on %s is UNAUTHENTICATED "+
+			"(no --ingest-token-file); anyone who can reach it can push manifests and trigger rebuilds\n", addr)
+	}
 	return http.ListenAndServe(addr, Handler(manifestsDir, overlayPath, catalogDir, ingestToken))
 }
