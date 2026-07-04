@@ -1,5 +1,10 @@
 # Mycelium
 
+[![CI](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml/badge.svg)](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555)
+![Go](https://img.shields.io/badge/go-1.22%2B-00ADD8?logo=go&logoColor=white)
+[![License](https://img.shields.io/github/license/Lockyc/mycelium)](LICENSE)
+
 `myco` reads per-repo `catalog.toml` metadata across a set of repo roots, merges
 it with a private relationship overlay into one agent-readable catalog
 (`CATALOG.md` + `catalog.json`), audits that catalog for rot, and serves it over
@@ -52,5 +57,13 @@ See a populated catalog built from the bundled examples — no real repos needed
 
     ./scripts/demo.sh
 
-It materialises [`examples/`](examples/) into throwaway git repos in a temp dir
-and runs the full scan → build → audit pipeline.
+It materialises the bundled [`examples/`](examples/README.md) into throwaway git
+repos in a temp dir and runs the full scan → build → audit pipeline.
+
+## Reference
+
+- [`schema/catalog.md`](schema/catalog.md) — the `catalog.toml` sidecar and
+  `overlay.toml` schema (fields, node/edge shapes, public-safe vs private split).
+- [`schema/consult-snippet.md`](schema/consult-snippet.md) — the standing-instruction
+  snippet to drop into a consuming agent's `CLAUDE.md`/`AGENTS.md` so it consults the
+  served catalog proactively.
