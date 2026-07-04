@@ -32,8 +32,10 @@ for dir in "$root"/examples/repos/*/; do
 	cp "$dir"catalog.toml "$dest"/
 	git -C "$dest" init -q
 	git -C "$dest" remote add origin "git@github.com:acme/$name.git"
+	git -C "$dest" add catalog.toml
+	# v1.1 reads sidecars from git HEAD, so the sidecar must be committed (not just present).
 	git -C "$dest" -c user.email=demo@example.com -c user.name=demo \
-		commit -q --allow-empty -m "example"
+		commit -q -m "example"
 done
 
 echo "==> myco scan"
