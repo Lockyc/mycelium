@@ -24,7 +24,7 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 
 	// push a manifest -> hub stores it and rebuilds
 	if err := transport.Push(srv.URL, "sekret", catalog.Manifest{
-		Node: "forgejo",
+		Node: "node-a",
 		Components: []catalog.Component{{ID: "github.com/acme/widgets", Name: "widgets",
 			Sidecar: catalog.Sidecar{Name: "widgets", Summary: "w"}}},
 	}); err != nil {
@@ -45,7 +45,7 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 		t.Fatalf("catalog after ingest = %+v", cat.Components)
 	}
 	// stored keyed by node
-	if _, err := os.Stat(filepath.Join(man, "forgejo.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(man, "node-a.json")); err != nil {
 		t.Fatalf("no node manifest: %v", err)
 	}
 	// CATALOG.md served

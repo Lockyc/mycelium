@@ -38,7 +38,7 @@ func Push(hubURL, token string, m catalog.Manifest) error {
 	return nil
 }
 
-func IngestHandler(manifestsDir, token string, onIngest func()) http.Handler {
+func IngestHandler(manifestsDir, token string, onIngest func() error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -76,7 +76,10 @@ func IngestHandler(manifestsDir, token string, onIngest func()) http.Handler {
 			return
 		}
 		if onIngest != nil {
-			onIngest()
+			if err := onIngest(); err != nil {
+				http.Error(w, "rebuild failed", http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 	})

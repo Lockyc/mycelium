@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -71,10 +72,14 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 // endpoint, whose onIngest re-runs Build (serialized).
 func Handler(manifestsDir, overlayPath, catalogDir, ingestToken string) http.Handler {
 	var mu sync.Mutex
-	rebuild := func() {
+	rebuild := func() error {
 		mu.Lock()
 		defer mu.Unlock()
-		_ = Build(manifestsDir, overlayPath, catalogDir)
+		if err := Build(manifestsDir, overlayPath, catalogDir); err != nil {
+			fmt.Fprintln(os.Stderr, "hub: rebuild failed:", err)
+			return err
+		}
+		return nil
 	}
 	mux := http.NewServeMux()
 	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
