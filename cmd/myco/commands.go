@@ -15,6 +15,7 @@ import (
 	"github.com/lockyc/mycelium/internal/hub"
 	"github.com/lockyc/mycelium/internal/scan"
 	"github.com/lockyc/mycelium/internal/serve"
+	"github.com/lockyc/mycelium/internal/transport"
 )
 
 func splitRoots(s string) []string {
@@ -35,6 +36,8 @@ func runScan(args []string) error {
 	fallbackHost := fs.String("fallback-host", "", "host for repos with no origin remote")
 	excludeOwners := fs.String("exclude-owners", "", "comma-separated owner dirs to skip (e.g. vendor)")
 	out := fs.String("out", "", "manifest output path")
+	push := fs.String("push", "", "hub URL to POST the manifest to (optional)")
+	tokenFile := fs.String("token-file", "", "file holding the hub bearer token")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -57,9 +60,26 @@ func runScan(args []string) error {
 	}
 	if *out == "" {
 		fmt.Println(string(data))
-		return nil
+	} else {
+		if err := os.WriteFile(*out, data, 0o644); err != nil {
+			return err
+		}
 	}
-	return os.WriteFile(*out, data, 0o644)
+	if *push != "" {
+		token := ""
+		if *tokenFile != "" {
+			b, err := os.ReadFile(*tokenFile)
+			if err != nil {
+				return err
+			}
+			token = strings.TrimSpace(string(b))
+		}
+		if err := transport.Push(*push, token, m); err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "pushed manifest to", *push)
+	}
+	return nil
 }
 
 func runBuild(args []string) error {
