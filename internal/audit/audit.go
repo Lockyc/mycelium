@@ -11,10 +11,11 @@ type Finding struct {
 	Detail string
 }
 
-func Audit(cat catalog.Catalog, manifests []catalog.Manifest, orphanPaths, previousIDs []string) []Finding {
+func Audit(cat catalog.Catalog, previousIDs []string) []Finding {
 	var out []Finding
-	for _, p := range orphanPaths {
-		out = append(out, Finding{Kind: "orphan", Detail: fmt.Sprintf("repo without catalog.toml: %s", p)})
+	for _, o := range cat.Orphans {
+		out = append(out, Finding{Kind: "orphan",
+			Detail: fmt.Sprintf("repo without catalog.toml: %s (%s)", o.ID, o.Path)})
 	}
 	for _, e := range cat.DanglingEdges {
 		out = append(out, Finding{Kind: "dangling-edge",

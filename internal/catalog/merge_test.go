@@ -57,3 +57,36 @@ func TestMergeDedupAndCapabilities(t *testing.T) {
 		t.Fatalf("dangling target not detected: %+v", cat.DanglingEdges)
 	}
 }
+
+func TestMergeOrphansDedupIgnoreAndComponentWins(t *testing.T) {
+	// nodeA reports one orphan (gadgets) and a component (widgets).
+	// nodeB reports gadgets again (dup), plus "sidecar-later" as an orphan that is
+	// a real component on nodeA — so it must NOT be listed as an orphan.
+	nodeA := Manifest{
+		Components: []Component{
+			{ID: "github.com/acme/widgets", Name: "widgets"},
+			{ID: "github.com/acme/sidecar-later", Name: "sidecar-later"},
+		},
+		Orphans: []Orphan{{ID: "github.com/acme/gadgets", Name: "gadgets", Path: "/a/gadgets"}},
+	}
+	nodeB := Manifest{
+		Orphans: []Orphan{
+			{ID: "github.com/acme/gadgets", Name: "gadgets", Path: "/b/gadgets"},
+			{ID: "github.com/acme/sidecar-later", Name: "sidecar-later", Path: "/b/sidecar-later"},
+			{ID: "github.com/acme/scratch", Name: "scratch", Path: "/b/scratch"},
+		},
+	}
+	// ignore scratch — accept a full remote URL, which is canonicalized to match.
+	ov := Overlay{Ignore: []string{"git@github.com:acme/scratch.git"}}
+
+	cat := Merge([]Manifest{nodeA, nodeB}, ov)
+
+	var ids []string
+	for _, o := range cat.Orphans {
+		ids = append(ids, o.ID)
+	}
+	if len(ids) != 1 || ids[0] != "github.com/acme/gadgets" {
+		t.Fatalf("orphans = %v; want only [github.com/acme/gadgets] "+
+			"(gadgets deduped, sidecar-later is a component, scratch ignored)", ids)
+	}
+}

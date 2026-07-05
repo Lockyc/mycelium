@@ -40,7 +40,7 @@ func runScan(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	m, orphans, err := scan.Scan(splitRoots(*roots), scan.Options{
+	m, err := scan.Scan(splitRoots(*roots), scan.Options{
 		Node:          *node,
 		Source:        *source,
 		Now:           time.Now().UTC().Format(time.RFC3339),
@@ -51,8 +51,8 @@ func runScan(args []string) error {
 	if err != nil {
 		return err
 	}
-	for _, o := range orphans {
-		fmt.Fprintln(os.Stderr, "warning: orphan (no committed catalog.toml):", o)
+	for _, o := range m.Orphans {
+		fmt.Fprintln(os.Stderr, "warning: orphan (no committed catalog.toml):", o.Path)
 	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
@@ -132,7 +132,7 @@ func runAudit(args []string) error {
 			fmt.Fprintln(os.Stderr, "warning: ignoring unreadable previous.json:", err)
 		}
 	}
-	findings := audit.Audit(cat, nil, nil, prev)
+	findings := audit.Audit(cat, prev)
 	// persist current ids for next run's staleness check
 	var ids []string
 	for _, c := range cat.Components {

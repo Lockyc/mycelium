@@ -6,13 +6,13 @@ import "github.com/lockyc/mycelium/internal/catalog"
 func TestAuditFindsAllKinds(t *testing.T) {
 	cat := catalog.Catalog{
 		Components: []catalog.Component{{ID: "github.com/acme/widgets"}},
+		Orphans:    []catalog.Orphan{{ID: "github.com/acme/gadgets", Name: "gadgets", Path: "/repos/gadgets"}},
 		DanglingEdges: []catalog.DanglingEdge{{
 			Edge:   catalog.Edge{From: "x", To: "ghost", Type: "consumes"},
 			Reason: `target "ghost" is not provided by anything`,
 		}},
 	}
-	findings := Audit(cat, nil,
-		[]string{"/repos/gadgets"},          // orphan path
+	findings := Audit(cat,
 		[]string{"github.com/acme/removed"}, // previously present, now missing
 	)
 	kinds := map[string]int{}

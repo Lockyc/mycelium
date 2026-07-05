@@ -7,7 +7,8 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 - `cmd/myco` — CLI + subcommand dispatch.
 - `internal/catalog` — model, identity (canonical git-URL dedup), merge, render.
 - `internal/scan` — node role: walk roots, read sidecars + git info → manifest.
-- `internal/audit` — orphan / dangling-edge / staleness / schema checks.
+- `internal/audit` — orphan / dangling-edge / staleness checks over `catalog.json`
+  (schema validation is a separate step — `myco validate` / `ParseSidecar` at scan).
 - `internal/serve` — HTTP handler for the catalog dir.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
 - `internal/hub` — hub role: Build (merge manifests → catalog) and Serve (HTTP + ingest endpoint).
@@ -26,6 +27,12 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
   reads and pushes manifests to the hub.
 - **Hub stores manifests keyed by node id** — re-pushing from the same node replaces its
   prior manifest; different nodes' manifests are merged into the same catalog.
+- **Orphans persist through the manifest into the catalog** — a scanned repo with no
+  committed `catalog.toml` rides in the manifest as an `Orphan` and is merged into
+  `catalog.json`, so `myco audit` reports it fleet-wide (not just as a scan-time warning).
+  A repo that is a component on any node is never an orphan. The overlay `ignore` list
+  (canonical ids) suppresses repos that intentionally lack a sidecar — orphan curation
+  lives in the overlay, the same private surface as edges and nodes.
 
 ## Test / build
     go test ./...

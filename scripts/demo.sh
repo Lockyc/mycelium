@@ -38,6 +38,18 @@ for dir in "$root"/examples/repos/*/; do
 		commit -q -m "example"
 done
 
+# Two repos with NO catalog.toml, to show orphan handling: 'needs-catalog' is
+# flagged by the audit as an orphan; 'scratch' is suppressed via the overlay's
+# ignore list (see examples/overlay.toml).
+for name in needs-catalog scratch; do
+	dest="$repos/$name"
+	mkdir -p "$dest"
+	git -C "$dest" init -q
+	git -C "$dest" remote add origin "git@github.com:acme/$name.git"
+	git -C "$dest" -c user.email=demo@example.com -c user.name=demo \
+		commit -q --allow-empty -m "no sidecar"
+done
+
 echo "==> myco scan"
 "$myco" scan --roots "$repos" --node demo --out "$manifests/demo.json"
 echo "==> myco build (with example overlay)"

@@ -13,7 +13,7 @@ type Options struct {
 	Ref           string // git ref to read sidecars from; "" or absent → HEAD
 }
 
-func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
+func Scan(roots []string, opts Options) (catalog.Manifest, error) {
 	deny := map[string]bool{}
 	for _, o := range opts.ExcludeOwners {
 		deny[o] = true
@@ -21,11 +21,10 @@ func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
 
 	repos, err := DiscoverRepos(roots)
 	if err != nil {
-		return catalog.Manifest{}, nil, err
+		return catalog.Manifest{}, err
 	}
 
 	m := catalog.Manifest{Node: opts.Node, Source: opts.Source, ScannedAt: opts.Now}
-	var orphans []string
 	for _, r := range repos {
 		if deny[r.Owner] {
 			continue
@@ -33,15 +32,19 @@ func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
 		ref := resolveRef(r, opts.Ref)
 		data, found, err := sidecarAtRef(r, ref)
 		if err != nil {
-			return catalog.Manifest{}, nil, err
+			return catalog.Manifest{}, err
 		}
 		if !found {
-			orphans = append(orphans, r.Dir)
+			m.Orphans = append(m.Orphans, catalog.Orphan{
+				ID:   repoID(r, opts.FallbackHost),
+				Name: r.Name,
+				Path: r.Dir,
+			})
 			continue
 		}
 		sc, err := catalog.ParseSidecar(data)
 		if err != nil {
-			return catalog.Manifest{}, nil, err
+			return catalog.Manifest{}, err
 		}
 		commit, _ := r.Git("rev-parse", ref).Output()
 		m.Components = append(m.Components, catalog.Component{
@@ -51,7 +54,7 @@ func Scan(roots []string, opts Options) (catalog.Manifest, []string, error) {
 			Sidecar: sc,
 		})
 	}
-	return m, orphans, nil
+	return m, nil
 }
 
 func trim(b []byte) string {

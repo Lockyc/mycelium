@@ -10,6 +10,7 @@ type Catalog struct {
 	Capabilities  map[string][]string `json:"capabilities"`
 	Edges         []Edge              `json:"edges"`
 	DanglingEdges []DanglingEdge      `json:"dangling_edges"`
+	Orphans       []Orphan            `json:"orphans"`
 }
 
 // DanglingEdge is an overlay edge that failed to resolve: its source must be a
@@ -99,5 +100,34 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		}
 	}
 
-	return Catalog{Components: comps, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling}
+	// Orphans: repos scanned without a sidecar. A repo that is a real component
+	// on any node is not an orphan; an id in the overlay ignore list is suppressed.
+	present := map[string]bool{}
+	for _, c := range comps {
+		present[c.ID] = true
+	}
+	ignore := map[string]bool{}
+	for _, id := range ov.Ignore {
+		ignore[CanonicalID(id)] = true
+	}
+	orphanByID := map[string]Orphan{}
+	var orphanOrder []string
+	for _, m := range manifests {
+		for _, o := range m.Orphans {
+			if present[o.ID] || ignore[o.ID] {
+				continue
+			}
+			if _, seen := orphanByID[o.ID]; !seen {
+				orphanByID[o.ID] = o
+				orphanOrder = append(orphanOrder, o.ID)
+			}
+		}
+	}
+	sort.Strings(orphanOrder)
+	var orphans []Orphan
+	for _, id := range orphanOrder {
+		orphans = append(orphans, orphanByID[id])
+	}
+
+	return Catalog{Components: comps, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
 }

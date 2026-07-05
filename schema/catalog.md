@@ -45,6 +45,10 @@ summary = "Publishes order lifecycle events on a message bus"
 
 The private overlay is maintained privately by the catalog operator (never committed to a public repo). It extends the catalog with internal-only nodes (infrastructure, internal services, non-repo capabilities) and relationship edges (how components consume, depend on, and relate to each other).
 
+### Fields
+
+- **`ignore`** (optional, array of strings): Canonical repo ids for repos that intentionally lack a `catalog.toml` and should be suppressed from the audit's orphan list. Match by the id printed by `myco audit` (e.g. `"github.com/acme/scratch"`); a full remote URL is accepted too and is canonicalized. Suppression applies only to orphans — a repo that has a sidecar is always a component regardless of this list.
+
 ### Repeatable Blocks
 
 #### `[[node]]`
@@ -71,6 +75,8 @@ Defines a directed relationship between two components or nodes. An edge connect
 
 ```toml
 # overlay.toml — private (operator-maintained, never committed to a public repo)
+ignore = ["github.com/acme/scratch"]  # repos that intentionally have no sidecar
+
 [[node]]
 name     = "shared-postgres"
 summary  = "Shared Postgres instance"
@@ -93,6 +99,9 @@ or `myco serve`) then:
 3. Renders the catalog as `CATALOG.md` (human-readable) and `catalog.json` (machine-readable).
 
 Consistency checks (orphans, dangling edges, staleness) are a separate step,
-`myco audit`, run against the rendered `catalog.json`.
+`myco audit`, run against the rendered `catalog.json`. Orphans — repos a node
+scanned that carry no committed `catalog.toml` — ride in each manifest and are
+merged into the catalog, so the audit reports them fleet-wide (minus any id in the
+overlay `ignore` list) rather than only at scan time.
 
 The overlap between sidecar and overlay (when a repo has an entry in both) is valid: the sidecar documents the public face; the overlay can add internal edges, private capabilities, or infrastructure relationships.

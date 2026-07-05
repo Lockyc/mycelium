@@ -67,6 +67,11 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
     myco build --manifests <dir> --overlay overlay.toml --out ./catalog
     myco audit --catalog ./catalog
 
+`audit` reports catalog rot: **orphans** (scanned repos with no committed
+`catalog.toml`), dangling overlay edges, and components that vanished since the last
+run. Repos that intentionally have no sidecar are suppressed via an `ignore` list of
+canonical ids in the private `overlay.toml` (see [`schema/catalog.md`](schema/catalog.md)).
+
 ## Demo
 
 See a populated catalog built from the bundled examples — no real repos needed:

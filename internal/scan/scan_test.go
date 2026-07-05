@@ -35,7 +35,7 @@ func TestScanComponentsOrphansAndDenylist(t *testing.T) {
 	mkWorking(t, up)
 	run(t, up, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "x")
 
-	m, orphans, err := Scan([]string{root}, Options{
+	m, err := Scan([]string{root}, Options{
 		Node: "test", Source: "local", Now: "2026-07-04T00:00:00Z",
 		FallbackHost: "git.example.com", ExcludeOwners: []string{"vendor"},
 	})
@@ -45,8 +45,9 @@ func TestScanComponentsOrphansAndDenylist(t *testing.T) {
 	if len(m.Components) != 1 || m.Components[0].ID != "github.com/acme/widgets" {
 		t.Fatalf("components = %+v", m.Components)
 	}
-	if len(orphans) != 1 || filepath.Base(orphans[0]) != "gadgets" {
-		t.Fatalf("orphans = %v", orphans)
+	if len(m.Orphans) != 1 || m.Orphans[0].ID != "github.com/acme/gadgets" ||
+		filepath.Base(m.Orphans[0].Path) != "gadgets" {
+		t.Fatalf("orphans = %+v", m.Orphans)
 	}
 }
 
@@ -75,7 +76,7 @@ func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 	commitSidecar(t, b, "name=\"onlymain\"\nsummary=\"m\"\n")
 
 	// With Ref="dev": A is read from dev (found); B has no dev, falls back to HEAD (found).
-	m, orphans, err := Scan([]string{root}, Options{
+	m, err := Scan([]string{root}, Options{
 		Node: "test", Source: "local", Now: "t",
 		FallbackHost: "git.example.com", Ref: "dev",
 	})
@@ -87,11 +88,11 @@ func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 		got[c.Name] = true
 	}
 	if !got["onlydev"] || !got["onlymain"] {
-		t.Fatalf("ref=dev: want onlydev+onlymain, got components=%+v orphans=%v", m.Components, orphans)
+		t.Fatalf("ref=dev: want onlydev+onlymain, got components=%+v orphans=%v", m.Components, m.Orphans)
 	}
 
 	// Without Ref: A is an orphan (main has no sidecar); B still found via HEAD.
-	m2, _, err := Scan([]string{root}, Options{
+	m2, err := Scan([]string{root}, Options{
 		Node: "test", Source: "local", Now: "t", FallbackHost: "git.example.com",
 	})
 	if err != nil {
