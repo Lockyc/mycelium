@@ -22,15 +22,6 @@ only as rich as the `catalog.toml` sidecars committed across the scanned repos.
     go build -o myco ./cmd/myco
     myco version          # or --version, -v
 
-## Contributing
-
-Work lands on the `dev` integration branch; `main` is the release branch and only
-fast-forwards to a tagged release. Branch feature/fix work off `dev`, run `just gate`
-(gofmt + vet + tests) before merging, and merge back to `dev`. Releases follow
-[semantic versioning](https://semver.org): the root `VERSION` file is the single source
-of truth (embedded into the binary), and `just release` tags `v<VERSION>` and publishes
-the matching GitHub release.
-
 ## Use
 
 ### Scan and collect metadata
@@ -88,3 +79,13 @@ repos in a temp dir and runs the full scan → build → audit pipeline.
 - [`schema/consult-snippet.md`](schema/consult-snippet.md) — the standing-instruction
   snippet to drop into a consuming agent's `CLAUDE.md`/`AGENTS.md` so it consults the
   served catalog proactively.
+
+## Development
+
+    just build   # go build -o myco ./cmd/myco
+    just test    # go test ./...
+    just gate    # gofmt check + vet + tests (pre-merge gate)
+    just release # cut a release from dev
+
+The branch model (`dev` trunk, `main` release branch) and release flow live in
+[`CLAUDE.md`](CLAUDE.md).
