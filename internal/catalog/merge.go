@@ -52,7 +52,7 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		caps[capName][provider] = true
 	}
 
-	var comps []Component
+	comps := []Component{}
 	names := map[string]bool{}
 	for _, id := range order {
 		c := *byID[id]
@@ -79,8 +79,8 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		capIndex[capName] = list
 	}
 
-	var edges []Edge
-	var dangling []DanglingEdge
+	edges := []Edge{}
+	dangling := []DanglingEdge{}
 	for _, e := range ov.Edges {
 		_, toIsCap := capIndex[e.To]
 		fromOK := names[e.From] // a source is an actor: a component or overlay node
@@ -124,7 +124,7 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		}
 	}
 	sort.Strings(orphanOrder)
-	var orphans []Orphan
+	orphans := []Orphan{}
 	for _, id := range orphanOrder {
 		orphans = append(orphans, orphanByID[id])
 	}

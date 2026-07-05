@@ -58,6 +58,21 @@ func TestMergeDedupAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestMergeEmptySlicesSerializeAsArrays(t *testing.T) {
+	// An empty catalog must render every list field as [] (not null) so JSON
+	// consumers can index them without a null check.
+	out, err := RenderJSON(Merge(nil, Overlay{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	for _, want := range []string{`"components": []`, `"edges": []`, `"dangling_edges": []`, `"orphans": []`} {
+		if !strings.Contains(s, want) {
+			t.Errorf("missing %s in:\n%s", want, s)
+		}
+	}
+}
+
 func TestMergeOrphansDedupIgnoreAndComponentWins(t *testing.T) {
 	// nodeA reports one orphan (gadgets) and a component (widgets).
 	// nodeB reports gadgets again (dup), plus "sidecar-later" as an orphan that is
