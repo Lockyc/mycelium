@@ -90,6 +90,9 @@ func runBuild(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	if *manifests == "" {
+		return fmt.Errorf("build: --manifests <dir> is required")
+	}
 	return hub.Build(*manifests, *overlayPath, *out)
 }
 
@@ -159,6 +162,9 @@ func runServe(args []string) error {
 	addr := fs.String("addr", ":8080", "listen address")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	if *manifests == "" {
+		return fmt.Errorf("serve: --manifests <dir> is required")
 	}
 	token := ""
 	if *ingestToken != "" {

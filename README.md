@@ -11,9 +11,9 @@ it with a private relationship overlay into one agent-readable catalog
 HTTP. It gives a coding agent a proactive map of an ecosystem — which repos and
 services exist and when each applies — instead of relying on a human to point.
 
-**Status:** early WIP. v1.1 implements a distributed architecture: **nodes** scan
-repo roots and push manifests to a central **hub**, which ingests and rebuilds the
-catalog, then serves it over HTTP. The node→hub→serve path runs in a private
+**Status:** early WIP. The architecture is distributed: **nodes** scan repo roots
+and push manifests to a central **hub**, which ingests and rebuilds the catalog,
+then serves it over HTTP. The node→hub→serve path runs in a private
 reference deployment (a scheduled node behind an auth-gated hub); the catalog is
 only as rich as the `catalog.toml` sidecars committed across the scanned repos.
 
@@ -62,7 +62,7 @@ Serves `/CATALOG.md` and `/catalog.json`, and accepts `POST /manifests`
 `--ingest-token-file` is optional — omit it only behind a trusted network
 boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
-### Legacy: single-node build and audit
+### Build and audit locally (single-node)
 
     myco build --manifests <dir> --overlay overlay.toml --out ./catalog
     myco audit --catalog ./catalog

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/lockyc/mycelium/internal/catalog"
 	"github.com/lockyc/mycelium/internal/serve"
@@ -98,5 +99,11 @@ func Serve(manifestsDir, overlayPath, catalogDir, ingestToken, addr string) erro
 		fmt.Fprintf(os.Stderr, "WARNING: ingest endpoint on %s is UNAUTHENTICATED "+
 			"(no --ingest-token-file); anyone who can reach it can push manifests and trigger rebuilds\n", addr)
 	}
-	return http.ListenAndServe(addr, Handler(manifestsDir, overlayPath, catalogDir, ingestToken))
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: Handler(manifestsDir, overlayPath, catalogDir, ingestToken),
+		// bound the header read so a slow client can't hold a connection open indefinitely.
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	return srv.ListenAndServe()
 }
