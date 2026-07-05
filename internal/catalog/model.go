@@ -65,7 +65,10 @@ type Manifest struct {
 type Orphan struct {
 	ID   string `json:"id"`   // canonical git-remote id (or fallback host/owner/name)
 	Name string `json:"name"` // repo basename
-	Path string `json:"path"` // node-local repo path (informational; node-specific)
+	// Path is the node-local repo path, kept in-memory for the scan-time warning
+	// only. Never serialized — like Component.Path, catalog.json and the pushed
+	// manifest carry no filesystem paths (a node's path is meaningless downstream).
+	Path string `json:"-"`
 }
 
 func ParseSidecar(data []byte) (Sidecar, error) {

@@ -42,5 +42,22 @@ func RenderMarkdown(c Catalog) string {
 			fmt.Fprintf(&b, "- %s %s %s\n", e.From, e.Type, e.To)
 		}
 	}
+
+	// Always rendered so a consuming agent learns the section exists — an absent
+	// section can't be told apart from "feature not present", but an explicit
+	// "None" says the ecosystem is fully documented. Repos that intentionally
+	// lack a sidecar are already filtered out via the overlay ignore list.
+	b.WriteString("\n## Undocumented repos\n\n")
+	if len(c.Orphans) == 0 {
+		b.WriteString("_None — every scanned repo has a catalog entry._\n")
+	} else {
+		b.WriteString("These repos exist in the ecosystem but have no catalog.toml yet — " +
+			"look at them directly if relevant.\n\n")
+		orphans := append([]Orphan(nil), c.Orphans...)
+		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })
+		for _, o := range orphans {
+			fmt.Fprintf(&b, "- **%s** — %s\n", o.Name, o.ID)
+		}
+	}
 	return b.String()
 }
