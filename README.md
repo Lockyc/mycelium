@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml/badge.svg)](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555)
-![Go](https://img.shields.io/badge/go-1.22%2B-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/github/go-mod/go-version/Lockyc/mycelium?logo=go&logoColor=white)
 [![License](https://img.shields.io/github/license/Lockyc/mycelium)](LICENSE)
 
 `myco` reads per-repo `catalog.toml` metadata across a set of repo roots, merges
@@ -62,6 +62,13 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
 `catalog.toml`), dangling overlay edges, and components that vanished since the last
 run. Repos that intentionally have no sidecar are suppressed via an `ignore` list of
 canonical ids in the private `overlay.toml` (see [`schema/catalog.md`](schema/catalog.md)).
+
+### Validate a sidecar
+
+    myco validate <catalog.toml>
+
+Lints a single `catalog.toml` against the schema — run it before committing a new
+sidecar. Prints the parsed name and summary on success, or the schema error.
 
 ## Demo
 
