@@ -98,7 +98,16 @@ or `myco serve`) then:
 
 1. Loads all node manifests from the manifests dir.
 2. Merges the manifests' components and the overlay into a unified graph.
-3. Renders the catalog as `CATALOG.md` (human-readable) and `catalog.json` (machine-readable).
+3. Renders the catalog in two forms — `CATALOG.md` and `catalog.json` — for the two agent use cases below.
+
+### Two outputs, two agent use cases
+
+Both outputs are for coding agents, not humans. They are the *same catalog* rendered two ways; an agent picks by task:
+
+- **`CATALOG.md`** — the map to **read into context**. A compact Markdown digest (capabilities; components with kind/status/tags; relationships; undocumented repos) that is intentionally **lossy** — it drops per-capability `provides`, `stack`, and `url` detail so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
+- **`catalog.json`** — the **complete, queryable graph**. The full catalog with **every field** (all `provides`, `stack`, `url`s, and edges), lossless. Query it with `jq` (or a tool) when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.)
+
+Rule of thumb: **read `CATALOG.md` to orient, query `catalog.json` to extract.**
 
 Consistency checks (orphans, dangling edges, staleness) are a separate step,
 `myco audit`, run against the rendered `catalog.json`. Orphans — repos a node

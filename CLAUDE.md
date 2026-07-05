@@ -14,6 +14,12 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 - `internal/hub` — hub role: Build (merge manifests → catalog) and Serve (HTTP + ingest endpoint).
 
 ## Invariants
+- **Two outputs, two agent use cases — both for agents, neither for humans.** `CATALOG.md`
+  (`RenderMarkdown`) is the deliberately **lossy** Markdown *map to read into context* — orient
+  before cross-cutting work; it omits `provides`/`stack`/`url` detail to stay skimmable.
+  `catalog.json` (`RenderJSON`) is the **full-fidelity graph to query** — every field, for
+  `jq`/filter/traverse. Read to orient, query to extract. Not human-vs-machine — both are
+  agent-facing, split by task.
 - Components dedupe by **canonical git-remote URL**, never by path.
 - **A sidecar inherits its repo's visibility.** It's committed to its repo, so a
   *public/shared* repo's sidecar must be public-safe (world-readable → no private
