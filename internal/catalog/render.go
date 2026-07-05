@@ -33,6 +33,13 @@ func RenderMarkdown(c Catalog) string {
 		if comp.Sidecar.Kind != "" || comp.Sidecar.Status != "" {
 			fmt.Fprintf(&b, "_%s · %s_\n", comp.Sidecar.Kind, comp.Sidecar.Status)
 		}
+		if len(comp.Sidecar.Tags) > 0 {
+			quoted := make([]string, len(comp.Sidecar.Tags))
+			for i, t := range comp.Sidecar.Tags {
+				quoted[i] = "`" + t + "`"
+			}
+			fmt.Fprintf(&b, "%s\n", strings.Join(quoted, " "))
+		}
 		b.WriteString("\n")
 	}
 

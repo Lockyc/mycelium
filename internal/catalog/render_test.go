@@ -95,3 +95,19 @@ func TestRenderMarkdownGroupsByCapability(t *testing.T) {
 		t.Error("missing component detail")
 	}
 }
+
+func TestRenderMarkdownRendersTags(t *testing.T) {
+	c := Catalog{Components: []Component{{
+		Name:    "orders-api",
+		Sidecar: Sidecar{Summary: "order service", Kind: "app", Status: "active", Tags: []string{"local-first", "prelaunch"}},
+	}}}
+	md := RenderMarkdown(c)
+	if !strings.Contains(md, "`local-first` `prelaunch`") {
+		t.Errorf("tags not rendered as backtick pills:\n%s", md)
+	}
+	// a component without tags renders no tag line (no stray backticks).
+	none := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	if strings.Contains(none, "`") {
+		t.Errorf("tagless component should render no backticks:\n%s", none)
+	}
+}
