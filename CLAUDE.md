@@ -15,8 +15,11 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 
 ## Invariants
 - Components dedupe by **canonical git-remote URL**, never by path.
-- Sidecars are **public-safe**; relationship edges + private nodes live in the
-  overlay only.
+- **A sidecar inherits its repo's visibility.** It's committed to its repo, so a
+  *public/shared* repo's sidecar must be public-safe (world-readable → no private
+  info); a *private* repo's sidecar may carry internal detail (it's only as exposed
+  as the repo, and the served catalog is access-gated). Relationship edges + non-repo
+  private nodes live in the overlay regardless.
 - Repo roots are always configurable — never hardcode a path.
 - Only third-party dep: `go-toml/v2`. Git via `os/exec`, JSON/HTTP via stdlib.
 - **Sidecars are read from a committed ref, default HEAD** — only committed `catalog.toml`

@@ -1,10 +1,10 @@
 # Catalog Schema
 
-The Mycelium catalog documents the ecosystem of repositories, services, and capabilities. It consists of two layers: a **public-safe sidecar** (`catalog.toml`) present in each repository, and a **private overlay** (`overlay.toml`), kept out of public repos and maintained privately by the catalog operator, that adds internal relationships and infrastructure nodes.
+The Mycelium catalog documents the ecosystem of repositories, services, and capabilities. It consists of two layers: a per-repo **sidecar** (`catalog.toml`) committed in each repository, and a **private overlay** (`overlay.toml`), kept out of public repos and maintained privately by the catalog operator, that adds internal relationships and infrastructure nodes.
 
 ## Sidecar: catalog.toml
 
-The public sidecar documents a single repository or service. One file per repo; safe to commit and share.
+The sidecar documents a single repository or service (one file per repo). It is committed to its repo and so inherits that repo's visibility: in a **public or shared** repo it must be public-safe (world-readable → no private information); in a **private** repo it may include internal detail. Either way, cross-repo relationships and non-repo infrastructure belong in the overlay, not the sidecar.
 
 ### Fields
 
@@ -19,11 +19,11 @@ The public sidecar documents a single repository or service. One file per repo; 
 
 #### `[[provides]]`
 
-Each block documents a discrete capability or service exported by the component. Public-safe only; internal capabilities live in the overlay.
+Each block documents a discrete capability or service exported by the component. In a public/shared repo keep these public-safe — internal-only capabilities live in the overlay instead; a private repo's sidecar may list internal capabilities directly.
 
 - **`name`** (required, string): Capability identifier (e.g., `"order-events"`, `"cache"`).
 - **`summary`** (required, string): What the capability does.
-- **`url`** (optional, string): Public-safe endpoint or documentation URL. Omit if the capability is internal; move it to the overlay instead.
+- **`url`** (optional, string): Endpoint or documentation URL. In a public/shared repo it must be public-safe — omit an internal endpoint (put it in the overlay); a private repo's sidecar may list an internal URL directly.
 
 ### Example: Public-Safe Sidecar
 
