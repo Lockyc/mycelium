@@ -11,6 +11,11 @@ it with a private relationship overlay into one agent-readable catalog
 HTTP. It gives a coding agent a proactive map of an ecosystem — which repos and
 services exist and when each applies — instead of relying on a human to point.
 
+Both outputs are **for agents, not humans**, and serve two use cases: **read
+`CATALOG.md` into context to orient** (a lossy, skimmable Markdown digest), and
+**query `catalog.json` to extract** (the full-fidelity graph — every field — for
+`jq`/filter/traverse). See [`schema/catalog.md`](schema/catalog.md#two-outputs-two-agent-use-cases).
+
 **Status:** early WIP. The architecture is distributed: **nodes** scan repo roots
 and push manifests to a central **hub**, which ingests and rebuilds the catalog,
 then serves it over HTTP. The node→hub→serve path runs in a private
