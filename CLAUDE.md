@@ -50,10 +50,19 @@ reference deployment triggers a rescan, and the mirror-lag caveat for repos read
 pull-mirror) are deployment-specific and live with that private deployment's docs.
 
 ## Branching & versioning
-- **`main` + `dev`.** `dev` is the integration trunk — all work flows through it. `main`
-  is the release branch: it only fast-forwards to a tagged release commit and stays a
-  clean ancestor of `dev`. **Never commit directly to `main`** — a direct commit drifts it
-  ahead and breaks the fast-forward; fix by back-merging `main` into `dev`, never force-push.
+- **`main` + `dev`.** `dev` is the integration trunk — all work flows through it. `main` is
+  the release branch **and the public face**: it carries the latest tagged release **plus
+  documentation-only updates**, and stays a clean ancestor of `dev` at rest. **Never commit
+  *code* directly to `main`** — code flows `dev`→release only; a code commit on `main` drifts
+  it ahead and breaks the next fast-forward (fix by back-merging `main` into `dev`, never
+  force-push).
+- **Docs land on `main` without a release.** A change touching *only* documentation (README,
+  `docs/`, this `CLAUDE.md`, code comments — no code, build, `VERSION`, or behaviour) may be
+  committed straight onto `main`, then **immediately forward-merged into `dev`**
+  (`git checkout dev && git merge main`) so `dev` stays ⊇ `main` and the ancestor invariant
+  holds. No version bump, no tag, no release. **Footgun:** a doc commit left on `main`
+  un-merged into `dev` is dropped at the next release (which fast-forwards `main` to `dev`,
+  which lacks it) — the forward-merge into `dev` is mandatory and immediate.
 - Feature / fix / scratch branches off `dev`, merge back to `dev`. Short descriptive names.
 - **Semver, `v`-prefixed tags.** The tracked root **`VERSION`** file is the single source of
   truth, `go:embed`-ed via `version.go` (root `mycelium` package) so `myco version`
