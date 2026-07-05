@@ -63,6 +63,13 @@ release:
     just gate
     git push origin dev
     # main only fast-forwards to the release commit; it never diverges from dev.
+    # Guard the doc carve-out footgun: a doc commit landed on main but not merged
+    # back into dev would be silently dropped by `branch -f`. Fail loudly instead.
+    if ! git merge-base --is-ancestor main dev; then
+      echo "✗ main is not an ancestor of dev — a doc commit on main isn't merged into dev." >&2
+      echo "  Run: git checkout dev && git merge main   (then re-run the release)." >&2
+      exit 1
+    fi
     git branch -f main dev
     git push origin main
     git tag -a "${tag}" -m "${tag}" main
