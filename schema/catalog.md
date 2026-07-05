@@ -65,10 +65,12 @@ Defines a directed relationship between two components or nodes. An edge connect
 
 - **`from`** (required, string): Source component or node name (e.g., `"web-frontend"`, `"billing-web"`).
 - **`to`** (required, string): Target component or node name (e.g., `"postgres"`, `"shared-lib"`).
-- **`type`** (required, enum): Relationship type. Valid values: `consumes`, `depends-on`, `deploys-to`, `related`.
+- **`type`** (required, enum): Relationship type. Valid values: `consumes`, `depends-on`, `deploys-to`, `markets`, `sells`, `related`.
   - `consumes`: `from` uses a capability or service provided by `to`.
   - `depends-on`: `from` has a build or hard dependency on `to`.
   - `deploys-to`: `from` is deployed or runs on `to`.
+  - `markets`: `from` is a marketing or promotional property for `to`.
+  - `sells`: `from` is the commercial vehicle that sells/commercialises `to`.
   - `related`: `from` is thematically or functionally related to `to`; no strict dependency.
 
 ### Example: Overlay
