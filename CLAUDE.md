@@ -1,6 +1,6 @@
 # CLAUDE.md — Mycelium
 
-`myco` is a Go CLI: scan repo roots for `catalog.toml` sidecars → merge with a
+`myco` is a Go CLI: scan repo roots for `mycelium.toml` sidecars → merge with a
 private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 
 ## Layout
@@ -28,7 +28,7 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
   private nodes live in the overlay regardless.
 - Repo roots are always configurable — never hardcode a path.
 - Only third-party dep: `go-toml/v2`. Git via `os/exec`, JSON/HTTP via stdlib.
-- **Sidecars are read from a committed ref, default HEAD** — only committed `catalog.toml`
+- **Sidecars are read from a committed ref, default HEAD** — only committed `mycelium.toml`
   is seen; working-tree edits are not scanned. A node may pass `--ref <branch>` (e.g. `dev`)
   to read the active trunk instead; it falls back to HEAD per-repo when the branch is absent,
   so a mixed fleet (some repos `main`-only, some `main`+`dev`) needs no per-repo config.
@@ -37,7 +37,7 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 - **Hub stores manifests keyed by node id** — re-pushing from the same node replaces its
   prior manifest; different nodes' manifests are merged into the same catalog.
 - **Orphans persist through the manifest into the catalog** — a scanned repo with no
-  committed `catalog.toml` rides in the manifest as an `Orphan` and is merged into
+  committed `mycelium.toml` rides in the manifest as an `Orphan` and is merged into
   `catalog.json`, so `myco audit` reports it fleet-wide (not just as a scan-time warning).
   A repo that is a component on any node is never an orphan. The overlay `ignore` list
   (canonical ids) suppresses repos that intentionally lack a sidecar — orphan curation
@@ -48,7 +48,7 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
     go build -o myco ./cmd/myco
 
 ## Regenerating the served catalog
-After adding or editing a `catalog.toml` sidecar (in any scanned repo), changing the
+After adding or editing a `mycelium.toml` sidecar (in any scanned repo), changing the
 overlay, or shipping a `myco` change, **regenerate the served catalog** rather than
 waiting for the scheduled scan — otherwise the live catalog lags the sources. A node
 scan (`myco scan --push`) rebuilds the hub on receipt. Deployment mechanics (how the

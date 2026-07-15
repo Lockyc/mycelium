@@ -23,10 +23,10 @@ func resolveRef(r Repo, ref string) string {
 	return "HEAD"
 }
 
-// sidecarAtRef returns the committed catalog.toml at ref. found=false when the
+// sidecarAtRef returns the committed mycelium.toml at ref. found=false when the
 // file is not present at ref (an orphan); error only on an unexpected failure.
 func sidecarAtRef(r Repo, ref string) ([]byte, bool, error) {
-	out, err := r.Git("show", ref+":catalog.toml").Output()
+	out, err := r.Git("show", ref+":"+catalog.SidecarName).Output()
 	if err == nil {
 		return out, true, nil
 	}

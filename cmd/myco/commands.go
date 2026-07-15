@@ -52,7 +52,7 @@ func runScan(args []string) error {
 		return err
 	}
 	for _, o := range m.Orphans {
-		fmt.Fprintln(os.Stderr, "warning: orphan (no committed catalog.toml):", o.Path)
+		fmt.Fprintln(os.Stderr, "warning: orphan (no committed mycelium.toml):", o.Path)
 	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
@@ -98,7 +98,7 @@ func runBuild(args []string) error {
 
 func runValidate(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("usage: myco validate <catalog.toml>")
+		return fmt.Errorf("usage: myco validate <mycelium.toml>")
 	}
 	data, err := os.ReadFile(args[0])
 	if err != nil {

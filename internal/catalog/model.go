@@ -6,6 +6,11 @@ import (
 	toml "github.com/pelletier/go-toml/v2"
 )
 
+// SidecarName is the committed per-repo sidecar file Mycelium scans for. Named
+// after the tool (not the generic "catalog") so an agent or dev seeing it in a
+// repo root has a thread to pull — grep the name, find Mycelium.
+const SidecarName = "mycelium.toml"
+
 type Provides struct {
 	Name    string `toml:"name" json:"name"`
 	Summary string `toml:"summary" json:"summary"`
@@ -38,7 +43,7 @@ type Overlay struct {
 	Nodes []OverlayNode `toml:"node" json:"node,omitempty"`
 	Edges []Edge        `toml:"edge" json:"edge,omitempty"`
 	// Ignore lists canonical repo ids (as printed by `myco audit`) that are known
-	// to intentionally lack a catalog.toml; matching orphans are suppressed from
+	// to intentionally lack a mycelium.toml; matching orphans are suppressed from
 	// the catalog. Full remote URLs are accepted too — they are canonicalized.
 	Ignore []string `toml:"ignore" json:"ignore,omitempty"`
 }
@@ -59,7 +64,7 @@ type Manifest struct {
 	Orphans    []Orphan    `json:"orphans,omitempty"`
 }
 
-// Orphan is a scanned repo with no committed catalog.toml. It rides in the
+// Orphan is a scanned repo with no committed mycelium.toml. It rides in the
 // manifest (and, after merge, the catalog) so the audit can surface a missing
 // sidecar as persistent ecosystem rot rather than a transient scan-time warning.
 type Orphan struct {
@@ -77,10 +82,10 @@ func ParseSidecar(data []byte) (Sidecar, error) {
 		return Sidecar{}, fmt.Errorf("parse sidecar: %w", err)
 	}
 	if sc.Name == "" {
-		return Sidecar{}, fmt.Errorf("catalog.toml: missing required field 'name'")
+		return Sidecar{}, fmt.Errorf("%s: missing required field 'name'", SidecarName)
 	}
 	if sc.Summary == "" {
-		return Sidecar{}, fmt.Errorf("catalog.toml %q: missing required field 'summary'", sc.Name)
+		return Sidecar{}, fmt.Errorf("%s %q: missing required field 'summary'", SidecarName, sc.Name)
 	}
 	return sc, nil
 }

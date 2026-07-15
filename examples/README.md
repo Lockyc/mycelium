@@ -1,6 +1,6 @@
 # Examples
 
-Sample `catalog.toml` sidecars and a private `overlay.toml` that demonstrate the
+Sample `mycelium.toml` sidecars and a private `overlay.toml` that demonstrate the
 Mycelium catalog schema. [`scripts/demo.sh`](../scripts/demo.sh) materialises
 these into throwaway git repos in a temp dir and runs `myco scan` / `build` /
 `audit` end-to-end, so you can see a populated catalog without any real repos.
@@ -8,7 +8,7 @@ these into throwaway git repos in a temp dir and runs `myco scan` / `build` /
     ./scripts/demo.sh          # build + print the catalog, then clean up
     KEEP=1 ./scripts/demo.sh   # keep the temp workspace to inspect the files
 
-- `repos/<name>/catalog.toml` — one public-safe sidecar per example repo.
+- `repos/<name>/mycelium.toml` — one public-safe sidecar per example repo.
 - `overlay.toml` — private nodes + relationship edges merged in at build time.
 
 The three example repos (`orders-api`, `billing-web`, `shared-lib`) plus the

@@ -29,16 +29,16 @@ for dir in "$root"/examples/repos/*/; do
 	name=$(basename "$dir")
 	dest="$repos/$name"
 	mkdir -p "$dest"
-	cp "$dir"catalog.toml "$dest"/
+	cp "$dir"mycelium.toml "$dest"/
 	git -C "$dest" init -q
 	git -C "$dest" remote add origin "git@github.com:acme/$name.git"
-	git -C "$dest" add catalog.toml
+	git -C "$dest" add mycelium.toml
 	# myco reads sidecars from git HEAD, so the sidecar must be committed (not just present).
 	git -C "$dest" -c user.email=demo@example.com -c user.name=demo \
 		commit -q -m "example"
 done
 
-# Two repos with NO catalog.toml, to show orphan handling: 'needs-catalog' is
+# Two repos with NO mycelium.toml, to show orphan handling: 'needs-catalog' is
 # flagged by the audit as an orphan; 'scratch' is suppressed via the overlay's
 # ignore list (see examples/overlay.toml).
 for name in needs-catalog scratch; do

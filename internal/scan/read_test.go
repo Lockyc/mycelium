@@ -11,7 +11,7 @@ func TestSidecarAtHEADAndID(t *testing.T) {
 	dir := filepath.Join(root, "acme", "widgets")
 	mkWorking(t, dir)
 	run(t, dir, "remote", "add", "origin", "git@github.com:acme/widgets.git")
-	if err := os.WriteFile(filepath.Join(dir, "catalog.toml"), []byte("name=\"widgets\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "mycelium.toml"), []byte("name=\"widgets\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -21,7 +21,7 @@ func TestSidecarAtHEADAndID(t *testing.T) {
 	if _, found, err := sidecarAtRef(r, "HEAD"); err != nil || found {
 		t.Fatalf("uncommitted: found=%v err=%v (want found=false)", found, err)
 	}
-	run(t, dir, "add", "catalog.toml")
+	run(t, dir, "add", "mycelium.toml")
 	run(t, dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x")
 
 	data, found, err := sidecarAtRef(r, "HEAD")

@@ -8,10 +8,10 @@ import (
 
 func commitSidecar(t *testing.T, dir, body string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, "catalog.toml"), []byte(body), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "mycelium.toml"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	run(t, dir, "add", "catalog.toml")
+	run(t, dir, "add", "mycelium.toml")
 	run(t, dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "x")
 }
 
@@ -54,7 +54,7 @@ func TestScanComponentsOrphansAndDenylist(t *testing.T) {
 func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 	root := t.TempDir()
 
-	// Repo A: catalog.toml exists ONLY on dev; the default branch (main) has none.
+	// Repo A: mycelium.toml exists ONLY on dev; the default branch (main) has none.
 	a := filepath.Join(root, "acme", "onlydev")
 	if err := os.MkdirAll(a, 0o755); err != nil {
 		t.Fatal(err)
@@ -66,7 +66,7 @@ func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 	commitSidecar(t, a, "name=\"onlydev\"\nsummary=\"d\"\n")
 	run(t, a, "checkout", "-q", "main") // leave HEAD on main (no sidecar)
 
-	// Repo B: catalog.toml on main only, no dev branch — --ref dev must fall back to HEAD.
+	// Repo B: mycelium.toml on main only, no dev branch — --ref dev must fall back to HEAD.
 	b := filepath.Join(root, "acme", "onlymain")
 	if err := os.MkdirAll(b, 0o755); err != nil {
 		t.Fatal(err)

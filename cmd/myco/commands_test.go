@@ -21,7 +21,7 @@ func TestBuildProducesCatalog(t *testing.T) {
 			t.Fatalf("git %v: %v %s", a, err, out)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(repo, "catalog.toml"), []byte("name=\"widgets\"\nsummary=\"cur\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(repo, "mycelium.toml"), []byte("name=\"widgets\"\nsummary=\"cur\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

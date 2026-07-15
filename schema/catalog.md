@@ -1,8 +1,8 @@
 # Catalog Schema
 
-The Mycelium catalog documents the ecosystem of repositories, services, and capabilities. It consists of two layers: a per-repo **sidecar** (`catalog.toml`) committed in each repository, and a **private overlay** (`overlay.toml`), kept out of public repos and maintained privately by the catalog operator, that adds internal relationships and infrastructure nodes.
+The Mycelium catalog documents the ecosystem of repositories, services, and capabilities. It consists of two layers: a per-repo **sidecar** (`mycelium.toml`) committed in each repository, and a **private overlay** (`overlay.toml`), kept out of public repos and maintained privately by the catalog operator, that adds internal relationships and infrastructure nodes.
 
-## Sidecar: catalog.toml
+## Sidecar: mycelium.toml
 
 The sidecar documents a single repository or service (one file per repo). It is committed to its repo and so inherits that repo's visibility: in a **public or shared** repo it must be public-safe (world-readable → no private information); in a **private** repo it may include internal detail. Either way, cross-repo relationships and non-repo infrastructure belong in the overlay, not the sidecar.
 
@@ -28,7 +28,7 @@ Each block documents a discrete capability or service exported by the component.
 ### Example: Public-Safe Sidecar
 
 ```toml
-# catalog.toml — public-safe
+# mycelium.toml — public-safe
 name    = "orders-api"
 summary = "Order processing service"
 kind    = "service"
@@ -47,7 +47,7 @@ The private overlay is maintained privately by the catalog operator (never commi
 
 ### Fields
 
-- **`ignore`** (optional, array of strings): Canonical repo ids for repos that intentionally lack a `catalog.toml` and should be suppressed from the audit's orphan list. Match by the id printed by `myco audit` (e.g. `"github.com/acme/scratch"`); a full remote URL is accepted too and is canonicalized. Suppression applies only to orphans — a repo that has a sidecar is always a component regardless of this list.
+- **`ignore`** (optional, array of strings): Canonical repo ids for repos that intentionally lack a `mycelium.toml` and should be suppressed from the audit's orphan list. Match by the id printed by `myco audit` (e.g. `"github.com/acme/scratch"`); a full remote URL is accepted too and is canonicalized. Suppression applies only to orphans — a repo that has a sidecar is always a component regardless of this list.
 
 ### Repeatable Blocks
 
@@ -93,7 +93,7 @@ type = "consumes"
 ## Merging and Output
 
 Sidecars are gathered by **nodes** (`myco scan`), which walk their repo roots,
-read each committed `catalog.toml`, and emit a manifest. The **hub** (`myco build`
+read each committed `mycelium.toml`, and emit a manifest. The **hub** (`myco build`
 or `myco serve`) then:
 
 1. Loads all node manifests from the manifests dir.
@@ -111,7 +111,7 @@ Rule of thumb: **read `CATALOG.md` to orient, query `catalog.json` to extract.**
 
 Consistency checks (orphans, dangling edges, staleness) are a separate step,
 `myco audit`, run against the rendered `catalog.json`. Orphans — repos a node
-scanned that carry no committed `catalog.toml` — ride in each manifest and are
+scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the catalog, so the audit reports them fleet-wide (minus any id in the
 overlay `ignore` list) rather than only at scan time.
 

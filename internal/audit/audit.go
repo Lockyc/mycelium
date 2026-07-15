@@ -15,7 +15,7 @@ func Audit(cat catalog.Catalog, previousIDs []string) []Finding {
 	var out []Finding
 	for _, o := range cat.Orphans {
 		out = append(out, Finding{Kind: "orphan",
-			Detail: fmt.Sprintf("repo without catalog.toml: %s", o.ID)})
+			Detail: fmt.Sprintf("repo without mycelium.toml: %s", o.ID)})
 	}
 	for _, e := range cat.DanglingEdges {
 		out = append(out, Finding{Kind: "dangling-edge",

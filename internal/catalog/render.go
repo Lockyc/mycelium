@@ -58,7 +58,7 @@ func RenderMarkdown(c Catalog) string {
 	if len(c.Orphans) == 0 {
 		b.WriteString("_None — every scanned repo has a catalog entry._\n")
 	} else {
-		b.WriteString("These repos exist in the ecosystem but have no catalog.toml yet — " +
+		b.WriteString("These repos exist in the ecosystem but have no mycelium.toml yet — " +
 			"look at them directly if relevant.\n\n")
 		orphans := append([]Orphan(nil), c.Orphans...)
 		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })

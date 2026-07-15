@@ -1,5 +1,5 @@
 name    = "mycelium"
-summary = "Cross-repo ecosystem catalog for coding agents — scan catalog.toml sidecars, merge a private overlay, serve one agent-readable catalog"
+summary = "Cross-repo ecosystem catalog for coding agents — scan mycelium.toml sidecars, merge a private overlay, serve one agent-readable catalog"
 kind    = "tool"
 status  = "wip"
 tags    = ["catalog", "agents", "metadata", "cli"]

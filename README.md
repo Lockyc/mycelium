@@ -5,7 +5,7 @@
 ![Go](https://img.shields.io/github/go-mod/go-version/Lockyc/mycelium?logo=go&logoColor=white)
 [![License](https://img.shields.io/github/license/Lockyc/mycelium)](LICENSE)
 
-`myco` reads per-repo `catalog.toml` metadata across a set of repo roots, merges
+`myco` reads per-repo `mycelium.toml` metadata across a set of repo roots, merges
 it with a private relationship overlay into one agent-readable catalog
 (`CATALOG.md` + `catalog.json`), audits that catalog for rot, and serves it over
 HTTP. It gives a coding agent a proactive map of an ecosystem — which repos and
@@ -20,7 +20,7 @@ Both outputs are **for agents, not humans**, and serve two use cases: **read
 and push manifests to a central **hub**, which ingests and rebuilds the catalog,
 then serves it over HTTP. The node→hub→serve path runs in a private
 reference deployment (a scheduled node behind an auth-gated hub); the catalog is
-only as rich as the `catalog.toml` sidecars committed across the scanned repos.
+only as rich as the `mycelium.toml` sidecars committed across the scanned repos.
 
 ## Build
 
@@ -33,7 +33,7 @@ only as rich as the `catalog.toml` sidecars committed across the scanned repos.
 
     myco scan --roots <dir>[,<dir>] --node <id> --out manifest.json
 
-Walks the repo roots, reads each committed `catalog.toml` sidecar, gathers git
+Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
 metadata (origin remote, tags), and writes a manifest (JSON). The `--node` id
 tags this manifest; used by a hub to track which node pushed it.
 
@@ -43,7 +43,7 @@ tags this manifest; used by a hub to track which node pushed it.
       --source local-checkout --exclude-owners vendor --fallback-host <host> \
       --ref dev --push https://<hub> --token-file /path/to/token
 
-Reads each repo's committed `catalog.toml` (bare repos and working trees alike),
+Reads each repo's committed `mycelium.toml` (bare repos and working trees alike),
 skips denied owners, and POSTs the manifest to the hub. `--ref <branch>` reads
 the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
 per-repo when the branch is absent; omit it to read each repo's default branch.
@@ -64,15 +64,15 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
     myco audit --catalog ./catalog
 
 `audit` reports catalog rot: **orphans** (scanned repos with no committed
-`catalog.toml`), dangling overlay edges, and components that vanished since the last
+`mycelium.toml`), dangling overlay edges, and components that vanished since the last
 run. Repos that intentionally have no sidecar are suppressed via an `ignore` list of
 canonical ids in the private `overlay.toml` (see [`schema/catalog.md`](schema/catalog.md)).
 
 ### Validate a sidecar
 
-    myco validate <catalog.toml>
+    myco validate <mycelium.toml>
 
-Lints a single `catalog.toml` against the schema — run it before committing a new
+Lints a single `mycelium.toml` against the schema — run it before committing a new
 sidecar. Prints the parsed name and summary on success, or the schema error.
 
 ## Demo
@@ -86,7 +86,7 @@ repos in a temp dir and runs the full scan → build → audit pipeline.
 
 ## Reference
 
-- [`schema/catalog.md`](schema/catalog.md) — the `catalog.toml` sidecar and
+- [`schema/catalog.md`](schema/catalog.md) — the `mycelium.toml` sidecar and
   `overlay.toml` schema (fields, node/edge shapes, public-safe vs private split).
 - [`schema/consult-snippet.md`](schema/consult-snippet.md) — the standing-instruction
   snippet to drop into a consuming agent's `CLAUDE.md`/`AGENTS.md` so it consults the

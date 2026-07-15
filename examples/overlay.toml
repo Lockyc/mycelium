@@ -2,7 +2,7 @@
 # In a real deployment this file is kept private (never committed to a public
 # repo) and merged in at `myco build` time.
 
-# Repos known to intentionally lack a catalog.toml — suppressed from the audit's
+# Repos known to intentionally lack a mycelium.toml — suppressed from the audit's
 # orphan list. Match by the canonical id printed by `myco audit`; a full remote
 # URL works too (it is canonicalized).
 ignore = ["github.com/acme/scratch"]
