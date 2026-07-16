@@ -204,6 +204,29 @@ func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
 	}
 }
 
+// ParseSidecar requires only name+summary, so kind and status are each optional.
+// Joining them unconditionally rendered a dangling separator ("_ · active_").
+func TestRenderMarkdownPartialKindStatus(t *testing.T) {
+	render := func(kind, status string) string {
+		return RenderMarkdown(Catalog{Components: []Component{{
+			Name:    "x",
+			Sidecar: Sidecar{Summary: "s", Kind: kind, Status: status},
+		}}})
+	}
+	if md := render("tool", "active"); !strings.Contains(md, "_tool · active_") {
+		t.Errorf("both present should join with a separator:\n%s", md)
+	}
+	if md := render("", "active"); !strings.Contains(md, "_active_") || strings.Contains(md, "·") {
+		t.Errorf("missing kind should render no separator:\n%s", md)
+	}
+	if md := render("tool", ""); !strings.Contains(md, "_tool_") || strings.Contains(md, "·") {
+		t.Errorf("missing status should render no separator:\n%s", md)
+	}
+	if md := render("", ""); strings.Contains(md, "_") {
+		t.Errorf("neither present should render no meta line at all:\n%s", md)
+	}
+}
+
 func TestRenderMarkdownRendersTags(t *testing.T) {
 	c := Catalog{Components: []Component{{
 		Name:    "orders-api",

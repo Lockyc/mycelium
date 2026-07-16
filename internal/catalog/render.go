@@ -24,6 +24,16 @@ type entry struct {
 	provides []string
 }
 
+func joinNonEmpty(sep string, parts ...string) string {
+	kept := parts[:0]
+	for _, p := range parts {
+		if p != "" {
+			kept = append(kept, p)
+		}
+	}
+	return strings.Join(kept, sep)
+}
+
 func entries(c Catalog) []entry {
 	out := make([]entry, 0, len(c.Components)+len(c.Nodes))
 	for _, comp := range c.Components {
@@ -64,8 +74,11 @@ func RenderMarkdown(c Catalog) string {
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(c) {
 		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)
-		if e.kind != "" || e.status != "" {
-			fmt.Fprintf(&b, "_%s · %s_\n", e.kind, e.status)
+		// Only name+summary are required of a sidecar (see ParseSidecar), so join
+		// whichever of kind/status is present rather than assuming both — a missing
+		// kind used to render a dangling separator ("_ · active_").
+		if meta := joinNonEmpty(" · ", e.kind, e.status); meta != "" {
+			fmt.Fprintf(&b, "_%s_\n", meta)
 		}
 		if len(e.provides) > 0 {
 			bolded := make([]string, len(e.provides))
