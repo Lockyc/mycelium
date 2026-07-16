@@ -222,7 +222,8 @@ func TestRenderMarkdownPartialKindStatus(t *testing.T) {
 	if md := render("tool", ""); !strings.Contains(md, "_tool_") || strings.Contains(md, "·") {
 		t.Errorf("missing status should render no separator:\n%s", md)
 	}
-	if md := render("", ""); strings.Contains(md, "_") {
+	// scoped to the entry: the orphan section's own "_None …_" line is italic too.
+	if md := render("", ""); !strings.Contains(md, "### x\ns\n\n") {
 		t.Errorf("neither present should render no meta line at all:\n%s", md)
 	}
 }
