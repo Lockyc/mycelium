@@ -86,14 +86,14 @@ func runBuild(args []string) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	manifests := fs.String("manifests", "", "dir of manifest .json files")
 	overlayPath := fs.String("overlay", "", "overlay.toml path (optional)")
-	out := fs.String("out", ".", "output dir")
+	dir := fs.String("dir", ".", "artifact dir (receives MAP.md + graph.json)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *manifests == "" {
 		return fmt.Errorf("build: --manifests <dir> is required")
 	}
-	return hub.Build(*manifests, *overlayPath, *out)
+	return hub.Build(*manifests, *overlayPath, *dir)
 }
 
 func runValidate(args []string) error {
@@ -114,11 +114,11 @@ func runValidate(args []string) error {
 
 func runAudit(args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
-	catDir := fs.String("catalog", ".", "catalog dir (with graph.json)")
+	dir := fs.String("dir", ".", "artifact dir (with graph.json)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(filepath.Join(*catDir, "graph.json"))
+	data, err := os.ReadFile(filepath.Join(*dir, "graph.json"))
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func runAudit(args []string) error {
 		return err
 	}
 	var prev []string
-	if pd, err := os.ReadFile(filepath.Join(*catDir, "previous.json")); err == nil {
+	if pd, err := os.ReadFile(filepath.Join(*dir, "previous.json")); err == nil {
 		if err := json.Unmarshal(pd, &prev); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: ignoring unreadable previous.json:", err)
 		}
@@ -139,7 +139,7 @@ func runAudit(args []string) error {
 		ids = append(ids, c.ID)
 	}
 	if idsData, err := json.Marshal(ids); err == nil {
-		if err := os.WriteFile(filepath.Join(*catDir, "previous.json"), idsData, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(*dir, "previous.json"), idsData, 0o644); err != nil {
 			fmt.Fprintln(os.Stderr, "warning: could not persist previous.json (staleness check disabled next run):", err)
 		}
 	}
@@ -157,7 +157,7 @@ func runServe(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	manifests := fs.String("manifests", "", "dir of manifest .json files")
 	overlayPath := fs.String("overlay", "", "overlay.toml path (optional)")
-	catDir := fs.String("catalog", ".", "catalog output/serve dir")
+	dir := fs.String("dir", ".", "artifact dir (built into, then served from)")
 	ingestToken := fs.String("ingest-token-file", "", "file holding the ingest bearer token")
 	addr := fs.String("addr", ":8080", "listen address")
 	if err := fs.Parse(args); err != nil {
@@ -174,6 +174,6 @@ func runServe(args []string) error {
 		}
 		token = strings.TrimSpace(string(b))
 	}
-	fmt.Println("serving map + ingest on", *addr)
-	return hub.Serve(*manifests, *overlayPath, *catDir, token, *addr)
+	fmt.Println("serving map + graph + ingest on", *addr)
+	return hub.Serve(*manifests, *overlayPath, *dir, token, *addr)
 }

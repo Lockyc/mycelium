@@ -71,12 +71,12 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 
 // Handler builds the mux: routes plus the authenticated ingest
 // endpoint, whose onIngest re-runs Build (serialized).
-func Handler(manifestsDir, overlayPath, outDir, ingestToken string) http.Handler {
+func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 	var mu sync.Mutex
 	rebuild := func() error {
 		mu.Lock()
 		defer mu.Unlock()
-		if err := Build(manifestsDir, overlayPath, outDir); err != nil {
+		if err := Build(manifestsDir, overlayPath, dir); err != nil {
 			fmt.Fprintln(os.Stderr, "hub: rebuild failed:", err)
 			return err
 		}
@@ -85,14 +85,14 @@ func Handler(manifestsDir, overlayPath, outDir, ingestToken string) http.Handler
 	mux := http.NewServeMux()
 	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
 	// static routes (/MAP.md, /graph.json, /) come last as the fallback.
-	mux.Handle("/", serve.Handler(outDir))
+	mux.Handle("/", serve.Handler(dir))
 	return mux
 }
 
 // Serve builds the map once then listens on addr, serving its static routes
 // and the authenticated ingest endpoint. Blocks until the server exits.
-func Serve(manifestsDir, overlayPath, outDir, ingestToken, addr string) error {
-	if err := Build(manifestsDir, overlayPath, outDir); err != nil {
+func Serve(manifestsDir, overlayPath, dir, ingestToken, addr string) error {
+	if err := Build(manifestsDir, overlayPath, dir); err != nil {
 		return err
 	}
 	if ingestToken == "" {
@@ -101,7 +101,7 @@ func Serve(manifestsDir, overlayPath, outDir, ingestToken, addr string) error {
 	}
 	srv := &http.Server{
 		Addr:    addr,
-		Handler: Handler(manifestsDir, overlayPath, outDir, ingestToken),
+		Handler: Handler(manifestsDir, overlayPath, dir, ingestToken),
 		// bound the header read so a slow client can't hold a connection open indefinitely.
 		ReadHeaderTimeout: 10 * time.Second,
 	}

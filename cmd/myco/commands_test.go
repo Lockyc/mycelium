@@ -31,7 +31,7 @@ func TestBuildProducesArtifacts(t *testing.T) {
 	if err := runScan([]string{"--roots", root, "--node", "test", "--out", filepath.Join(manDir, "m.json")}); err != nil {
 		t.Fatalf("scan: %v", err)
 	}
-	if err := runBuild([]string{"--manifests", manDir, "--out", outDir}); err != nil {
+	if err := runBuild([]string{"--manifests", manDir, "--dir", outDir}); err != nil {
 		t.Fatalf("build: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(outDir, "MAP.md")); err != nil {
@@ -69,11 +69,11 @@ func TestBuildThenAudit(t *testing.T) {
 	if err := runScan([]string{"--roots", root, "--node", "test", "--out", filepath.Join(manDir, "m.json")}); err != nil {
 		t.Fatalf("scan: %v", err)
 	}
-	if err := runBuild([]string{"--manifests", manDir, "--out", outDir}); err != nil {
+	if err := runBuild([]string{"--manifests", manDir, "--dir", outDir}); err != nil {
 		t.Fatalf("build: %v", err)
 	}
 
-	err := runAudit([]string{"--catalog", outDir})
+	err := runAudit([]string{"--dir", outDir})
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("runAudit could not read the build artifact: %v", err)
 	}
