@@ -21,7 +21,32 @@ type entry struct {
 	kind     string
 	status   string
 	tags     []string
+	stack    []string
 	provides []string
+	usedBy   []string
+}
+
+// useEdgeTypes are the edge types that mean "from actually uses to", so reversing
+// one yields a true "Used by" — and, together, an entry's blast radius: change
+// this thing and these are what must be re-pinned or rebuilt.
+//
+// The other types (markets, sells, related) are thematic, not consumption, so
+// they are deliberately excluded: "business sells reductable" reversed onto
+// reductable as "Used by: business" would be plainly false. They stay in the
+// Relationships section, which renders every edge with its type intact.
+var useEdgeTypes = map[string]bool{"consumes": true, "depends-on": true, "deploys-to": true}
+
+func usedBy(edges []Edge) map[string][]string {
+	rev := map[string][]string{}
+	for _, e := range edges {
+		if useEdgeTypes[e.Type] {
+			rev[e.To] = append(rev[e.To], e.From)
+		}
+	}
+	for _, users := range rev {
+		sort.Strings(users) // edges arrive in overlay order; render deterministically
+	}
+	return rev
 }
 
 func joinNonEmpty(sep string, parts ...string) string {
@@ -35,6 +60,7 @@ func joinNonEmpty(sep string, parts ...string) string {
 }
 
 func entries(c Catalog) []entry {
+	rev := usedBy(c.Edges)
 	out := make([]entry, 0, len(c.Components)+len(c.Nodes))
 	for _, comp := range c.Components {
 		provides := make([]string, 0, len(comp.Sidecar.Provides))
@@ -47,11 +73,13 @@ func entries(c Catalog) []entry {
 			kind:     comp.Sidecar.Kind,
 			status:   comp.Sidecar.Status,
 			tags:     comp.Sidecar.Tags,
+			stack:    comp.Sidecar.Stack,
 			provides: provides,
+			usedBy:   rev[comp.Name],
 		})
 	}
 	for _, n := range c.Nodes {
-		out = append(out, entry{name: n.Name, summary: n.Summary, provides: n.Provides})
+		out = append(out, entry{name: n.Name, summary: n.Summary, provides: n.Provides, usedBy: rev[n.Name]})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
 	return out
@@ -86,6 +114,12 @@ func RenderMarkdown(c Catalog) string {
 				bolded[i] = "**" + p + "**"
 			}
 			fmt.Fprintf(&b, "Provides: %s\n", strings.Join(bolded, ", "))
+		}
+		if len(e.usedBy) > 0 {
+			fmt.Fprintf(&b, "Used by: %s\n", strings.Join(e.usedBy, ", "))
+		}
+		if len(e.stack) > 0 {
+			fmt.Fprintf(&b, "Stack: %s\n", strings.Join(e.stack, ", "))
 		}
 		if len(e.tags) > 0 {
 			quoted := make([]string, len(e.tags))

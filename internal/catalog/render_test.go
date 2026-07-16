@@ -204,6 +204,59 @@ func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
 	}
 }
 
+// Stack answers "what is this built with" — non-derivable from the summary and
+// disjoint from tags (which answer "what is it about"). It is the one lossy-map
+// field worth its bytes: ~20 B an entry to say `go` vs `rust, tauri, typescript`.
+func TestRenderMarkdownRendersStack(t *testing.T) {
+	md := RenderMarkdown(Catalog{Components: []Component{{
+		Name:    "curator",
+		Sidecar: Sidecar{Summary: "s", Stack: []string{"rust", "tauri", "typescript"}},
+	}}})
+	if !strings.Contains(md, "Stack: rust, tauri, typescript") {
+		t.Errorf("stack not rendered in sidecar order:\n%s", md)
+	}
+	bare := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	if strings.Contains(bare, "Stack:") {
+		t.Errorf("component with no stack should render no Stack line:\n%s", bare)
+	}
+}
+
+// "Used by" is the reverse of the *use* edges only, so the line means one thing:
+// change this and these must be re-pinned or rebuilt. Reversing a thematic edge
+// into it would be plainly false — "business sells reductable" does not make
+// business a user of reductable.
+func TestRenderMarkdownUsedBy(t *testing.T) {
+	c := Catalog{
+		Components: []Component{
+			{Name: "core", Sidecar: Sidecar{Summary: "a shared core"}},
+			{Name: "product", Sidecar: Sidecar{Summary: "the thing sold"}},
+		},
+		Edges: []Edge{
+			// use edges — reversed onto core, sorted despite the input order
+			{From: "warden", To: "core", Type: "depends-on"},
+			{From: "curator", To: "core", Type: "consumes"},
+			{From: "app", To: "core", Type: "deploys-to"},
+			// thematic edges — must never surface as "Used by"
+			{From: "business", To: "product", Type: "sells"},
+			{From: "site", To: "product", Type: "markets"},
+			{From: "sibling", To: "product", Type: "related"},
+		},
+	}
+	md := RenderMarkdown(c)
+	if !strings.Contains(md, "Used by: app, curator, warden") {
+		t.Errorf("use edges not reversed onto the target, sorted:\n%s", md)
+	}
+	product := md[strings.Index(md, "### product"):]
+	product = product[:strings.Index(product, "## ")]
+	if strings.Contains(product, "Used by") {
+		t.Errorf("thematic edges (sells/markets/related) must not render as Used by:\n%s", product)
+	}
+	// the Relationships section still carries every edge, with its type intact.
+	if !strings.Contains(md, "business sells product") {
+		t.Errorf("thematic edges must survive in Relationships:\n%s", md)
+	}
+}
+
 // ParseSidecar requires only name+summary, so kind and status are each optional.
 // Joining them unconditionally rendered a dangling separator ("_ · active_").
 func TestRenderMarkdownPartialKindStatus(t *testing.T) {

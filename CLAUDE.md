@@ -16,19 +16,28 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 ## Invariants
 - **Two outputs, two agent use cases — both for agents, neither for humans.** `CATALOG.md`
   (`RenderMarkdown`) is the deliberately **lossy** Markdown *map to read into context* — orient
-  before cross-cutting work; it carries capability *names* inline per entry but omits their
-  summaries/urls, plus `stack`, to stay skimmable. `catalog.json` (`RenderJSON`) is the
-  **full-fidelity graph to query** — every field, for `jq`/filter/traverse. Read to orient,
-  query to extract. Not human-vs-machine — both are agent-facing, split by task.
+  before cross-cutting work; it carries capability *names* per entry but omits their
+  summaries/urls to stay skimmable. `catalog.json` (`RenderJSON`) is the **full-fidelity graph
+  to query** — every field, for `jq`/filter/traverse. Read to orient, query to extract. Not
+  human-vs-machine — both are agent-facing, split by task. `schema/catalog.md` is the contract
+  for both; reconcile it with any render change.
 - **`CATALOG.md` is component-first, and has no capability index.** Each entry states what a
-  thing is and what it provides, together. A capability-first index was tried and dropped: it
-  was a near-bijection (all but a couple of capabilities have exactly one provider), so it
-  spent a line per capability restating a component name while saying nothing about the
-  component it named — `git-mirror — homelab` forces a jump to homelab's entry to learn what
-  homelab is. Its sort order bought nothing for a file that is read *whole, into context*;
-  lookup is `catalog.json`'s job. **Only multi-provider capabilities get a callout**
-  (`## Shared capabilities`) — overlap is the one fact this layout hides, and listing
-  sole-provider capabilities there just rebuilds the index.
+  thing is, what it provides, who uses it, and what it is built with — together. A
+  capability-first index was tried and dropped: it was a near-bijection (all but a couple of
+  capabilities have exactly one provider), so it spent a line per capability restating a
+  component name while saying nothing about the component it named — `git-mirror — homelab`
+  forces a jump to homelab's entry to learn what homelab is. Its sort order bought nothing for
+  a file that is read *whole, into context*; lookup is `catalog.json`'s job. **Only
+  multi-provider capabilities get a callout** (`## Shared capabilities`) — overlap is the one
+  fact this layout hides, and listing sole-provider capabilities there just rebuilds the index.
+- **`Used by` reverses only the use edges** (`useEdgeTypes` — `consumes`/`depends-on`/
+  `deploys-to`), so the line means blast radius. **Footgun:** do not reverse `markets`/`sells`/
+  `related` into it — "business *sells* reductable" would render as reductable being *used by*
+  business, which is false. Thematic edges belong to `Relationships`, which keeps their type.
+- **Size is not the constraint — signal is.** The whole map is ~6 KB (~1.6k tokens); shaving
+  lines buys nothing measurable, so judge a field by whether it answers a question the summary
+  can't. That is why `stack` is rendered (20/20 populated, non-derivable) and each capability's
+  `summary` is not (32/32 populated, but ~3x the file).
 - **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
   actor — managed service, SaaS dep) rides in `Catalog.Nodes` and renders in the same
   name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,

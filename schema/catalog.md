@@ -12,8 +12,15 @@ The sidecar documents a single repository or service (one file per repo). It is 
 - **`summary`** (required, string): One-line human-readable description of purpose or value.
 - **`kind`** (optional, string): Component category. Valid values: `service`, `app`, `library`, `docs`, `infra`, `tool`.
 - **`status`** (optional, enum): Lifecycle stage. Valid values: `active`, `wip`, `experimental`, `archived`. Indicates maintenance level and stability.
-- **`tags`** (optional, array of strings): Searchable labels (e.g., `["orders", "billing"]`, `["cli", "go"]`). Used to group related components.
-- **`stack`** (optional, array of strings): Technologies and runtimes (e.g., `["go", "postgres"]`, `["typescript", "react"]`). Describes what powers the component.
+- **`tags`** (optional, array of strings): Labels for what the component is *about* — domain, topic, lifecycle, target platform (e.g., `["orders", "billing"]`, `["prelaunch", "macos"]`). Used to group related components.
+- **`stack`** (optional, array of strings): What the component is *built with* — languages, frameworks, runtimes, datastores, defining libraries (e.g., `["go", "postgres"]`, `["typescript", "react"]`).
+
+`tags` and `stack` are disjoint by construction: **a technology name is never a tag.**
+If a label names a language, framework, runtime, or library it belongs in `stack` —
+`rust`, `tmux`, `astro`, and `cloudflare-workers` are all `stack`, never `tags`. The
+test is the question each answers: *what is this about* (`tags`) versus *what is this
+built with* (`stack`). Both render in `CATALOG.md`, so a technology listed in both
+appears twice on the entry.
 
 ### Repeatable Blocks
 
@@ -104,7 +111,9 @@ or `myco serve`) then:
 
 Both outputs are for coding agents, not humans. They are the *same catalog* rendered two ways; an agent picks by task:
 
-- **`CATALOG.md`** — the map to **read into context**. A compact Markdown digest (capabilities; components with kind/status/tags; relationships; undocumented repos) that is intentionally **lossy** — it drops per-capability `provides`, `stack`, and `url` detail so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
+- **`CATALOG.md`** — the map to **read into context**. A compact Markdown digest that is intentionally **lossy**. It is **component-first**: one entry per component and overlay node, name-sorted, carrying summary, kind/status, the *names* of what it provides, who uses it, stack, and tags — then shared capabilities, relationships, and undocumented repos. It drops each capability's `summary` and `url` so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
+  - **`Used by`** reverses only the *use* edges (`consumes`, `depends-on`, `deploys-to`), so the line is an entry's blast radius: change this and these must be re-pinned or rebuilt. Thematic edges (`markets`, `sells`, `related`) are excluded — reversing them would assert something false — and appear only under `Relationships`, with their type intact.
+  - **`Shared capabilities`** lists only capabilities with more than one provider. A sole provider is already stated on its own entry; there is no full capability index, because one provider is the norm and an index of them restates component names while saying nothing about the components it names. Capability-first lookup is `catalog.json`'s job.
 - **`catalog.json`** — the **complete, queryable graph**. The full catalog with **every field** (all `provides`, `stack`, `url`s, and edges), lossless. Query it with `jq` (or a tool) when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.)
 
 Rule of thumb: **read `CATALOG.md` to orient, query `catalog.json` to extract.**
