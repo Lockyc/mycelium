@@ -11,34 +11,100 @@ func RenderJSON(c Catalog) ([]byte, error) {
 	return json.MarshalIndent(c, "", "  ")
 }
 
+// entry is the render-level union of the two things that appear in the map: a
+// scanned repo (Component) and a non-repo overlay node. They render identically
+// bar the fields a node has no notion of (kind, status, tags), which are already
+// rendered conditionally.
+type entry struct {
+	name     string
+	summary  string
+	kind     string
+	status   string
+	tags     []string
+	provides []string
+}
+
+func entries(c Catalog) []entry {
+	out := make([]entry, 0, len(c.Components)+len(c.Nodes))
+	for _, comp := range c.Components {
+		provides := make([]string, 0, len(comp.Sidecar.Provides))
+		for _, p := range comp.Sidecar.Provides {
+			provides = append(provides, p.Name)
+		}
+		out = append(out, entry{
+			name:     comp.Name,
+			summary:  comp.Sidecar.Summary,
+			kind:     comp.Sidecar.Kind,
+			status:   comp.Sidecar.Status,
+			tags:     comp.Sidecar.Tags,
+			provides: provides,
+		})
+	}
+	for _, n := range c.Nodes {
+		out = append(out, entry{name: n.Name, summary: n.Summary, provides: n.Provides})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
+	return out
+}
+
+// RenderMarkdown builds the lossy map an agent reads into context to orient.
+//
+// It is component-first: each entry states what a thing is and what it provides,
+// together. The capability-first index this replaced was a near-bijection — all
+// but a couple of capabilities had exactly one provider — so it spent a line per
+// capability restating a component name, while telling a reader nothing about the
+// component it named ("git-mirror — homelab" requires jumping to homelab's entry
+// to learn what homelab even is). Sort order was its only real advantage, and
+// that is worth nothing to this file's reader: CATALOG.md is read whole, into
+// context. Lookup is catalog.json's job — read to orient, query to extract.
 func RenderMarkdown(c Catalog) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium catalog\n\n")
 
-	b.WriteString("## Capabilities\n\n")
-	capNames := make([]string, 0, len(c.Capabilities))
-	for k := range c.Capabilities {
-		capNames = append(capNames, k)
-	}
-	sort.Strings(capNames)
-	for _, name := range capNames {
-		fmt.Fprintf(&b, "- **%s** — %s\n", name, strings.Join(c.Capabilities[name], ", "))
-	}
-
-	b.WriteString("\n## Components\n\n")
-	comps := append([]Component(nil), c.Components...)
-	sort.Slice(comps, func(i, j int) bool { return comps[i].Name < comps[j].Name })
-	for _, comp := range comps {
-		fmt.Fprintf(&b, "### %s\n%s\n", comp.Name, comp.Sidecar.Summary)
-		if comp.Sidecar.Kind != "" || comp.Sidecar.Status != "" {
-			fmt.Fprintf(&b, "_%s · %s_\n", comp.Sidecar.Kind, comp.Sidecar.Status)
+	b.WriteString("## Components\n\n")
+	for _, e := range entries(c) {
+		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)
+		if e.kind != "" || e.status != "" {
+			fmt.Fprintf(&b, "_%s · %s_\n", e.kind, e.status)
 		}
-		if len(comp.Sidecar.Tags) > 0 {
-			quoted := make([]string, len(comp.Sidecar.Tags))
-			for i, t := range comp.Sidecar.Tags {
+		if len(e.provides) > 0 {
+			bolded := make([]string, len(e.provides))
+			for i, p := range e.provides {
+				bolded[i] = "**" + p + "**"
+			}
+			fmt.Fprintf(&b, "Provides: %s\n", strings.Join(bolded, ", "))
+		}
+		if len(e.tags) > 0 {
+			quoted := make([]string, len(e.tags))
+			for i, t := range e.tags {
 				quoted[i] = "`" + t + "`"
 			}
 			fmt.Fprintf(&b, "%s\n", strings.Join(quoted, " "))
+		}
+		b.WriteString("\n")
+	}
+
+	// Overlap is the one fact a component-first layout hides: with capabilities
+	// listed per entry, "two components both do newsletter" is visible only by
+	// noticing the same name twice, pages apart. So call out the multi-provider
+	// capabilities — and only those. Listing sole-provider capabilities here would
+	// rebuild the index that was just dropped, since an entry already states them.
+	//
+	// Omitted entirely when empty, unlike the orphan section below: an absent
+	// overlap list is not a defect signal, and nothing is missing from the map
+	// when it is absent — every capability still appears on its own entry.
+	shared := make([]string, 0, len(c.Capabilities))
+	for name, provs := range c.Capabilities {
+		if len(provs) > 1 {
+			shared = append(shared, name)
+		}
+	}
+	if len(shared) > 0 {
+		sort.Strings(shared)
+		b.WriteString("## Shared capabilities\n\n")
+		b.WriteString("Provided by more than one component — check both before adding a third.\n\n")
+		for _, name := range shared {
+			fmt.Fprintf(&b, "- **%s** — %s\n", name, strings.Join(c.Capabilities[name], ", "))
 		}
 		b.WriteString("\n")
 	}

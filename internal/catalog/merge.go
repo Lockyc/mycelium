@@ -6,7 +6,12 @@ import (
 )
 
 type Catalog struct {
-	Components    []Component         `json:"components"`
+	Components []Component `json:"components"`
+	// Nodes are the overlay's non-repo entries (a managed service, a SaaS
+	// dependency) — real actors in the ecosystem that no scan can find because
+	// they have no repo. They are carried alongside Components, not merged into
+	// them, because they have no id/commit/sidecar; the renderer lists both.
+	Nodes         []OverlayNode       `json:"nodes,omitempty"`
 	Capabilities  map[string][]string `json:"capabilities"`
 	Edges         []Edge              `json:"edges"`
 	DanglingEdges []DanglingEdge      `json:"dangling_edges"`
@@ -129,5 +134,7 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 		orphans = append(orphans, orphanByID[id])
 	}
 
-	return Catalog{Components: comps, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
+	nodes := append([]OverlayNode(nil), ov.Nodes...)
+
+	return Catalog{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
 }

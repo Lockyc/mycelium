@@ -16,10 +16,24 @@ private overlay → render `CATALOG.md`/`catalog.json` → audit → serve.
 ## Invariants
 - **Two outputs, two agent use cases — both for agents, neither for humans.** `CATALOG.md`
   (`RenderMarkdown`) is the deliberately **lossy** Markdown *map to read into context* — orient
-  before cross-cutting work; it omits `provides`/`stack`/`url` detail to stay skimmable.
-  `catalog.json` (`RenderJSON`) is the **full-fidelity graph to query** — every field, for
-  `jq`/filter/traverse. Read to orient, query to extract. Not human-vs-machine — both are
-  agent-facing, split by task.
+  before cross-cutting work; it carries capability *names* inline per entry but omits their
+  summaries/urls, plus `stack`, to stay skimmable. `catalog.json` (`RenderJSON`) is the
+  **full-fidelity graph to query** — every field, for `jq`/filter/traverse. Read to orient,
+  query to extract. Not human-vs-machine — both are agent-facing, split by task.
+- **`CATALOG.md` is component-first, and has no capability index.** Each entry states what a
+  thing is and what it provides, together. A capability-first index was tried and dropped: it
+  was a near-bijection (all but a couple of capabilities have exactly one provider), so it
+  spent a line per capability restating a component name while saying nothing about the
+  component it named — `git-mirror — homelab` forces a jump to homelab's entry to learn what
+  homelab is. Its sort order bought nothing for a file that is read *whole, into context*;
+  lookup is `catalog.json`'s job. **Only multi-provider capabilities get a callout**
+  (`## Shared capabilities`) — overlap is the one fact this layout hides, and listing
+  sole-provider capabilities there just rebuilds the index.
+- **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
+  actor — managed service, SaaS dep) rides in `Catalog.Nodes` and renders in the same
+  name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,
+  but they are *not* in `Components` — so any renderer that walks only `Components` drops them
+  from the map silently, which is exactly what removing the capability index would have done.
 - Components dedupe by **canonical git-remote URL**, never by path.
 - **A sidecar inherits its repo's visibility.** It's committed to its repo, so a
   *public/shared* repo's sidecar must be public-safe (world-readable → no private

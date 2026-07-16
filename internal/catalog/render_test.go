@@ -92,24 +92,115 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 	}
 }
 
-func TestRenderMarkdownGroupsByCapability(t *testing.T) {
+// The map is component-first: an entry carries its own capabilities inline, so a
+// reader learns what a thing is and what it provides without jumping. There is no
+// full capability index — it was a near-bijection (one provider for all but a
+// couple of capabilities), so it cost a line per capability to restate a component
+// name that the entry below already carried, and told a reader nothing about the
+// component it named.
+func TestRenderMarkdownComponentFirst(t *testing.T) {
 	c := Catalog{
-		Components: []Component{{Name: "orders-api", Sidecar: Sidecar{Summary: "order service"}}},
+		Components: []Component{{Name: "orders-api", Sidecar: Sidecar{
+			Summary:  "order service",
+			Provides: []Provides{{Name: "order-events"}, {Name: "order-api"}},
+		}}},
 		Capabilities: map[string][]string{
 			"order-events": {"orders-api"},
-			"postgres":     {"shared-postgres"},
+			"order-api":    {"orders-api"},
 		},
 	}
 	md := RenderMarkdown(c)
-	if !strings.Contains(md, "## Capabilities") {
-		t.Error("missing capabilities heading")
+	if !strings.Contains(md, "## Components") {
+		t.Fatal("missing components heading")
 	}
-	// sorted: order-events before postgres
-	if strings.Index(md, "order-events") > strings.Index(md, "postgres") {
-		t.Error("capabilities not sorted")
+	if strings.Contains(md, "## Capabilities") {
+		t.Errorf("the full capability index is gone — capabilities render inline:\n%s", md)
 	}
-	if !strings.Contains(md, "orders-api") || !strings.Contains(md, "order service") {
+	if !strings.Contains(md, "Provides: **order-events**, **order-api**") {
+		t.Errorf("capabilities not rendered inline in sidecar order:\n%s", md)
+	}
+	// inline means inside the entry: the capabilities follow the component heading.
+	if strings.Index(md, "### orders-api") > strings.Index(md, "order-events") {
+		t.Error("capabilities should render under their component, not above it")
+	}
+	if !strings.Contains(md, "order service") {
 		t.Error("missing component detail")
+	}
+	// a component providing nothing renders no Provides line.
+	bare := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	if strings.Contains(bare, "Provides:") {
+		t.Errorf("component with no provides should render no Provides line:\n%s", bare)
+	}
+}
+
+// Only capabilities with more than one provider get a callout. A single-provider
+// capability is already stated by its component's own entry, so listing it here
+// would rebuild the index this layout deliberately dropped. Overlap is the one
+// fact a component-first layout genuinely hides: it is visible only by noticing
+// the same capability name on two separate entries.
+func TestRenderMarkdownSharedCapabilities(t *testing.T) {
+	c := Catalog{
+		Components: []Component{
+			{Name: "site", Sidecar: Sidecar{Summary: "s"}},
+			{Name: "infra", Sidecar: Sidecar{Summary: "i"}},
+		},
+		Capabilities: map[string][]string{
+			"newsletter": {"infra", "site"}, // shared — called out
+			"hosting":    {"infra"},         // sole provider — not called out
+		},
+	}
+	md := RenderMarkdown(c)
+	if !strings.Contains(md, "## Shared capabilities") {
+		t.Fatalf("missing shared-capabilities heading:\n%s", md)
+	}
+	shared := md[strings.Index(md, "## Shared capabilities"):]
+	if !strings.Contains(shared, "**newsletter** — infra, site") {
+		t.Errorf("multi-provider capability not called out:\n%s", shared)
+	}
+	if strings.Contains(shared, "hosting") {
+		t.Errorf("single-provider capability must not be listed — that is the index again:\n%s", shared)
+	}
+
+	// No overlaps: the section is omitted entirely. Unlike the orphan section, an
+	// absent overlap list is not a defect signal — every capability is already
+	// stated by its component's entry, so there is nothing a reader could miss.
+	solo := RenderMarkdown(Catalog{
+		Components:   []Component{{Name: "infra", Sidecar: Sidecar{Summary: "i"}}},
+		Capabilities: map[string][]string{"hosting": {"infra"}},
+	})
+	if strings.Contains(solo, "Shared capabilities") {
+		t.Errorf("no overlaps should render no section:\n%s", solo)
+	}
+}
+
+// Merge feeds overlay nodes into the capability index but Catalog carries them
+// separately from Components — so dropping the index would have erased a node
+// from the map entirely. Nodes are real entries in the ecosystem, not just names
+// hanging off a capability, and this pins that they render as such.
+func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
+	c := Catalog{
+		Components: []Component{{Name: "zeta", Sidecar: Sidecar{Summary: "a repo"}}},
+		Nodes: []OverlayNode{{
+			Name:     "shared-postgres",
+			Summary:  "managed database, not a repo",
+			Provides: []string{"postgres"},
+		}},
+		Capabilities: map[string][]string{"postgres": {"shared-postgres"}},
+	}
+	md := RenderMarkdown(c)
+	if !strings.Contains(md, "### shared-postgres") {
+		t.Fatalf("overlay node missing from the map:\n%s", md)
+	}
+	if !strings.Contains(md, "managed database, not a repo") {
+		t.Errorf("overlay node summary not rendered:\n%s", md)
+	}
+	if !strings.Contains(md, "Provides: **postgres**") {
+		t.Errorf("overlay node capabilities not rendered inline:\n%s", md)
+	}
+	// nodes and components interleave in one name-sorted list — a reader wants one
+	// list of what exists, not two near-identical sections to cross-reference.
+	if strings.Index(md, "shared-postgres") > strings.Index(md, "zeta") {
+		t.Error("nodes and components should sort together by name")
 	}
 }
 
