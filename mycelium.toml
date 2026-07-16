@@ -2,9 +2,9 @@ name    = "mycelium"
 summary = "Cross-repo ecosystem catalog for coding agents — scan mycelium.toml sidecars, merge a private overlay, serve one agent-readable catalog"
 kind    = "tool"
 status  = "wip"
-tags    = ["catalog", "agents", "metadata", "cli"]
+tags    = ["graph", "agents", "metadata", "cli"]
 stack   = ["go"]
 
 [[provides]]
-name    = "catalog"
-summary = "Serves the merged ecosystem map as CATALOG.md + catalog.json over HTTP"
+name    = "ecosystem-graph"
+summary = "Serves the merged ecosystem graph as MAP.md + graph.json over HTTP"

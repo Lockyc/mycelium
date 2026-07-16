@@ -8,15 +8,15 @@ import (
 )
 
 func usage() string {
-	return `myco — the Mycelium catalog tool
+	return `myco — the Mycelium ecosystem graph tool
 
 usage: myco <command> [flags]
 
 commands:
   scan       scan repo roots, emit a node manifest
-  build      merge manifests + overlay into CATALOG.md + catalog.json
-  serve      build, then serve the catalog over HTTP
-  audit      check the catalog for orphans, dangling edges, staleness
+  build      merge manifests + overlay into MAP.md + graph.json
+  serve      build, then serve the map + graph over HTTP
+  audit      check the graph for orphans, dangling edges, staleness
   validate   lint a single mycelium.toml against the schema
   version    print the myco version (also --version, -v)
 `

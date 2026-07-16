@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# demo.sh — build a Mycelium catalog from the bundled examples in a throwaway
+# demo.sh — build a Mycelium ecosystem graph from the bundled examples in a throwaway
 # temp workspace, so you can see myco end-to-end without any real repos.
 #
-#   ./scripts/demo.sh          # build + print the catalog, then clean up
+#   ./scripts/demo.sh          # build + print the map, then clean up
 #   KEEP=1 ./scripts/demo.sh   # keep the temp workspace to inspect the files
 #
 # Doubles as a smoke test: exercises scan -> build -> audit against real (throwaway)
@@ -20,7 +20,7 @@ work=$(mktemp -d)
 if [ -z "${KEEP:-}" ]; then trap 'rm -rf "$work"' EXIT; fi
 repos="$work/repos"
 manifests="$work/manifests"
-out="$work/catalog"
+out="$work/graph"
 mkdir -p "$repos" "$manifests" "$out"
 
 # Materialise each example as a throwaway git repo with a fake origin, so myco
@@ -38,10 +38,10 @@ for dir in "$root"/examples/repos/*/; do
 		commit -q -m "example"
 done
 
-# Two repos with NO mycelium.toml, to show orphan handling: 'needs-catalog' is
+# Two repos with NO mycelium.toml, to show orphan handling: 'needs-sidecar' is
 # flagged by the audit as an orphan; 'scratch' is suppressed via the overlay's
 # ignore list (see examples/overlay.toml).
-for name in needs-catalog scratch; do
+for name in needs-sidecar scratch; do
 	dest="$repos/$name"
 	mkdir -p "$dest"
 	git -C "$dest" init -q
@@ -53,13 +53,13 @@ done
 echo "==> myco scan"
 "$myco" scan --roots "$repos" --node demo --out "$manifests/demo.json"
 echo "==> myco build (with example overlay)"
-"$myco" build --manifests "$manifests" --overlay "$root/examples/overlay.toml" --out "$out"
+"$myco" build --manifests "$manifests" --overlay "$root/examples/overlay.toml" --dir "$out"
 echo "==> myco audit"
-"$myco" audit --catalog "$out" || true
+"$myco" audit --dir "$out" || true
 
 echo
-echo "===================== CATALOG.md ====================="
-cat "$out/CATALOG.md"
+echo "===================== MAP.md ====================="
+cat "$out/MAP.md"
 echo "======================================================"
 if [ -n "${KEEP:-}" ]; then
 	echo "workspace kept at: $work"
