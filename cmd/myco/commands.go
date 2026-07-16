@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/lockyc/mycelium/internal/audit"
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 	"github.com/lockyc/mycelium/internal/hub"
 	"github.com/lockyc/mycelium/internal/scan"
 	"github.com/lockyc/mycelium/internal/transport"
@@ -104,7 +104,7 @@ func runValidate(args []string) error {
 	if err != nil {
 		return err
 	}
-	sc, err := catalog.ParseSidecar(data)
+	sc, err := graph.ParseSidecar(data)
 	if err != nil {
 		return err
 	}
@@ -122,8 +122,8 @@ func runAudit(args []string) error {
 	if err != nil {
 		return err
 	}
-	var cat catalog.Catalog
-	if err := json.Unmarshal(data, &cat); err != nil {
+	var g graph.Graph
+	if err := json.Unmarshal(data, &g); err != nil {
 		return err
 	}
 	var prev []string
@@ -132,10 +132,10 @@ func runAudit(args []string) error {
 			fmt.Fprintln(os.Stderr, "warning: ignoring unreadable previous.json:", err)
 		}
 	}
-	findings := audit.Audit(cat, prev)
+	findings := audit.Audit(g, prev)
 	// persist current ids for next run's staleness check
 	var ids []string
-	for _, c := range cat.Components {
+	for _, c := range g.Components {
 		ids = append(ids, c.ID)
 	}
 	if idsData, err := json.Marshal(ids); err == nil {
@@ -174,6 +174,6 @@ func runServe(args []string) error {
 		}
 		token = strings.TrimSpace(string(b))
 	}
-	fmt.Println("serving catalog + ingest on", *addr)
+	fmt.Println("serving map + ingest on", *addr)
 	return hub.Serve(*manifests, *overlayPath, *catDir, token, *addr)
 }

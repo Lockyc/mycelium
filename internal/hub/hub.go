@@ -10,17 +10,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 	"github.com/lockyc/mycelium/internal/serve"
 	"github.com/lockyc/mycelium/internal/transport"
 )
 
-func loadManifests(dir string) ([]catalog.Manifest, error) {
+func loadManifests(dir string) ([]graph.Manifest, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	var ms []catalog.Manifest
+	var ms []graph.Manifest
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
 			continue
@@ -29,7 +29,7 @@ func loadManifests(dir string) ([]catalog.Manifest, error) {
 		if err != nil {
 			return nil, err
 		}
-		var m catalog.Manifest
+		var m graph.Manifest
 		if err := json.Unmarshal(data, &m); err != nil {
 			return nil, err
 		}
@@ -45,38 +45,38 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err != nil {
 		return err
 	}
-	var ov catalog.Overlay
+	var ov graph.Overlay
 	if overlayPath != "" {
 		data, err := os.ReadFile(overlayPath)
 		if err != nil {
 			return err
 		}
-		if ov, err = catalog.ParseOverlay(data); err != nil {
+		if ov, err = graph.ParseOverlay(data); err != nil {
 			return err
 		}
 	}
-	cat := catalog.Merge(ms, ov)
+	g := graph.Merge(ms, ov)
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}
-	jsonData, err := catalog.RenderJSON(cat)
+	jsonData, err := graph.RenderJSON(g)
 	if err != nil {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(outDir, "graph.json"), jsonData, 0o644); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(outDir, "MAP.md"), []byte(catalog.RenderMarkdown(cat)), 0o644)
+	return os.WriteFile(filepath.Join(outDir, "MAP.md"), []byte(graph.RenderMarkdown(g)), 0o644)
 }
 
-// Handler builds the mux: static catalog routes plus the authenticated ingest
+// Handler builds the mux: routes plus the authenticated ingest
 // endpoint, whose onIngest re-runs Build (serialized).
-func Handler(manifestsDir, overlayPath, catalogDir, ingestToken string) http.Handler {
+func Handler(manifestsDir, overlayPath, outDir, ingestToken string) http.Handler {
 	var mu sync.Mutex
 	rebuild := func() error {
 		mu.Lock()
 		defer mu.Unlock()
-		if err := Build(manifestsDir, overlayPath, catalogDir); err != nil {
+		if err := Build(manifestsDir, overlayPath, outDir); err != nil {
 			fmt.Fprintln(os.Stderr, "hub: rebuild failed:", err)
 			return err
 		}
@@ -85,14 +85,14 @@ func Handler(manifestsDir, overlayPath, catalogDir, ingestToken string) http.Han
 	mux := http.NewServeMux()
 	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
 	// static routes (/MAP.md, /graph.json, /) come last as the fallback.
-	mux.Handle("/", serve.Handler(catalogDir))
+	mux.Handle("/", serve.Handler(outDir))
 	return mux
 }
 
-// Serve builds the catalog once then listens on addr, serving static catalog
-// routes and the authenticated ingest endpoint. Blocks until the server exits.
-func Serve(manifestsDir, overlayPath, catalogDir, ingestToken, addr string) error {
-	if err := Build(manifestsDir, overlayPath, catalogDir); err != nil {
+// Serve builds the map once then listens on addr, serving its static routes
+// and the authenticated ingest endpoint. Blocks until the server exits.
+func Serve(manifestsDir, overlayPath, outDir, ingestToken, addr string) error {
+	if err := Build(manifestsDir, overlayPath, outDir); err != nil {
 		return err
 	}
 	if ingestToken == "" {
@@ -101,7 +101,7 @@ func Serve(manifestsDir, overlayPath, catalogDir, ingestToken, addr string) erro
 	}
 	srv := &http.Server{
 		Addr:    addr,
-		Handler: Handler(manifestsDir, overlayPath, catalogDir, ingestToken),
+		Handler: Handler(manifestsDir, overlayPath, outDir, ingestToken),
 		// bound the header read so a slow client can't hold a connection open indefinitely.
 		ReadHeaderTimeout: 10 * time.Second,
 	}

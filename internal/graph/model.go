@@ -1,4 +1,4 @@
-package catalog
+package graph
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 )
 
 // SidecarName is the committed per-repo sidecar file Mycelium scans for. Named
-// after the tool (not the generic "catalog") so an agent or dev seeing it in a
-// repo root has a thread to pull — grep the name, find Mycelium.
+// after the tool so an agent or dev seeing it in a repo root has a thread to
+// pull — grep the name, find Mycelium.
 const SidecarName = "mycelium.toml"
 
 type Provides struct {
@@ -44,7 +44,7 @@ type Overlay struct {
 	Edges []Edge        `toml:"edge" json:"edge,omitempty"`
 	// Ignore lists canonical repo ids (as printed by `myco audit`) that are known
 	// to intentionally lack a mycelium.toml; matching orphans are suppressed from
-	// the catalog. Full remote URLs are accepted too — they are canonicalized.
+	// the graph. Full remote URLs are accepted too — they are canonicalized.
 	Ignore []string `toml:"ignore" json:"ignore,omitempty"`
 }
 
@@ -65,7 +65,7 @@ type Manifest struct {
 }
 
 // Orphan is a scanned repo with no committed mycelium.toml. It rides in the
-// manifest (and, after merge, the catalog) so the audit can surface a missing
+// manifest (and, after merge, the graph) so the audit can surface a missing
 // sidecar as persistent ecosystem rot rather than a transient scan-time warning.
 type Orphan struct {
 	ID   string `json:"id"`   // canonical git-remote id (or fallback host/owner/name)

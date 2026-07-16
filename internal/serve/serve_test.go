@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func writeCatalog(t *testing.T, dir string) {
+func writeArtifacts(t *testing.T, dir string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(dir, "MAP.md"), []byte("# hi"), 0o644); err != nil {
 		t.Fatal(err)
@@ -18,9 +18,9 @@ func writeCatalog(t *testing.T, dir string) {
 	}
 }
 
-func TestHandlerServesCatalog(t *testing.T) {
+func TestHandlerServesArtifacts(t *testing.T) {
 	dir := t.TempDir()
-	writeCatalog(t, dir)
+	writeArtifacts(t, dir)
 	srv := httptest.NewServer(Handler(dir))
 	defer srv.Close()
 
@@ -51,7 +51,7 @@ func TestHandlerServesCatalog(t *testing.T) {
 
 func TestHandlerNotFound(t *testing.T) {
 	dir := t.TempDir()
-	writeCatalog(t, dir)
+	writeArtifacts(t, dir)
 	srv := httptest.NewServer(Handler(dir))
 	defer srv.Close()
 

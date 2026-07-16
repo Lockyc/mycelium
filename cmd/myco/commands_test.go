@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestBuildProducesCatalog(t *testing.T) {
+func TestBuildProducesArtifacts(t *testing.T) {
 	root := t.TempDir()
 	repo := filepath.Join(root, "widgets")
 	if err := os.MkdirAll(repo, 0o755); err != nil {
@@ -44,8 +44,8 @@ func TestBuildProducesCatalog(t *testing.T) {
 
 // TestBuildThenAudit exercises the build -> audit round-trip: runAudit must
 // be able to read whatever artifact runBuild actually writes. This is the
-// regression gate for the catalog.json -> graph.json rename — it fails with
-// a file-not-found error if runAudit reads a filename runBuild doesn't write.
+// regression gate for the artifact-name rename — it fails with a
+// file-not-found error if runAudit reads a filename runBuild doesn't write.
 func TestBuildThenAudit(t *testing.T) {
 	root := t.TempDir()
 	repo := filepath.Join(root, "widgets")

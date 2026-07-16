@@ -1,11 +1,11 @@
-package catalog
+package graph
 
 import (
 	"fmt"
 	"sort"
 )
 
-type Catalog struct {
+type Graph struct {
 	Components []Component `json:"components"`
 	// Nodes are the overlay's non-repo entries (a managed service, a SaaS
 	// dependency) — real actors in the ecosystem that no scan can find because
@@ -26,7 +26,7 @@ type DanglingEdge struct {
 	Reason string `json:"reason"`
 }
 
-func Merge(manifests []Manifest, ov Overlay) Catalog {
+func Merge(manifests []Manifest, ov Overlay) Graph {
 	byID := map[string]*Component{}
 	var order []string
 	for _, m := range manifests {
@@ -136,5 +136,5 @@ func Merge(manifests []Manifest, ov Overlay) Catalog {
 
 	nodes := append([]OverlayNode(nil), ov.Nodes...)
 
-	return Catalog{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
+	return Graph{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
 }

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 const ManifestPath = "/manifests"
@@ -19,7 +19,7 @@ const ManifestPath = "/manifests"
 // POST can't exhaust hub memory. Manifests are small; 32 MiB is generous.
 const maxManifestBytes = 32 << 20
 
-func Push(hubURL, token string, m catalog.Manifest) error {
+func Push(hubURL, token string, m graph.Manifest) error {
 	body, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func IngestHandler(manifestsDir, token string, onIngest func() error) http.Handl
 			}
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxManifestBytes)
-		var m catalog.Manifest
+		var m graph.Manifest
 		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 			http.Error(w, "bad manifest json", http.StatusBadRequest)
 			return

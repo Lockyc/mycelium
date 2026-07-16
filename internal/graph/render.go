@@ -1,4 +1,4 @@
-package catalog
+package graph
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func RenderJSON(c Catalog) ([]byte, error) {
+func RenderJSON(c Graph) ([]byte, error) {
 	return json.MarshalIndent(c, "", "  ")
 }
 
@@ -59,7 +59,7 @@ func joinNonEmpty(sep string, parts ...string) string {
 	return strings.Join(kept, sep)
 }
 
-func entries(c Catalog) []entry {
+func entries(c Graph) []entry {
 	rev := usedBy(c.Edges)
 	out := make([]entry, 0, len(c.Components)+len(c.Nodes))
 	for _, comp := range c.Components {
@@ -95,9 +95,9 @@ func entries(c Catalog) []entry {
 // to learn what homelab even is). Sort order was its only real advantage, and
 // that is worth nothing to this file's reader: MAP.md is read whole, into
 // context. Lookup is graph.json's job — read to orient, query to extract.
-func RenderMarkdown(c Catalog) string {
+func RenderMarkdown(c Graph) string {
 	var b strings.Builder
-	b.WriteString("# Mycelium catalog\n\n")
+	b.WriteString("# Mycelium map\n\n")
 
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(c) {
@@ -176,14 +176,14 @@ func RenderMarkdown(c Catalog) string {
 	// has; if the wording doesn't prompt a fix, nothing does.
 	b.WriteString("\n## Undocumented repos\n\n")
 	if len(c.Orphans) == 0 {
-		b.WriteString("_None — every scanned repo has a catalog entry._\n")
+		b.WriteString("_None — every scanned repo has an entry above._\n")
 	} else {
 		b.WriteString("**Gaps in this map, not a normal state.** Each repo below was scanned " +
 			"but carries no `mycelium.toml`, so its purpose and capabilities are missing here — " +
-			"treat this catalog as incomplete while any remain.\n\n" +
+			"treat this map as incomplete while any remain.\n\n" +
 			"Read such a repo directly for now. **If you are working in one, close the gap in " +
 			"that change:** commit a `mycelium.toml` (identity + `provides`), or add its id to " +
-			"the overlay's `ignore` list if it is deliberately uncatalogued. Already added one " +
+			"the overlay's `ignore` list if it is deliberately undocumented. Already added one " +
 			"and still see it here? Check the filename — `mycelium.toml` is the only name read.\n\n")
 		orphans := append([]Orphan(nil), c.Orphans...)
 		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })

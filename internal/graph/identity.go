@@ -1,4 +1,4 @@
-package catalog
+package graph
 
 import "strings"
 

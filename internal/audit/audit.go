@@ -3,7 +3,7 @@ package audit
 import (
 	"fmt"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 type Finding struct {
@@ -11,18 +11,18 @@ type Finding struct {
 	Detail string
 }
 
-func Audit(cat catalog.Catalog, previousIDs []string) []Finding {
+func Audit(g graph.Graph, previousIDs []string) []Finding {
 	var out []Finding
-	for _, o := range cat.Orphans {
+	for _, o := range g.Orphans {
 		out = append(out, Finding{Kind: "orphan",
 			Detail: fmt.Sprintf("repo without mycelium.toml: %s", o.ID)})
 	}
-	for _, e := range cat.DanglingEdges {
+	for _, e := range g.DanglingEdges {
 		out = append(out, Finding{Kind: "dangling-edge",
 			Detail: fmt.Sprintf("%s %s %s — %s", e.From, e.Type, e.To, e.Reason)})
 	}
 	present := map[string]bool{}
-	for _, c := range cat.Components {
+	for _, c := range g.Components {
 		present[c.ID] = true
 	}
 	for _, id := range previousIDs {

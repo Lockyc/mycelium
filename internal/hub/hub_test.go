@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
-func TestBuildWritesCatalog(t *testing.T) {
+func TestBuildWritesArtifacts(t *testing.T) {
 	man := t.TempDir()
 	out := t.TempDir()
-	m := catalog.Manifest{Node: "n", Components: []catalog.Component{
+	m := graph.Manifest{Node: "n", Components: []graph.Component{
 		{ID: "github.com/acme/widgets", Name: "widgets",
-			Sidecar: catalog.Sidecar{Name: "widgets", Summary: "w"}},
+			Sidecar: graph.Sidecar{Name: "widgets", Summary: "w"}},
 	}}
 	data, _ := json.Marshal(m)
 	if err := os.WriteFile(filepath.Join(man, "n.json"), data, 0o644); err != nil {

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 func TestPushSendsAuthedManifest(t *testing.T) {
@@ -20,14 +20,14 @@ func TestPushSendsAuthedManifest(t *testing.T) {
 		gotAuth = r.Header.Get("Authorization")
 		gotPath = r.URL.Path
 		body, _ := io.ReadAll(r.Body)
-		var m catalog.Manifest
+		var m graph.Manifest
 		_ = json.Unmarshal(body, &m)
 		gotNode = m.Node
 		w.WriteHeader(200)
 	}))
 	defer srv.Close()
 
-	err := Push(srv.URL, "sekret", catalog.Manifest{Node: "node-a"})
+	err := Push(srv.URL, "sekret", graph.Manifest{Node: "node-a"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +44,11 @@ func TestIngestStoresPerNodeAndRebuilds(t *testing.T) {
 	defer srv.Close()
 
 	// wrong token -> 401, no write
-	if err := Push(srv.URL, "wrong", catalog.Manifest{Node: "node-a"}); err == nil {
+	if err := Push(srv.URL, "wrong", graph.Manifest{Node: "node-a"}); err == nil {
 		t.Fatal("want error on bad token")
 	}
 	// good token -> stored keyed by node, rebuild called
-	if err := Push(srv.URL, "sekret", catalog.Manifest{Node: "node-a"}); err != nil {
+	if err := Push(srv.URL, "sekret", graph.Manifest{Node: "node-a"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "node-a.json")); err != nil {
@@ -58,7 +58,7 @@ func TestIngestStoresPerNodeAndRebuilds(t *testing.T) {
 		t.Fatalf("rebuilt=%d, want 1", rebuilt)
 	}
 	// re-push same node replaces (still one file)
-	if err := Push(srv.URL, "sekret", catalog.Manifest{Node: "node-a"}); err != nil {
+	if err := Push(srv.URL, "sekret", graph.Manifest{Node: "node-a"}); err != nil {
 		t.Fatal(err)
 	}
 	entries, _ := os.ReadDir(dir)
@@ -81,7 +81,7 @@ func TestIngestRejectsPathTraversal(t *testing.T) {
 	countBefore := len(entriesBefore)
 
 	// Try to push with path traversal node id
-	if err := Push(srv.URL, "", catalog.Manifest{Node: "../evil"}); err == nil {
+	if err := Push(srv.URL, "", graph.Manifest{Node: "../evil"}); err == nil {
 		t.Fatal("want error on path traversal node id")
 	}
 
@@ -95,7 +95,7 @@ func TestIngestRejectsPathTraversal(t *testing.T) {
 	// Also test other unsafe node ids
 	unsafeIds := []string{".", "..", "foo/bar", "baz\\qux"}
 	for _, unsafeId := range unsafeIds {
-		err := Push(srv.URL, "", catalog.Manifest{Node: unsafeId})
+		err := Push(srv.URL, "", graph.Manifest{Node: unsafeId})
 		if err == nil {
 			t.Fatalf("want error on node id %q", unsafeId)
 		}
@@ -107,7 +107,7 @@ func TestIngestRejectsEmptyNode(t *testing.T) {
 	srv := httptest.NewServer(IngestHandler(dir, "", func() error { return nil }))
 	defer srv.Close()
 	// no token configured; empty node -> 400
-	if err := Push(srv.URL, "", catalog.Manifest{Node: ""}); err == nil {
+	if err := Push(srv.URL, "", graph.Manifest{Node: ""}); err == nil {
 		t.Fatal("want error on empty node")
 	}
 }
@@ -146,7 +146,7 @@ func TestIngestSurfacesRebuildError(t *testing.T) {
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
-	err := Push(srv.URL, "", catalog.Manifest{Node: "node-a"})
+	err := Push(srv.URL, "", graph.Manifest{Node: "node-a"})
 	if err == nil {
 		t.Fatal("want error when rebuild fails")
 	}

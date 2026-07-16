@@ -1,18 +1,18 @@
 package audit
 
 import "testing"
-import "github.com/lockyc/mycelium/internal/catalog"
+import "github.com/lockyc/mycelium/internal/graph"
 
 func TestAuditFindsAllKinds(t *testing.T) {
-	cat := catalog.Catalog{
-		Components: []catalog.Component{{ID: "github.com/acme/widgets"}},
-		Orphans:    []catalog.Orphan{{ID: "github.com/acme/gadgets", Name: "gadgets", Path: "/repos/gadgets"}},
-		DanglingEdges: []catalog.DanglingEdge{{
-			Edge:   catalog.Edge{From: "x", To: "ghost", Type: "consumes"},
+	g := graph.Graph{
+		Components: []graph.Component{{ID: "github.com/acme/widgets"}},
+		Orphans:    []graph.Orphan{{ID: "github.com/acme/gadgets", Name: "gadgets", Path: "/repos/gadgets"}},
+		DanglingEdges: []graph.DanglingEdge{{
+			Edge:   graph.Edge{From: "x", To: "ghost", Type: "consumes"},
 			Reason: `target "ghost" is not provided by anything`,
 		}},
 	}
-	findings := Audit(cat,
+	findings := Audit(g,
 		[]string{"github.com/acme/removed"}, // previously present, now missing
 	)
 	kinds := map[string]int{}

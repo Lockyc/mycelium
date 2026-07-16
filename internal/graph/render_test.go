@@ -1,4 +1,4 @@
-package catalog
+package graph
 
 import (
 	"strings"
@@ -11,7 +11,7 @@ import (
 func TestRenderJSONPathNotLeaked(t *testing.T) {
 	secretPath := "/home/someone/private/widgets"
 	orphanPath := "/home/someone/private/undocumented"
-	c := Catalog{
+	c := Graph{
 		Components: []Component{
 			{
 				ID:     "github.com/acme/widgets",
@@ -20,7 +20,7 @@ func TestRenderJSONPathNotLeaked(t *testing.T) {
 				Commit: "abc123",
 				Sidecar: Sidecar{
 					Name:    "widgets",
-					Summary: "widget catalog app",
+					Summary: "widget tracking app",
 					Kind:    "app",
 					Status:  "active",
 				},
@@ -47,7 +47,7 @@ func TestRenderJSONPathNotLeaked(t *testing.T) {
 func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 	// Present: orphans are listed by name + canonical id, sorted, and the
 	// node-local path never appears in the shared markdown.
-	withOrphans := RenderMarkdown(Catalog{Orphans: []Orphan{
+	withOrphans := RenderMarkdown(Graph{Orphans: []Orphan{
 		{ID: "github.com/acme/zeta", Name: "zeta", Path: "/node/zeta"},
 		{ID: "github.com/acme/alpha", Name: "alpha", Path: "/node/alpha"},
 	}})
@@ -70,7 +70,7 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 	// it said "look at them directly if relevant" — a workaround, not a report).
 	for _, want := range []string{
 		"not a normal state", // it is a defect
-		"treat this catalog as incomplete",
+		"treat this map as incomplete",
 		"close the gap",      // the call to action
 		"`ignore` list",      // the deliberate-exclusion escape hatch
 		"Check the filename", // the misnamed-sidecar trap
@@ -83,7 +83,7 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 
 	// Empty: the section is still rendered with an explicit None line, so an agent
 	// can tell "fully documented" apart from "section absent".
-	none := RenderMarkdown(Catalog{})
+	none := RenderMarkdown(Graph{})
 	if !strings.Contains(none, "## Undocumented repos") {
 		t.Error("undocumented-repos section should render even when empty")
 	}
@@ -99,7 +99,7 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 // name that the entry below already carried, and told a reader nothing about the
 // component it named.
 func TestRenderMarkdownComponentFirst(t *testing.T) {
-	c := Catalog{
+	c := Graph{
 		Components: []Component{{Name: "orders-api", Sidecar: Sidecar{
 			Summary:  "order service",
 			Provides: []Provides{{Name: "order-events"}, {Name: "order-api"}},
@@ -127,7 +127,7 @@ func TestRenderMarkdownComponentFirst(t *testing.T) {
 		t.Error("missing component detail")
 	}
 	// a component providing nothing renders no Provides line.
-	bare := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	bare := RenderMarkdown(Graph{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
 	if strings.Contains(bare, "Provides:") {
 		t.Errorf("component with no provides should render no Provides line:\n%s", bare)
 	}
@@ -139,7 +139,7 @@ func TestRenderMarkdownComponentFirst(t *testing.T) {
 // fact a component-first layout genuinely hides: it is visible only by noticing
 // the same capability name on two separate entries.
 func TestRenderMarkdownSharedCapabilities(t *testing.T) {
-	c := Catalog{
+	c := Graph{
 		Components: []Component{
 			{Name: "site", Sidecar: Sidecar{Summary: "s"}},
 			{Name: "infra", Sidecar: Sidecar{Summary: "i"}},
@@ -164,7 +164,7 @@ func TestRenderMarkdownSharedCapabilities(t *testing.T) {
 	// No overlaps: the section is omitted entirely. Unlike the orphan section, an
 	// absent overlap list is not a defect signal — every capability is already
 	// stated by its component's entry, so there is nothing a reader could miss.
-	solo := RenderMarkdown(Catalog{
+	solo := RenderMarkdown(Graph{
 		Components:   []Component{{Name: "infra", Sidecar: Sidecar{Summary: "i"}}},
 		Capabilities: map[string][]string{"hosting": {"infra"}},
 	})
@@ -173,12 +173,12 @@ func TestRenderMarkdownSharedCapabilities(t *testing.T) {
 	}
 }
 
-// Merge feeds overlay nodes into the capability index but Catalog carries them
+// Merge feeds overlay nodes into the capability index but Graph carries them
 // separately from Components — so dropping the index would have erased a node
 // from the map entirely. Nodes are real entries in the ecosystem, not just names
 // hanging off a capability, and this pins that they render as such.
 func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
-	c := Catalog{
+	c := Graph{
 		Components: []Component{{Name: "zeta", Sidecar: Sidecar{Summary: "a repo"}}},
 		Nodes: []OverlayNode{{
 			Name:     "shared-postgres",
@@ -208,14 +208,14 @@ func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
 // disjoint from tags (which answer "what is it about"). It is the one lossy-map
 // field worth its bytes: ~20 B an entry to say `go` vs `rust, tauri, typescript`.
 func TestRenderMarkdownRendersStack(t *testing.T) {
-	md := RenderMarkdown(Catalog{Components: []Component{{
+	md := RenderMarkdown(Graph{Components: []Component{{
 		Name:    "curator",
 		Sidecar: Sidecar{Summary: "s", Stack: []string{"rust", "tauri", "typescript"}},
 	}}})
 	if !strings.Contains(md, "Stack: rust, tauri, typescript") {
 		t.Errorf("stack not rendered in sidecar order:\n%s", md)
 	}
-	bare := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	bare := RenderMarkdown(Graph{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
 	if strings.Contains(bare, "Stack:") {
 		t.Errorf("component with no stack should render no Stack line:\n%s", bare)
 	}
@@ -226,7 +226,7 @@ func TestRenderMarkdownRendersStack(t *testing.T) {
 // into it would be plainly false — "business sells reductable" does not make
 // business a user of reductable.
 func TestRenderMarkdownUsedBy(t *testing.T) {
-	c := Catalog{
+	c := Graph{
 		Components: []Component{
 			{Name: "core", Sidecar: Sidecar{Summary: "a shared core"}},
 			{Name: "product", Sidecar: Sidecar{Summary: "the thing sold"}},
@@ -261,7 +261,7 @@ func TestRenderMarkdownUsedBy(t *testing.T) {
 // Joining them unconditionally rendered a dangling separator ("_ · active_").
 func TestRenderMarkdownPartialKindStatus(t *testing.T) {
 	render := func(kind, status string) string {
-		return RenderMarkdown(Catalog{Components: []Component{{
+		return RenderMarkdown(Graph{Components: []Component{{
 			Name:    "x",
 			Sidecar: Sidecar{Summary: "s", Kind: kind, Status: status},
 		}}})
@@ -282,7 +282,7 @@ func TestRenderMarkdownPartialKindStatus(t *testing.T) {
 }
 
 func TestRenderMarkdownRendersTags(t *testing.T) {
-	c := Catalog{Components: []Component{{
+	c := Graph{Components: []Component{{
 		Name:    "orders-api",
 		Sidecar: Sidecar{Summary: "order service", Kind: "app", Status: "active", Tags: []string{"local-first", "prelaunch"}},
 	}}}
@@ -291,7 +291,7 @@ func TestRenderMarkdownRendersTags(t *testing.T) {
 		t.Errorf("tags not rendered as backtick pills:\n%s", md)
 	}
 	// a component without tags renders no tag line (no stray backticks).
-	none := RenderMarkdown(Catalog{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
+	none := RenderMarkdown(Graph{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
 	if strings.Contains(none, "`") {
 		t.Errorf("tagless component should render no backticks:\n%s", none)
 	}

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 // resolveRef picks the git ref to read a repo's sidecar from. An empty ref (or
@@ -26,7 +26,7 @@ func resolveRef(r Repo, ref string) string {
 // sidecarAtRef returns the committed mycelium.toml at ref. found=false when the
 // file is not present at ref (an orphan); error only on an unexpected failure.
 func sidecarAtRef(r Repo, ref string) ([]byte, bool, error) {
-	out, err := r.Git("show", ref+":"+catalog.SidecarName).Output()
+	out, err := r.Git("show", ref+":"+graph.SidecarName).Output()
 	if err == nil {
 		return out, true, nil
 	}
@@ -44,7 +44,7 @@ func sidecarAtRef(r Repo, ref string) ([]byte, bool, error) {
 func repoID(r Repo, fallbackHost string) string {
 	out, err := r.Git("config", "--get", "remote.origin.url").Output()
 	if url := strings.TrimSpace(string(out)); err == nil && url != "" {
-		return catalog.CanonicalID(url)
+		return graph.CanonicalID(url)
 	}
 	return strings.ToLower(fallbackHost + "/" + r.Owner + "/" + r.Name)
 }

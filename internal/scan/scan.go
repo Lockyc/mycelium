@@ -1,7 +1,7 @@
 package scan
 
 import (
-	"github.com/lockyc/mycelium/internal/catalog"
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 type Options struct {
@@ -13,7 +13,7 @@ type Options struct {
 	Ref           string // git ref to read sidecars from; "" or absent → HEAD
 }
 
-func Scan(roots []string, opts Options) (catalog.Manifest, error) {
+func Scan(roots []string, opts Options) (graph.Manifest, error) {
 	deny := map[string]bool{}
 	for _, o := range opts.ExcludeOwners {
 		deny[o] = true
@@ -21,10 +21,10 @@ func Scan(roots []string, opts Options) (catalog.Manifest, error) {
 
 	repos, err := DiscoverRepos(roots)
 	if err != nil {
-		return catalog.Manifest{}, err
+		return graph.Manifest{}, err
 	}
 
-	m := catalog.Manifest{Node: opts.Node, Source: opts.Source, ScannedAt: opts.Now}
+	m := graph.Manifest{Node: opts.Node, Source: opts.Source, ScannedAt: opts.Now}
 	for _, r := range repos {
 		if deny[r.Owner] {
 			continue
@@ -32,22 +32,22 @@ func Scan(roots []string, opts Options) (catalog.Manifest, error) {
 		ref := resolveRef(r, opts.Ref)
 		data, found, err := sidecarAtRef(r, ref)
 		if err != nil {
-			return catalog.Manifest{}, err
+			return graph.Manifest{}, err
 		}
 		if !found {
-			m.Orphans = append(m.Orphans, catalog.Orphan{
+			m.Orphans = append(m.Orphans, graph.Orphan{
 				ID:   repoID(r, opts.FallbackHost),
 				Name: r.Name,
 				Path: r.Dir,
 			})
 			continue
 		}
-		sc, err := catalog.ParseSidecar(data)
+		sc, err := graph.ParseSidecar(data)
 		if err != nil {
-			return catalog.Manifest{}, err
+			return graph.Manifest{}, err
 		}
 		commit, _ := r.Git("rev-parse", ref).Output()
-		m.Components = append(m.Components, catalog.Component{
+		m.Components = append(m.Components, graph.Component{
 			ID:      repoID(r, opts.FallbackHost),
 			Name:    sc.Name,
 			Commit:  trim(commit),
