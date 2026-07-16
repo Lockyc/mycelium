@@ -23,7 +23,7 @@ func TestBuildWritesCatalog(t *testing.T) {
 	if err := Build(man, "", out); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"CATALOG.md", "catalog.json"} {
+	for _, f := range []string{"MAP.md", "graph.json"} {
 		if _, err := os.Stat(filepath.Join(out, f)); err != nil {
 			t.Fatalf("missing %s: %v", f, err)
 		}

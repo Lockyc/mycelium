@@ -93,8 +93,8 @@ func entries(c Catalog) []entry {
 // capability restating a component name, while telling a reader nothing about the
 // component it named ("git-mirror — homelab" requires jumping to homelab's entry
 // to learn what homelab even is). Sort order was its only real advantage, and
-// that is worth nothing to this file's reader: CATALOG.md is read whole, into
-// context. Lookup is catalog.json's job — read to orient, query to extract.
+// that is worth nothing to this file's reader: MAP.md is read whole, into
+// context. Lookup is graph.json's job — read to orient, query to extract.
 func RenderMarkdown(c Catalog) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium catalog\n\n")

@@ -33,10 +33,10 @@ func TestBuildProducesCatalog(t *testing.T) {
 	if err := runBuild([]string{"--manifests", manDir, "--out", outDir}); err != nil {
 		t.Fatalf("build: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(outDir, "CATALOG.md")); err != nil {
-		t.Fatalf("no CATALOG.md: %v", err)
+	if _, err := os.Stat(filepath.Join(outDir, "MAP.md")); err != nil {
+		t.Fatalf("no MAP.md: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(outDir, "catalog.json")); err != nil {
-		t.Fatalf("no catalog.json: %v", err)
+	if _, err := os.Stat(filepath.Join(outDir, "graph.json")); err != nil {
+		t.Fatalf("no graph.json: %v", err)
 	}
 }

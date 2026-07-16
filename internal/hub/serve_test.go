@@ -31,8 +31,8 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// the rebuilt catalog.json now contains the pushed component
-	resp, err := http.Get(srv.URL + "/catalog.json")
+	// the rebuilt graph.json now contains the pushed component
+	resp, err := http.Get(srv.URL + "/graph.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,13 +48,13 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(man, "node-a.json")); err != nil {
 		t.Fatalf("no node manifest: %v", err)
 	}
-	// CATALOG.md served
-	md, err := http.Get(srv.URL + "/CATALOG.md")
+	// MAP.md served
+	md, err := http.Get(srv.URL + "/MAP.md")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer md.Body.Close()
 	if md.StatusCode != 200 {
-		t.Fatalf("CATALOG.md status %d", md.StatusCode)
+		t.Fatalf("MAP.md status %d", md.StatusCode)
 	}
 }

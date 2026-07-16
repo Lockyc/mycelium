@@ -38,8 +38,8 @@ func loadManifests(dir string) ([]catalog.Manifest, error) {
 	return ms, nil
 }
 
-// Build reads all manifests + optional overlay, merges, and writes CATALOG.md
-// and catalog.json into outDir.
+// Build reads all manifests + optional overlay, merges, and writes MAP.md
+// and graph.json into outDir.
 func Build(manifestsDir, overlayPath, outDir string) error {
 	ms, err := loadManifests(manifestsDir)
 	if err != nil {
@@ -63,10 +63,10 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "catalog.json"), jsonData, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, "graph.json"), jsonData, 0o644); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(outDir, "CATALOG.md"), []byte(catalog.RenderMarkdown(cat)), 0o644)
+	return os.WriteFile(filepath.Join(outDir, "MAP.md"), []byte(catalog.RenderMarkdown(cat)), 0o644)
 }
 
 // Handler builds the mux: static catalog routes plus the authenticated ingest
@@ -84,7 +84,7 @@ func Handler(manifestsDir, overlayPath, catalogDir, ingestToken string) http.Han
 	}
 	mux := http.NewServeMux()
 	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
-	// static catalog routes (/CATALOG.md, /catalog.json, /) come last as the fallback.
+	// static routes (/MAP.md, /graph.json, /) come last as the fallback.
 	mux.Handle("/", serve.Handler(catalogDir))
 	return mux
 }

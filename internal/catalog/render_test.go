@@ -6,7 +6,7 @@ import (
 )
 
 // TestRenderJSONPathNotLeaked asserts that Component.Path (an absolute filesystem
-// path set by the scanner) is never serialised into catalog.json output.
+// path set by the scanner) is never serialised into graph.json output.
 // This is the regression test for the path-leak fix (json:"-" on Component.Path).
 func TestRenderJSONPathNotLeaked(t *testing.T) {
 	secretPath := "/home/someone/private/widgets"
@@ -36,11 +36,11 @@ func TestRenderJSONPathNotLeaked(t *testing.T) {
 	s := string(out)
 	for _, p := range []string{secretPath, orphanPath} {
 		if strings.Contains(s, p) {
-			t.Errorf("catalog.json contains the absolute path %q — path leak", p)
+			t.Errorf("graph.json contains the absolute path %q — path leak", p)
 		}
 	}
 	if strings.Contains(s, `"path"`) {
-		t.Errorf(`catalog.json contains a "path" key — path leak`)
+		t.Errorf(`graph.json contains a "path" key — path leak`)
 	}
 }
 

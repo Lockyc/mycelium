@@ -10,10 +10,10 @@ import (
 
 func writeCatalog(t *testing.T, dir string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, "CATALOG.md"), []byte("# hi"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "MAP.md"), []byte("# hi"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{"components":[]}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "graph.json"), []byte(`{"components":[]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -24,8 +24,8 @@ func TestHandlerServesCatalog(t *testing.T) {
 	srv := httptest.NewServer(Handler(dir))
 	defer srv.Close()
 
-	// /CATALOG.md, /catalog.json, and the root alias all serve 200.
-	for _, path := range []string{"/CATALOG.md", "/catalog.json", "/"} {
+	// /MAP.md, /graph.json, and the root alias all serve 200.
+	for _, path := range []string{"/MAP.md", "/graph.json", "/"} {
 		resp, err := http.Get(srv.URL + path)
 		if err != nil {
 			t.Fatalf("GET %s: %v", path, err)
@@ -33,6 +33,18 @@ func TestHandlerServesCatalog(t *testing.T) {
 		resp.Body.Close()
 		if resp.StatusCode != 200 {
 			t.Errorf("GET %s: status %d, want 200", path, resp.StatusCode)
+		}
+	}
+
+	// the old names are gone, not shadowed — a 200 here means a compat shim survived.
+	for _, path := range []string{"/CATALOG.md", "/catalog.json"} {
+		resp, err := http.Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Errorf("%s status %d, want 404 — old route still served", path, resp.StatusCode)
 		}
 	}
 }

@@ -71,7 +71,7 @@ type Orphan struct {
 	ID   string `json:"id"`   // canonical git-remote id (or fallback host/owner/name)
 	Name string `json:"name"` // repo basename
 	// Path is the node-local repo path, kept in-memory for the scan-time warning
-	// only. Never serialized — like Component.Path, catalog.json and the pushed
+	// only. Never serialized — like Component.Path, graph.json and the pushed
 	// manifest carry no filesystem paths (a node's path is meaningless downstream).
 	Path string `json:"-"`
 }
