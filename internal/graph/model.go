@@ -11,6 +11,14 @@ import (
 // pull — grep the name, find Mycelium.
 const SidecarName = "mycelium.toml"
 
+// MapName and GraphJSONName are the two rendered artifact filenames. They are
+// declared once here and referenced by every writer, reader, and route — a
+// writer and a reader disagreeing about a name is then unrepresentable.
+const (
+	MapName       = "MAP.md"
+	GraphJSONName = "graph.json"
+)
+
 type Provides struct {
 	Name    string `toml:"name" json:"name"`
 	Summary string `toml:"summary" json:"summary"`

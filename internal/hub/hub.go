@@ -63,14 +63,15 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "graph.json"), jsonData, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, graph.GraphJSONName), jsonData, 0o644); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(outDir, "MAP.md"), []byte(graph.RenderMarkdown(g)), 0o644)
+	return os.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644)
 }
 
-// Handler builds the mux: routes plus the authenticated ingest
-// endpoint, whose onIngest re-runs Build (serialized).
+// Handler builds the mux: the artifact routes (MAP.md, graph.json, and the
+// root alias) plus the authenticated ingest endpoint, whose onIngest re-runs
+// Build (serialized).
 func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 	var mu sync.Mutex
 	rebuild := func() error {
@@ -89,8 +90,8 @@ func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 	return mux
 }
 
-// Serve builds the map once then listens on addr, serving its static routes
-// and the authenticated ingest endpoint. Blocks until the server exits.
+// Serve builds the artifacts once then listens on addr, serving its static
+// routes and the authenticated ingest endpoint. Blocks until the server exits.
 func Serve(manifestsDir, overlayPath, dir, ingestToken, addr string) error {
 	if err := Build(manifestsDir, overlayPath, dir); err != nil {
 		return err

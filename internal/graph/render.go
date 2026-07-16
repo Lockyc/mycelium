@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func RenderJSON(c Graph) ([]byte, error) {
-	return json.MarshalIndent(c, "", "  ")
+func RenderJSON(g Graph) ([]byte, error) {
+	return json.MarshalIndent(g, "", "  ")
 }
 
 // entry is the render-level union of the two things that appear in the map: a
@@ -59,10 +59,10 @@ func joinNonEmpty(sep string, parts ...string) string {
 	return strings.Join(kept, sep)
 }
 
-func entries(c Graph) []entry {
-	rev := usedBy(c.Edges)
-	out := make([]entry, 0, len(c.Components)+len(c.Nodes))
-	for _, comp := range c.Components {
+func entries(g Graph) []entry {
+	rev := usedBy(g.Edges)
+	out := make([]entry, 0, len(g.Components)+len(g.Nodes))
+	for _, comp := range g.Components {
 		provides := make([]string, 0, len(comp.Sidecar.Provides))
 		for _, p := range comp.Sidecar.Provides {
 			provides = append(provides, p.Name)
@@ -78,7 +78,7 @@ func entries(c Graph) []entry {
 			usedBy:   rev[comp.Name],
 		})
 	}
-	for _, n := range c.Nodes {
+	for _, n := range g.Nodes {
 		out = append(out, entry{name: n.Name, summary: n.Summary, provides: n.Provides, usedBy: rev[n.Name]})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
@@ -95,12 +95,12 @@ func entries(c Graph) []entry {
 // to learn what homelab even is). Sort order was its only real advantage, and
 // that is worth nothing to this file's reader: MAP.md is read whole, into
 // context. Lookup is graph.json's job — read to orient, query to extract.
-func RenderMarkdown(c Graph) string {
+func RenderMarkdown(g Graph) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium map\n\n")
 
 	b.WriteString("## Components\n\n")
-	for _, e := range entries(c) {
+	for _, e := range entries(g) {
 		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)
 		// Only name+summary are required of a sidecar (see ParseSidecar), so join
 		// whichever of kind/status is present rather than assuming both — a missing
@@ -140,8 +140,8 @@ func RenderMarkdown(c Graph) string {
 	// Omitted entirely when empty, unlike the orphan section below: an absent
 	// overlap list is not a defect signal, and nothing is missing from the map
 	// when it is absent — every capability still appears on its own entry.
-	shared := make([]string, 0, len(c.Capabilities))
-	for name, provs := range c.Capabilities {
+	shared := make([]string, 0, len(g.Capabilities))
+	for name, provs := range g.Capabilities {
 		if len(provs) > 1 {
 			shared = append(shared, name)
 		}
@@ -151,14 +151,14 @@ func RenderMarkdown(c Graph) string {
 		b.WriteString("## Shared capabilities\n\n")
 		b.WriteString("Provided by more than one component — check both before adding a third.\n\n")
 		for _, name := range shared {
-			fmt.Fprintf(&b, "- **%s** — %s\n", name, strings.Join(c.Capabilities[name], ", "))
+			fmt.Fprintf(&b, "- **%s** — %s\n", name, strings.Join(g.Capabilities[name], ", "))
 		}
 		b.WriteString("\n")
 	}
 
-	if len(c.Edges) > 0 {
+	if len(g.Edges) > 0 {
 		b.WriteString("## Relationships\n\n")
-		for _, e := range c.Edges {
+		for _, e := range g.Edges {
 			fmt.Fprintf(&b, "- %s %s %s\n", e.From, e.Type, e.To)
 		}
 	}
@@ -175,7 +175,7 @@ func RenderMarkdown(c Graph) string {
 	// every day. This section's reader is the only routine reader the signal
 	// has; if the wording doesn't prompt a fix, nothing does.
 	b.WriteString("\n## Undocumented repos\n\n")
-	if len(c.Orphans) == 0 {
+	if len(g.Orphans) == 0 {
 		b.WriteString("_None — every scanned repo has an entry above._\n")
 	} else {
 		b.WriteString("**Gaps in this map, not a normal state.** Each repo below was scanned " +
@@ -185,7 +185,7 @@ func RenderMarkdown(c Graph) string {
 			"that change:** commit a `mycelium.toml` (identity + `provides`), or add its id to " +
 			"the overlay's `ignore` list if it is deliberately undocumented. Already added one " +
 			"and still see it here? Check the filename — `mycelium.toml` is the only name read.\n\n")
-		orphans := append([]Orphan(nil), c.Orphans...)
+		orphans := append([]Orphan(nil), g.Orphans...)
 		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })
 		for _, o := range orphans {
 			fmt.Fprintf(&b, "- **%s** — %s\n", o.Name, o.ID)

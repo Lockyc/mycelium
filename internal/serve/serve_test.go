@@ -16,6 +16,14 @@ func writeArtifacts(t *testing.T, dir string) {
 	if err := os.WriteFile(filepath.Join(dir, "graph.json"), []byte(`{"components":[]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// Decoy old-named files: present on disk so that a surviving old ROUTE
+	// serves 200 and trips the anti-shim assertion below. Without these, a
+	// dual-write shim 404s here only because the fixture lacks the file.
+	for _, old := range []string{"CATALOG.md", "catalog.json"} {
+		if err := os.WriteFile(filepath.Join(dir, old), []byte("decoy"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func TestHandlerServesArtifacts(t *testing.T) {

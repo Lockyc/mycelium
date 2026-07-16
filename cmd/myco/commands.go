@@ -118,7 +118,7 @@ func runAudit(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(filepath.Join(*dir, "graph.json"))
+	data, err := os.ReadFile(filepath.Join(*dir, graph.GraphJSONName))
 	if err != nil {
 		return err
 	}
