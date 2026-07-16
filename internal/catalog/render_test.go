@@ -64,6 +64,23 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 		t.Error("node-local orphan path leaked into markdown")
 	}
 
+	// The blurb is the fix, so pin it. Agents read this section routinely; it is
+	// the only routine reader an orphan's signal has. It must name the defect and
+	// the remedy, or orphans get read past forever (which is what happened while
+	// it said "look at them directly if relevant" — a workaround, not a report).
+	for _, want := range []string{
+		"not a normal state", // it is a defect
+		"treat this catalog as incomplete",
+		"close the gap",      // the call to action
+		"`ignore` list",      // the deliberate-exclusion escape hatch
+		"Check the filename", // the misnamed-sidecar trap
+	} {
+		if !strings.Contains(withOrphans, want) {
+			t.Errorf("orphan blurb no longer states %q — it must read as a defect report,\n"+
+				"not a workaround that lets a reader proceed without noticing:\n%s", want, withOrphans)
+		}
+	}
+
 	// Empty: the section is still rendered with an explicit None line, so an agent
 	// can tell "fully documented" apart from "section absent".
 	none := RenderMarkdown(Catalog{})

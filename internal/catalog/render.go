@@ -54,12 +54,24 @@ func RenderMarkdown(c Catalog) string {
 	// section can't be told apart from "feature not present", but an explicit
 	// "None" says the ecosystem is fully documented. Repos that intentionally
 	// lack a sidecar are already filtered out via the overlay ignore list.
+	//
+	// The blurb must read as a DEFECT REPORT, not a workaround. It used to say
+	// "look at them directly if relevant", which framed an orphan as a normal
+	// alternate path and gave the reader a way to proceed without ever noticing
+	// anything was wrong — so orphans sat unfixed while agents read past them
+	// every day. This section's reader is the only routine reader the signal
+	// has; if the wording doesn't prompt a fix, nothing does.
 	b.WriteString("\n## Undocumented repos\n\n")
 	if len(c.Orphans) == 0 {
 		b.WriteString("_None — every scanned repo has a catalog entry._\n")
 	} else {
-		b.WriteString("These repos exist in the ecosystem but have no mycelium.toml yet — " +
-			"look at them directly if relevant.\n\n")
+		b.WriteString("**Gaps in this map, not a normal state.** Each repo below was scanned " +
+			"but carries no `mycelium.toml`, so its purpose and capabilities are missing here — " +
+			"treat this catalog as incomplete while any remain.\n\n" +
+			"Read such a repo directly for now. **If you are working in one, close the gap in " +
+			"that change:** commit a `mycelium.toml` (identity + `provides`), or add its id to " +
+			"the overlay's `ignore` list if it is deliberately uncatalogued. Already added one " +
+			"and still see it here? Check the filename — `mycelium.toml` is the only name read.\n\n")
 		orphans := append([]Orphan(nil), c.Orphans...)
 		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })
 		for _, o := range orphans {
