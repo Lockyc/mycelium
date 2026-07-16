@@ -114,11 +114,11 @@ func runValidate(args []string) error {
 
 func runAudit(args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
-	catDir := fs.String("catalog", ".", "catalog dir (with catalog.json)")
+	catDir := fs.String("catalog", ".", "catalog dir (with graph.json)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(filepath.Join(*catDir, "catalog.json"))
+	data, err := os.ReadFile(filepath.Join(*catDir, "graph.json"))
 	if err != nil {
 		return err
 	}
