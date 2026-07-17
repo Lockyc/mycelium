@@ -34,10 +34,12 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   `deploys-to`), so the line means blast radius. **Footgun:** do not reverse `markets`/`sells`/
   `related` into it — "business *sells* reductable" would render as reductable being *used by*
   business, which is false. Thematic edges belong to `Relationships`, which keeps their type.
-- **Size is not the constraint — signal is.** The whole map is ~6 KB (~1.6k tokens); shaving
-  lines buys nothing measurable, so judge a field by whether it answers a question the summary
-  can't. That is why `stack` is rendered (20/20 populated, non-derivable) and each capability's
-  `summary` is not (32/32 populated, but ~3x the file).
+- **Size is not the constraint — signal is.** Shaving lines buys nothing measurable, so judge a
+  field by whether it answers a question the summary can't. That is why `stack` is rendered
+  (non-derivable) and each capability's `summary` is not (it would multiply the file for a fact
+  the entry already implies). *Point-in-time evidence, as of the v0.5.0 scan of the reference
+  deployment — the fleet grows, so re-measure rather than trusting these:* the whole map was
+  ~6 KB (~1.6k tokens), `stack` was populated 20/20, and `summary` 32/32 at ~3x the file.
 - **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
   actor — managed service, SaaS dep) rides in `Graph.Nodes` and renders in the same
   name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,

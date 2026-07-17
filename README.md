@@ -24,8 +24,12 @@ only as rich as the `mycelium.toml` sidecars committed across the scanned repos.
 
 ## Build
 
+    go install ./cmd/myco   # installs myco to the Go bin dir, on PATH
+    myco version            # or --version, -v
+
+Or build in place — the binary lands in the repo root, so invoke it as `./myco`:
+
     go build -o myco ./cmd/myco
-    myco version          # or --version, -v
 
 ## Use
 
@@ -95,6 +99,7 @@ repos in a temp dir and runs the full scan → build → audit pipeline.
 ## Development
 
     just build   # go build -o myco ./cmd/myco
+    just install # go install ./cmd/myco (myco onto PATH)
     just test    # go test ./...
     just gate    # gofmt check + vet + tests (pre-merge gate)
     just release # cut a release from dev

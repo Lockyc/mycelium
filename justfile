@@ -12,6 +12,11 @@ default:
 build:
     go build -o myco ./cmd/myco
 
+# Install the myco binary to the Go bin dir (on PATH)
+[group("build")]
+install:
+    go install ./cmd/myco
+
 # Materialise the bundled examples and run the full scan → build → audit pipeline
 [group("build")]
 demo:
