@@ -49,8 +49,9 @@ gate:
 
 # Cut the release for the current VERSION: fast-forward main → tag v<VERSION> → GitHub release.
 # Run on dev with VERSION already bumped and committed; the tree must be clean and gate-green.
+# Notes default to the commit subjects since the previous tag; pass notes=<file> for prose.
 [group("release")]
-release:
+release notes="":
     #!/usr/bin/env bash
     set -euo pipefail
     version="$(tr -d '[:space:]' < VERSION)"
@@ -63,6 +64,10 @@ release:
       echo "✗ tag ${tag} already exists — bump VERSION before releasing" >&2
       exit 1
     fi
+    if [ -n "{{notes}}" ] && [ ! -f "{{notes}}" ]; then
+      echo "✗ notes file not found: {{notes}}" >&2
+      exit 1
+    fi
     just gate
     git push origin dev
     # main only fast-forwards to the release commit; it never diverges from dev.
@@ -73,9 +78,34 @@ release:
       echo "  Run: git checkout dev && git merge main   (then re-run the release)." >&2
       exit 1
     fi
+    # Resolve the previous tag BEFORE tagging, so it doesn't find this release's own tag.
+    prev="$(git describe --tags --abbrev=0 2>/dev/null || true)"
     git branch -f main dev
     git push origin main
     git tag -a "${tag}" -m "${tag}" main
     git push origin "${tag}"
-    gh release create "${tag}" --target main --title "${tag}" --generate-notes
+    # Build the release body. NOT --generate-notes: it summarises merged PRs, and this repo
+    # integrates by direct merge to dev, so it yields a bare compare link and says nothing —
+    # v0.4.0 shipped with empty notes that way. Commit subjects since the previous tag are
+    # the real changelog here; a notes=<file> override carries prose when a release needs it.
+    body="$(mktemp)"
+    trap 'rm -f "$body"' EXIT
+    if [ -n "{{notes}}" ]; then
+      cat "{{notes}}" > "$body"
+    elif [ -n "$prev" ]; then
+      git log --no-merges --pretty='- %s' "${prev}..main" > "$body"
+    else
+      echo "- initial release" > "$body"
+    fi
+    # Check emptiness BEFORE appending the compare link — otherwise the link (and the blank
+    # line before it) is itself content, and a release with nothing to say passes the check.
+    if [ ! -s "$body" ]; then
+      echo "✗ refusing to publish ${tag}: no commits since ${prev:-the beginning} and no notes=<file>" >&2
+      exit 1
+    fi
+    if [ -n "$prev" ]; then
+      printf '\n**Full Changelog**: %s/compare/%s...%s\n' \
+        "$(gh repo view --json url -q .url)" "$prev" "$tag" >> "$body"
+    fi
+    gh release create "${tag}" --target main --title "${tag}" --notes-file "$body"
     echo "✓ released ${tag}"
