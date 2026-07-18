@@ -18,6 +18,7 @@ commands:
   serve      build, then serve the map + graph over HTTP
   audit      check the graph for orphans, dangling edges, staleness
   validate   lint a single mycelium.toml against the schema
+  query      query the graph (capabilities, components, used-by, search) — no jq
   version    print the myco version (also --version, -v)
 `
 }
@@ -44,6 +45,8 @@ func main() {
 		err = runAudit(os.Args[2:])
 	case "validate":
 		err = runValidate(os.Args[2:])
+	case "query":
+		err = runQuery(os.Args[2:])
 	default:
 		fmt.Fprint(os.Stderr, usage())
 		os.Exit(2)
