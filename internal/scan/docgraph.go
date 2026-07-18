@@ -24,10 +24,10 @@ var conventionalEntryDocs = []string{"CLAUDE.md", "README.md", "docs/index.md"}
 // stderr is used by the not-installed warning, capturable in tests.
 var stderr io.Writer = os.Stderr
 
-// DocGraphFunc runs docgraph for a repo checkout and returns its raw JSON output.
-// Injected via scan.Options.DocGraph so tests need no docgraph binary; nil uses
-// the real runDocGraph.
-type DocGraphFunc func(repoPath string) ([]byte, error)
+// DocGraphFunc runs docgraph for a repo at a git ref and returns its raw JSON
+// output. Injected via scan.Options.DocGraph so tests need no docgraph binary;
+// nil uses the real runDocGraph.
+type DocGraphFunc func(repoPath, ref string) ([]byte, error)
 
 // errDocGraphNotInstalled is the sentinel for "docgraph is not on PATH" — the
 // benign degradation case (the component simply carries no doc-graph).
@@ -35,11 +35,14 @@ var errDocGraphNotInstalled = errors.New("docgraph not on PATH")
 
 var notInstalledOnce sync.Once
 
-// runDocGraph shells out to `docgraph graph --json` in repoPath. It is read-only
-// (docgraph reads via `git ls-files`), preserving the nodes-are-read-only-on-repos
-// invariant. A missing binary is reported as errDocGraphNotInstalled, logged once.
-func runDocGraph(repoPath string) ([]byte, error) {
-	cmd := exec.Command("docgraph", "graph", "--json")
+// runDocGraph shells out to `docgraph graph --json --ref <ref>` in repoPath. The
+// --ref read is from the git object store (git ls-tree/git show), so it works on a
+// bare repo and reflects the committed ref, not the working tree — still read-only,
+// preserving the nodes-are-read-only-on-repos invariant. Requires docgraph v3.1.0+
+// (older exits non-zero on the unknown --ref flag → treated as no doc-graph). A
+// missing binary is reported as errDocGraphNotInstalled, logged once.
+func runDocGraph(repoPath, ref string) ([]byte, error) {
+	cmd := exec.Command("docgraph", "graph", "--json", "--ref", ref)
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if errors.Is(err, exec.ErrNotFound) {
@@ -49,7 +52,7 @@ func runDocGraph(repoPath string) ([]byte, error) {
 		return nil, errDocGraphNotInstalled
 	}
 	if err != nil {
-		return nil, fmt.Errorf("docgraph graph --json in %s: %w", repoPath, err)
+		return nil, fmt.Errorf("docgraph graph --json --ref %s in %s: %w", ref, repoPath, err)
 	}
 	return out, nil
 }

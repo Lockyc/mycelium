@@ -58,12 +58,17 @@ func TestScanAttachesDocGraph(t *testing.T) {
 	run(t, widget, "remote", "add", "origin", "git@github.com:owner/widget.git")
 	commitSidecar(t, widget, "name=\"widget\"\nsummary=\"a widget\"\n")
 
-	fake := func(repoPath string) ([]byte, error) {
+	var gotRef string
+	fake := func(repoPath, ref string) ([]byte, error) {
+		gotRef = ref
 		return []byte(schemaV1WithDocs), nil
 	}
 	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: fake})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if gotRef != "HEAD" {
+		t.Fatalf("docgraph should be called with the resolved ref; got %q, want %q", gotRef, "HEAD")
 	}
 	if len(m.Components) != 1 {
 		t.Fatalf("want 1 component, got %d", len(m.Components))
@@ -84,7 +89,7 @@ func TestScanDocGraphErrorIsNonFatal(t *testing.T) {
 	run(t, widget, "remote", "add", "origin", "git@github.com:owner/widget.git")
 	commitSidecar(t, widget, "name=\"widget\"\nsummary=\"a widget\"\n")
 
-	boom := func(repoPath string) ([]byte, error) { return nil, errDocGraphNotInstalled }
+	boom := func(repoPath, ref string) ([]byte, error) { return nil, errDocGraphNotInstalled }
 	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: boom})
 	if err != nil {
 		t.Fatalf("docgraph failure must not fail the scan: %v", err)
@@ -94,6 +99,37 @@ func TestScanDocGraphErrorIsNonFatal(t *testing.T) {
 	}
 	if m.DocGraphs != nil {
 		t.Fatalf("no payloads expected, got %v", m.DocGraphs)
+	}
+}
+
+func TestScanBareRepoGetsDocGraph(t *testing.T) {
+	root := t.TempDir()
+
+	// Build a working repo with a committed sidecar, then bare-clone it into root.
+	src := filepath.Join(t.TempDir(), "src")
+	mkWorking(t, src)
+	run(t, src, "remote", "add", "origin", "git@github.com:acme/widget.git")
+	commitSidecar(t, src, "name=\"widget\"\nsummary=\"w\"\n")
+
+	bare := filepath.Join(root, "acme", "widget.git")
+	if err := os.MkdirAll(filepath.Dir(bare), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	run(t, "", "clone", "--bare", src, bare) // dir="" -> git runs in process cwd; src/bare are absolute
+
+	fake := func(repoPath, ref string) ([]byte, error) { return []byte(schemaV1WithDocs), nil }
+	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: fake})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Components) != 1 {
+		t.Fatalf("want 1 component from the bare repo, got %d", len(m.Components))
+	}
+	if m.Components[0].DocGraph == nil || m.Components[0].DocGraph.DocCount != 3 {
+		t.Fatalf("bare repo must now get a digest, got %+v", m.Components[0].DocGraph)
+	}
+	if _, ok := m.DocGraphs[m.Components[0].ID]; !ok {
+		t.Fatalf("bare repo full payload not stashed; keys=%v", m.DocGraphs)
 	}
 }
 

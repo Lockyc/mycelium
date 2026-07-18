@@ -64,19 +64,18 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 			Commit:  trim(commit),
 			Sidecar: sc,
 		}
-		// Best-effort doc-graph: only a working tree can run docgraph (it reads
-		// `git ls-files`); a bare repo has none. Any failure is non-fatal — the
-		// component simply carries no doc-graph.
-		if !r.Bare {
-			if raw, err := run(r.Dir); err == nil {
-				if digest, full, derr := buildDigest(raw); derr == nil && digest != nil {
-					comp.DocGraph = digest
-					if full != nil {
-						if m.DocGraphs == nil {
-							m.DocGraphs = map[string]json.RawMessage{}
-						}
-						m.DocGraphs[comp.ID] = full
+		// Best-effort doc-graph: docgraph reads the committed ref from the object
+		// store (docgraph v3.1.0+), so this runs on bare repos too and reflects the
+		// exact scanned ref. Any failure is non-fatal — the component simply carries
+		// no doc-graph.
+		if raw, err := run(r.Dir, ref); err == nil {
+			if digest, full, derr := buildDigest(raw); derr == nil && digest != nil {
+				comp.DocGraph = digest
+				if full != nil {
+					if m.DocGraphs == nil {
+						m.DocGraphs = map[string]json.RawMessage{}
 					}
+					m.DocGraphs[comp.ID] = full
 				}
 			}
 		}
