@@ -89,3 +89,68 @@ func TestComponentsFilter(t *testing.T) {
 		t.Errorf("empty filter should return all: %+v", got)
 	}
 }
+
+func TestUsedByReversesOnlyUseEdges(t *testing.T) {
+	g := fixture()
+	// config-core is depended-on by warden (a use edge) → blast radius.
+	rels, ok := UsedBy(g, "config-core")
+	if !ok {
+		t.Fatal("config-core should exist")
+	}
+	if len(rels) != 1 || rels[0].Name != "warden" || rels[0].Type != "depends-on" {
+		t.Errorf("used-by wrong: %+v", rels)
+	}
+	// warden -> reductable is `related` (thematic), NOT a use edge, so warden's
+	// forward uses must exclude it and include only the depends-on.
+	uses, ok := Uses(g, "warden")
+	if !ok {
+		t.Fatal("warden should exist")
+	}
+	if len(uses) != 1 || uses[0].Name != "config-core" {
+		t.Errorf("uses should traverse only use-edges: %+v", uses)
+	}
+	// unknown name is explicit not-found, not empty success.
+	if _, ok := UsedBy(g, "ghost"); ok {
+		t.Error("used-by on unknown name reported found")
+	}
+}
+
+func TestSearch(t *testing.T) {
+	g := fixture()
+	hits := Search(g, "config")
+	// matches component config-core (name) and capability config-shape (name).
+	var comp, cap bool
+	for _, h := range hits {
+		if h.Kind == "component" && h.Name == "config-core" {
+			comp = true
+		}
+		if h.Kind == "capability" && h.Name == "config-shape" {
+			cap = true
+		}
+	}
+	if !comp || !cap {
+		t.Errorf("search missed matches: %+v", hits)
+	}
+	if len(Search(g, "")) != 0 {
+		t.Error("empty query should return no hits")
+	}
+	// summary match: "terminals" is in warden's summary.
+	if hits := Search(g, "TERMINALS"); len(hits) != 1 || hits[0].Name != "warden" {
+		t.Errorf("case-insensitive summary search wrong: %+v", hits)
+	}
+}
+
+func TestDescriptorsCoverAllQueries(t *testing.T) {
+	names := map[string]bool{}
+	for _, d := range Descriptors() {
+		names[d.Name] = true
+		if d.Example == "" {
+			t.Errorf("descriptor %q has no example", d.Name)
+		}
+	}
+	for _, want := range []string{"capabilities", "capability", "component", "components", "used-by", "uses", "search"} {
+		if !names[want] {
+			t.Errorf("Descriptors() missing %q", want)
+		}
+	}
+}

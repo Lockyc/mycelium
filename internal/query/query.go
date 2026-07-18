@@ -8,6 +8,7 @@ package query
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
 )
@@ -105,6 +106,115 @@ func Components(g graph.Graph, f ComponentFilter) []graph.Component {
 func contains(hay []string, needle string) bool {
 	for _, h := range hay {
 		if h == needle {
+			return true
+		}
+	}
+	return false
+}
+
+// Relation is one end of a use-edge for UsedBy/Uses: the related entity and the
+// edge type connecting them.
+type Relation struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// SearchHit is one search match — what matched and where.
+type SearchHit struct {
+	Name    string `json:"name"`
+	Kind    string `json:"kind"` // "component" or "capability"
+	Summary string `json:"summary,omitempty"`
+}
+
+// QueryDesc describes one query for the self-documenting index (GET /q and the
+// CLI help). It is the single source of the index — both surfaces render it, so
+// the index cannot drift from the queries.
+type QueryDesc struct {
+	Name    string `json:"name"`
+	Args    string `json:"args,omitempty"`
+	Example string `json:"example"`
+}
+
+// UsedBy returns the entities that use name via a use-edge (reverse direction):
+// this is name's blast radius. ok=false when name is not a known component or
+// overlay node (explicit not-found, distinct from "known but nothing uses it").
+func UsedBy(g graph.Graph, name string) ([]Relation, bool) {
+	if !entityExists(g, name) {
+		return nil, false
+	}
+	out := []Relation{}
+	for _, e := range g.Edges {
+		if e.To == name && graph.IsUseEdge(e.Type) {
+			out = append(out, Relation{Name: e.From, Type: e.Type})
+		}
+	}
+	return out, true
+}
+
+// Uses returns what name uses (forward use-edges). ok=false when name is unknown.
+func Uses(g graph.Graph, name string) ([]Relation, bool) {
+	if !entityExists(g, name) {
+		return nil, false
+	}
+	out := []Relation{}
+	for _, e := range g.Edges {
+		if e.From == name && graph.IsUseEdge(e.Type) {
+			out = append(out, Relation{Name: e.To, Type: e.Type})
+		}
+	}
+	return out, true
+}
+
+// Search is a case-insensitive substring match over component names + summaries
+// and capability names. Not a ranked/fuzzy engine (YAGNI). An empty query
+// returns no hits.
+func Search(g graph.Graph, text string) []SearchHit {
+	q := strings.ToLower(strings.TrimSpace(text))
+	out := []SearchHit{}
+	if q == "" {
+		return out
+	}
+	for _, c := range g.Components {
+		if strings.Contains(strings.ToLower(c.Name), q) ||
+			strings.Contains(strings.ToLower(c.Sidecar.Summary), q) {
+			out = append(out, SearchHit{Name: c.Name, Kind: "component", Summary: c.Sidecar.Summary})
+		}
+	}
+	caps := make([]string, 0, len(g.Capabilities))
+	for n := range g.Capabilities {
+		caps = append(caps, n)
+	}
+	sort.Strings(caps)
+	for _, n := range caps {
+		if strings.Contains(strings.ToLower(n), q) {
+			out = append(out, SearchHit{Name: n, Kind: "capability"})
+		}
+	}
+	return out
+}
+
+// Descriptors is the self-documenting query index rendered by both /q and the
+// CLI help.
+func Descriptors() []QueryDesc {
+	return []QueryDesc{
+		{Name: "capabilities", Example: "myco query capabilities"},
+		{Name: "capability", Args: "<name>", Example: "myco query capability monitoring"},
+		{Name: "component", Args: "<name>", Example: "myco query component warden"},
+		{Name: "components", Args: "[--kind --stack --status --tag]", Example: "myco query components --kind app"},
+		{Name: "used-by", Args: "<name>", Example: "myco query used-by config-core"},
+		{Name: "uses", Args: "<name>", Example: "myco query uses lector"},
+		{Name: "search", Args: "<text>", Example: "myco query search newsletter"},
+	}
+}
+
+func entityExists(g graph.Graph, name string) bool {
+	for _, c := range g.Components {
+		if c.Name == name {
+			return true
+		}
+	}
+	for _, n := range g.Nodes {
+		if n.Name == name {
 			return true
 		}
 	}
