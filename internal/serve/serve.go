@@ -29,8 +29,7 @@ func Handler(dir string) http.Handler {
 			return
 		}
 		id := strings.TrimSuffix(rest, docGraphSuffix)
-		// Reject traversal / non-canonical ids: the id must be a clean relative path.
-		if id == "" || id != path.Clean(id) || strings.HasPrefix(id, ".") || strings.Contains(id, "..") {
+		if !validDocGraphID(id) {
 			http.NotFound(w, r)
 			return
 		}
@@ -44,4 +43,12 @@ func Handler(dir string) http.Handler {
 		http.ServeFile(w, r, filepath.Join(dir, graph.MapName))
 	})
 	return mux
+}
+
+// validDocGraphID reports whether id is a safe, clean relative path segment
+// sequence for the /repos/<id>/docgraph.json route — no traversal, no leading
+// dot, no empty id. The route's mux already clean-redirects dirty paths before
+// the handler runs; this is the defense that survives a future router swap.
+func validDocGraphID(id string) bool {
+	return id != "" && id == path.Clean(id) && !strings.HasPrefix(id, ".") && !strings.Contains(id, "..")
 }
