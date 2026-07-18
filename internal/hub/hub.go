@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -66,7 +67,45 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err := os.WriteFile(filepath.Join(outDir, graph.GraphJSONName), jsonData, 0o644); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644)
+	if err := os.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644); err != nil {
+		return err
+	}
+	return writeDocGraphs(outDir, ms)
+}
+
+// writeDocGraphs writes each component's full docgraph payload to
+// <outDir>/repos/<id>/docgraph.json — the on-disk layout mirrors the served URL
+// (serve.Handler's /repos/ route). First-seen wins across manifests (matching
+// component dedup); the repos subtree is cleared first so a removed repo's stale
+// payload never lingers. Non-atomic, consistent with Build's other writes.
+func writeDocGraphs(outDir string, ms []graph.Manifest) error {
+	reposDir := filepath.Join(outDir, "repos")
+	if err := os.RemoveAll(reposDir); err != nil {
+		return err
+	}
+	seen := map[string]bool{}
+	for _, m := range ms {
+		for id, payload := range m.DocGraphs {
+			if seen[id] {
+				continue
+			}
+			// Reject an id that isn't a clean relative path (defense against a
+			// crafted manifest); canonical ids never contain "." segments or "..".
+			clean := path.Clean(id)
+			if clean != id || strings.HasPrefix(clean, ".") || strings.Contains(clean, "..") {
+				continue
+			}
+			seen[id] = true
+			dest := filepath.Join(reposDir, filepath.FromSlash(id), "docgraph.json")
+			if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(dest, payload, 0o644); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Handler builds the mux: the artifact routes (MAP.md, graph.json, and the
