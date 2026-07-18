@@ -1,3 +1,7 @@
+---
+type: reference
+---
+
 # Graph Schema
 
 The Mycelium graph documents the ecosystem of repositories, services, and capabilities. It consists of two layers: a per-repo **sidecar** (`mycelium.toml`) committed in each repository, and a **private overlay** (`overlay.toml`), kept out of public repos and maintained privately by the graph operator, that adds internal relationships and infrastructure nodes.

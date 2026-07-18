@@ -1,3 +1,10 @@
+---
+type: architecture
+links:
+  - rel: depends-on
+    to: schema/graph.md
+---
+
 # CLAUDE.md — Mycelium
 
 `myco` is a Go CLI: scan repo roots for `mycelium.toml` sidecars → merge with a

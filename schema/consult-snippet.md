@@ -1,3 +1,10 @@
+---
+type: reference
+links:
+  - rel: see-also
+    to: schema/graph.md
+---
+
 # Consult snippet
 
 Add a pointer like this to your coding agent's standing instructions (e.g. a
