@@ -119,3 +119,49 @@ func TestServeDocGraphPayload(t *testing.T) {
 // traversal/leading-dot/empty ids, accepting well-formed ones) moved to
 // graph.TestSafeRelID — this route now delegates to graph.SafeRelID, the
 // single predicate shared with the hub's write-time guard.
+
+func TestQueryRoutes(t *testing.T) {
+	dir := t.TempDir()
+	const g = `{
+  "components":[{"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","kind":"app","status":"active","stack":["rust"],"provides":[{"name":"sidebar","summary":"the sidebar"}]}],
+  "capabilities":{"sidebar":["warden"]},
+  "edges":[],"dangling_edges":[],"orphans":[]
+}`
+	if err := os.WriteFile(filepath.Join(dir, "graph.json"), []byte(g), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(Handler(dir))
+	defer srv.Close()
+
+	// /q index
+	if body, code := get(t, srv.URL+"/q"); code != 200 || !strings.Contains(body, "capabilities") {
+		t.Errorf("/q index wrong: %d %s", code, body)
+	}
+	// capability found
+	if body, code := get(t, srv.URL+"/q/capability/sidebar"); code != 200 || !strings.Contains(body, "the sidebar") {
+		t.Errorf("/q/capability wrong: %d %s", code, body)
+	}
+	// unknown → 404 with JSON error, NOT empty 200
+	if body, code := get(t, srv.URL+"/q/capability/nope"); code != 404 || !strings.Contains(body, "error") {
+		t.Errorf("unknown capability should 404 json: %d %s", code, body)
+	}
+	// components filter
+	if body, code := get(t, srv.URL+"/q/components?kind=app"); code != 200 || !strings.Contains(body, "warden") {
+		t.Errorf("/q/components filter wrong: %d %s", code, body)
+	}
+	// component result is flat (no sidecar wrapper), same as graph.json
+	if body, _ := get(t, srv.URL+"/q/component/warden"); strings.Contains(body, `"sidecar"`) {
+		t.Errorf("component result must be flat: %s", body)
+	}
+}
+
+func get(t *testing.T, url string) (string, int) {
+	t.Helper()
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return string(b), resp.StatusCode
+}
