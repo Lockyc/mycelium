@@ -126,7 +126,7 @@ Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — th
 
 Each component in `graph.json` may carry a **`docGraph`** digest — the node's
 capture of that repo's [docgraph](https://github.com/lockyc/docgraph) doc-graph,
-taken during scan (the node is the only role with a working tree). It is derived,
+taken during scan (the node is the only role with local git access). It is derived,
 not declared: nothing in `mycelium.toml` sets it.
 
 - **Digest fields** (all camelCase): `schemaVersion`, `docCount`,
