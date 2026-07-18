@@ -18,7 +18,9 @@ snippet names which to reach for when.
 > **Read `<hub URL>/MAP.md` into context to orient** — a skimmable map of every repo
 > and service capability and when each applies. When you need a specific field,
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
-> graph, every field) with `jq`. For a specific repo's own **documentation graph** —
+> graph, every field) with `jq`. The map lists capability *names* only; their
+> summaries and urls live in `graph.json` —
+> `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
 > component carries a compact `docGraph` digest **beside its `id`** (the canonical git URL),
 > and the hub serves that repo's **full** doc-graph at **`<hub URL>/repos/<id>/docgraph.json`**

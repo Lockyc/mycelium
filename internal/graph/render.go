@@ -105,6 +105,14 @@ func RenderMarkdown(g Graph) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium map\n\n")
 
+	// Self-describe the one lossy omission an agent can't otherwise tell is there:
+	// each entry lists capability *names* but not their summaries/urls (dropped to
+	// keep the map skimmable). Without this line the omission is invisible — a reader
+	// sees "Provides: monitoring" and can't know a summary for it exists to query.
+	// Rendered once, not per entry, so the map stays skimmable. See schema/graph.md.
+	b.WriteString("Capability summaries and urls are omitted here to stay skimmable — " +
+		"query `graph.json` for them: `jq -r '.components[].provides[]? | \"\\(.name): \\(.summary)\"'`.\n\n")
+
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(g) {
 		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)

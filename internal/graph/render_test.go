@@ -281,6 +281,25 @@ func TestRenderMarkdownPartialKindStatus(t *testing.T) {
 	}
 }
 
+// The map lists capability names but drops their summaries (kept in graph.json).
+// That omission is only recoverable if the map says so and names where to look —
+// otherwise an agent reading the map can't tell a summary exists to query.
+func TestRenderMarkdownPointsToCapabilitySummaries(t *testing.T) {
+	md := RenderMarkdown(Graph{Components: []Component{{
+		Name:    "homelab",
+		Sidecar: Sidecar{Summary: "s", Provides: []Provides{{Name: "monitoring", Summary: "uptime checks"}}},
+	}}})
+	// The map still omits the summary itself...
+	if strings.Contains(md, "uptime checks") {
+		t.Errorf("capability summary must NOT render into the lossy map:\n%s", md)
+	}
+	// ...but must point the reader at graph.json and name the provides path so the
+	// lookup is copy-paste, not reverse-engineered each time.
+	if !strings.Contains(md, "graph.json") || !strings.Contains(md, ".components[].provides[]") {
+		t.Errorf("map must self-describe the capability-summary query path:\n%s", md)
+	}
+}
+
 func TestRenderMarkdownRendersTags(t *testing.T) {
 	c := Graph{Components: []Component{{
 		Name:    "orders-api",
@@ -290,9 +309,12 @@ func TestRenderMarkdownRendersTags(t *testing.T) {
 	if !strings.Contains(md, "`local-first` `prelaunch`") {
 		t.Errorf("tags not rendered as backtick pills:\n%s", md)
 	}
-	// a component without tags renders no tag line (no stray backticks).
+	// a component without tags renders no tag line (no stray backtick pills). Scope
+	// the check to the components section — the map preamble legitimately contains
+	// backticks (the graph.json query hint), so whole-doc absence is not the signal.
 	none := RenderMarkdown(Graph{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
-	if strings.Contains(none, "`") {
+	_, components, _ := strings.Cut(none, "## Components")
+	if strings.Contains(components, "`") {
 		t.Errorf("tagless component should render no backticks:\n%s", none)
 	}
 }
