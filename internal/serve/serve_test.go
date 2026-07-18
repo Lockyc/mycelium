@@ -115,28 +115,7 @@ func TestServeDocGraphPayload(t *testing.T) {
 	trav.Body.Close()
 }
 
-// TestValidDocGraphID exercises the /repos/<id>/docgraph.json id guard directly,
-// independent of http.ServeMux's own clean-redirect behavior (which the
-// integration test in TestServeDocGraphPayload rides on and so can't isolate
-// the application-level guard from — a mux redirect intercepts a dirty path
-// before the handler, and thus before validDocGraphID, ever runs).
-func TestValidDocGraphID(t *testing.T) {
-	cases := []struct {
-		id   string
-		want bool
-	}{
-		{"", false},
-		{"..", false},
-		{"../x", false},
-		{"a/../../b", false},
-		{".hidden", false},
-		{"a/../b", false},
-		{"github.com/x/y", true},
-		{"git.example.com/owner/repo", true},
-	}
-	for _, c := range cases {
-		if got := validDocGraphID(c.id); got != c.want {
-			t.Errorf("validDocGraphID(%q) = %v, want %v", c.id, got, c.want)
-		}
-	}
-}
+// The /repos/<id>/docgraph.json id guard's own unit coverage (rejecting
+// traversal/leading-dot/empty ids, accepting well-formed ones) moved to
+// graph.TestSafeRelID — this route now delegates to graph.SafeRelID, the
+// single predicate shared with the hub's write-time guard.

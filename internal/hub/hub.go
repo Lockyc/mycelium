@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -91,8 +90,9 @@ func writeDocGraphs(outDir string, ms []graph.Manifest) error {
 			}
 			// Reject an id that isn't a clean relative path (defense against a
 			// crafted manifest); canonical ids never contain "." segments or "..".
-			clean := path.Clean(id)
-			if clean != id || strings.HasPrefix(clean, ".") || strings.Contains(clean, "..") {
+			// graph.SafeRelID is the single predicate shared with serve's read-time
+			// guard on the same id → filesystem-path trust boundary.
+			if !graph.SafeRelID(id) {
 				continue
 			}
 			seen[id] = true

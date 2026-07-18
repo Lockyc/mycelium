@@ -15,3 +15,27 @@ func TestCanonicalID(t *testing.T) {
 		}
 	}
 }
+
+// TestSafeRelID exercises the path-safety predicate shared by the hub's
+// write-time guard (writeDocGraphs) and the serve route's read-time guard
+// (/repos/<id>/docgraph.json) — both trust boundaries gate on this one function.
+func TestSafeRelID(t *testing.T) {
+	cases := []struct {
+		id   string
+		want bool
+	}{
+		{"", false},
+		{"..", false},
+		{"../x", false},
+		{"a/../../b", false},
+		{".hidden", false},
+		{"a/../b", false},
+		{"github.com/x/y", true},
+		{"git.example.com/owner/repo", true},
+	}
+	for _, c := range cases {
+		if got := SafeRelID(c.id); got != c.want {
+			t.Errorf("SafeRelID(%q) = %v, want %v", c.id, got, c.want)
+		}
+	}
+}

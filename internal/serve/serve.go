@@ -2,7 +2,6 @@ package serve
 
 import (
 	"net/http"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -29,7 +28,10 @@ func Handler(dir string) http.Handler {
 			return
 		}
 		id := strings.TrimSuffix(rest, docGraphSuffix)
-		if !validDocGraphID(id) {
+		// graph.SafeRelID guards no traversal, no leading dot, no empty id — the
+		// route's mux already clean-redirects dirty paths before the handler runs,
+		// but this is the defense that survives a future router swap.
+		if !graph.SafeRelID(id) {
 			http.NotFound(w, r)
 			return
 		}
@@ -43,12 +45,4 @@ func Handler(dir string) http.Handler {
 		http.ServeFile(w, r, filepath.Join(dir, graph.MapName))
 	})
 	return mux
-}
-
-// validDocGraphID reports whether id is a safe, clean relative path segment
-// sequence for the /repos/<id>/docgraph.json route — no traversal, no leading
-// dot, no empty id. The route's mux already clean-redirects dirty paths before
-// the handler runs; this is the defense that survives a future router swap.
-func validDocGraphID(id string) bool {
-	return id != "" && id == path.Clean(id) && !strings.HasPrefix(id, ".") && !strings.Contains(id, "..")
 }
