@@ -122,6 +122,37 @@ Both outputs are for coding agents, not humans. They are the *same graph* render
 
 Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — the filenames say it.
 
+### `graph.json` shape (know this before writing a `jq` query)
+
+Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`. The one
+structural rule that determines every query path: **a component's *declared* fields (whatever
+its `mycelium.toml` set) nest under `.sidecar`; its *derived* fields (git and node-captured)
+sit at the top level.** So a component serialises as:
+
+```jsonc
+.components[] = {
+  "id":     "github.com/acme/orders-api",  // derived (canonical git URL) — top-level
+  "name":   "orders-api",                  // derived — top-level
+  "commit": "abc123…",                     // derived — top-level
+  "sidecar": {                             // everything declared in mycelium.toml
+    "summary": "…", "kind": "service", "status": "active",
+    "tags":  ["…"], "stack": ["…"],
+    "provides": [ { "name": "…", "summary": "…", "url": "…" } ]
+  },
+  "docGraph": { "url": "/repos/<id>/docgraph.json", "schemaVersion": 1, … }  // derived — top-level
+}
+```
+
+Query paths follow directly: a **declared** field is `.components[].sidecar.<field>`
+(`.sidecar.summary`, `.sidecar.stack[]`, `.sidecar.provides[]`); a **derived** field is
+`.components[].<field>` (`.docGraph.url`, `.commit`, `.id`). `.capabilities` is a separate
+`name → [provider names]` index (built from every component's *and* overlay node's provides),
+so it answers "who provides X" without walking components. Overlay nodes render under
+`.nodes` with the same declared shape minus the `.sidecar` wrapper (they have no repo).
+Tip: while exploring, drop the `?` — `.components[].provides[]` (wrong path) errors loudly
+with *Cannot iterate over null*, whereas `[]?` returns silence whether the path is empty or
+wrong; add `?` back once the path is confirmed.
+
 ### Per-repo doc-graph (`docGraph`)
 
 Each component in `graph.json` may carry a **`docGraph`** digest — the node's
