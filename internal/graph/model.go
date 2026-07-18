@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"encoding/json"
 	"fmt"
 
 	toml "github.com/pelletier/go-toml/v2"
@@ -56,12 +57,32 @@ type Overlay struct {
 	Ignore []string `toml:"ignore" json:"ignore,omitempty"`
 }
 
+// DocGraphDigest is the compact per-component summary of a repo's docgraph
+// doc-graph — the queryable "orient" signal, not the whole doc-graph. Island
+// PATHS (not just counts) are kept because they are the actionable rot signal
+// and are few by construction; the full node/edge lists are not (they live in
+// the out-of-band full payload, Manifest.DocGraphs). Built by the node from
+// `docgraph graph --json`; carried into graph.json unchanged.
+type DocGraphDigest struct {
+	SchemaVersion     int      `json:"schemaVersion"`
+	DocCount          int      `json:"docCount"`
+	ContentEdgeCount  int      `json:"contentEdgeCount"`
+	MetadataEdgeCount int      `json:"metadataEdgeCount"`
+	ContentIslands    []string `json:"contentIslands,omitempty"`  // unfindable docs (the rot signal)
+	MetadataIslands   []string `json:"metadataIslands,omitempty"` // docs with no declared placement
+	EntryDocs         []string `json:"entryDocs,omitempty"`       // conventional roots present
+}
+
 type Component struct {
 	ID      string  `json:"id"` // canonical git URL
 	Name    string  `json:"name"`
 	Path    string  `json:"-"`
 	Commit  string  `json:"commit"`
 	Sidecar Sidecar `json:"sidecar"`
+	// DocGraph is the repo's docgraph digest, derived per-node like Path — but
+	// unlike Path it IS serialized downstream (meaningful in the merged graph).
+	// omitempty: a component with no docs / no docgraph carries nothing.
+	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
 }
 
 type Manifest struct {
@@ -70,6 +91,11 @@ type Manifest struct {
 	ScannedAt  string      `json:"scanned_at"`
 	Components []Component `json:"components"`
 	Orphans    []Orphan    `json:"orphans,omitempty"`
+	// DocGraphs carries each component's FULL `docgraph graph --json` payload,
+	// keyed by canonical id, out-of-band from the digest on Component. It rides
+	// the manifest to the hub but is never part of Graph, so it never bloats
+	// graph.json; the hub writes each to <outDir>/repos/<id>/docgraph.json.
+	DocGraphs map[string]json.RawMessage `json:"docGraphs,omitempty"`
 }
 
 // Orphan is a scanned repo with no committed mycelium.toml. It rides in the
