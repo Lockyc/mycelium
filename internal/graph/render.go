@@ -16,14 +16,15 @@ func RenderJSON(g Graph) ([]byte, error) {
 // bar the fields a node has no notion of (kind, status, tags), which are already
 // rendered conditionally.
 type entry struct {
-	name     string
-	summary  string
-	kind     string
-	status   string
-	tags     []string
-	stack    []string
-	provides []string
-	usedBy   []string
+	name       string
+	summary    string
+	kind       string
+	status     string
+	tags       []string
+	stack      []string
+	provides   []string
+	usedBy     []string
+	docIslands int // content+metadata island count; a rot flag, only rendered when > 0
 }
 
 // useEdgeTypes are the edge types that mean "from actually uses to", so reversing
@@ -67,15 +68,20 @@ func entries(g Graph) []entry {
 		for _, p := range comp.Sidecar.Provides {
 			provides = append(provides, p.Name)
 		}
+		islands := 0
+		if comp.DocGraph != nil {
+			islands = len(comp.DocGraph.ContentIslands) + len(comp.DocGraph.MetadataIslands)
+		}
 		out = append(out, entry{
-			name:     comp.Name,
-			summary:  comp.Sidecar.Summary,
-			kind:     comp.Sidecar.Kind,
-			status:   comp.Sidecar.Status,
-			tags:     comp.Sidecar.Tags,
-			stack:    comp.Sidecar.Stack,
-			provides: provides,
-			usedBy:   rev[comp.Name],
+			name:       comp.Name,
+			summary:    comp.Sidecar.Summary,
+			kind:       comp.Sidecar.Kind,
+			status:     comp.Sidecar.Status,
+			tags:       comp.Sidecar.Tags,
+			stack:      comp.Sidecar.Stack,
+			provides:   provides,
+			usedBy:     rev[comp.Name],
+			docIslands: islands,
 		})
 	}
 	for _, n := range g.Nodes {
@@ -127,6 +133,12 @@ func RenderMarkdown(g Graph) string {
 				quoted[i] = "`" + t + "`"
 			}
 			fmt.Fprintf(&b, "%s\n", strings.Join(quoted, " "))
+		}
+		// Doc-graph rot flag — only the exception surfaces in the lossy map (like
+		// Shared capabilities): a clean doc-graph adds nothing; islands (unfindable
+		// or unplaced docs) get one terse marker. Full digest lives in graph.json.
+		if e.docIslands > 0 {
+			fmt.Fprintf(&b, "docs: %d islands ⚠\n", e.docIslands)
 		}
 		b.WriteString("\n")
 	}

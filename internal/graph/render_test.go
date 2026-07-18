@@ -314,3 +314,35 @@ func TestRenderJSONIncludesDocGraphDigest(t *testing.T) {
 		t.Fatalf("graph.json must NOT carry out-of-band full payloads: %s", s)
 	}
 }
+
+func TestRenderMarkdownFlagsDocIslands(t *testing.T) {
+	g := Graph{Components: []Component{
+		{ID: "github.com/x/rotty", Name: "rotty", Sidecar: Sidecar{Name: "rotty", Summary: "has rot"},
+			DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 5, ContentIslands: []string{"docs/a.md"}, MetadataIslands: []string{"docs/b.md"}}},
+		{ID: "github.com/x/clean", Name: "clean", Sidecar: Sidecar{Name: "clean", Summary: "no rot"},
+			DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 3}},
+	}}
+	md := RenderMarkdown(g)
+	if !strings.Contains(md, "docs: 2 islands ⚠") {
+		t.Fatalf("expected rot flag for rotty:\n%s", md)
+	}
+	// clean component's block must carry no docs: line — extract just its section
+	cleanIdx := strings.Index(md, "### clean")
+	if cleanIdx < 0 {
+		t.Fatal("clean entry missing")
+	}
+	// find the end of clean's block: the next ### heading or the next ## section
+	cleanEnd := strings.Index(md[cleanIdx+1:], "###")
+	if cleanEnd < 0 {
+		cleanEnd = strings.Index(md[cleanIdx+1:], "## ")
+	}
+	if cleanEnd < 0 {
+		cleanEnd = len(md)
+	} else {
+		cleanEnd += cleanIdx + 1
+	}
+	cleanBlock := md[cleanIdx:cleanEnd]
+	if strings.Contains(cleanBlock, "docs:") {
+		t.Fatalf("clean doc-graph must add nothing to MAP.md:\n%s", cleanBlock)
+	}
+}
