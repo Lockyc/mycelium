@@ -15,8 +15,9 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - `internal/graph` — model, identity (canonical git-URL dedup), merge, render.
 - `internal/scan` — node role: walk roots, read sidecars + git info → manifest;
   also captures each non-bare component's docgraph doc-graph (`docgraph.go`).
-- `internal/audit` — orphan / dangling-edge / staleness checks over `graph.json`
-  (schema validation is a separate step — `myco validate` / `ParseSidecar` at scan).
+- `internal/audit` — orphan / dangling-edge / staleness / doc-rot / docgraph-version
+  checks over `graph.json` (schema validation is a separate step — `myco validate` /
+  `ParseSidecar` at scan).
 - `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full
   doc-graph payloads.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).

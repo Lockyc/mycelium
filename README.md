@@ -73,8 +73,11 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
 `audit` reports graph rot: **orphans** (scanned repos with no committed
 `mycelium.toml`), dangling overlay edges, and components that vanished since the last
-run. Repos that intentionally have no sidecar are suppressed via an `ignore` list of
-canonical ids in the private `overlay.toml` (see [`schema/graph.md`](schema/graph.md)).
+run — plus **doc-rot** (a component with island docs: unfindable or unplaced) and
+**docgraph-version** (a component whose docgraph `schemaVersion` is newer than
+Mycelium's pinned `1`). Repos that intentionally have no sidecar are suppressed via an
+`ignore` list of canonical ids in the private `overlay.toml` (see
+[`schema/graph.md`](schema/graph.md)).
 
 ### Validate a sidecar
 

@@ -153,8 +153,8 @@ ref. A Mycelium node is read-only and typically sits at the ref it scans, so in 
 reference deployment the two agree; a precise per-ref capture is deferred until a
 real divergence bites.
 
-Consistency checks (orphans, dangling edges, staleness) are a separate step,
-`myco audit`, run against the rendered `graph.json`. Orphans — repos a node
+Consistency checks (orphans, dangling edges, staleness, doc-rot, docgraph-version)
+are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the
 overlay `ignore` list) rather than only at scan time.
