@@ -1,10 +1,12 @@
 package serve
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -71,4 +73,44 @@ func TestHandlerNotFound(t *testing.T) {
 	if resp.StatusCode != 404 {
 		t.Errorf("GET /nope: status %d, want 404", resp.StatusCode)
 	}
+}
+
+func TestServeDocGraphPayload(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "repos", "github.com", "x", "y", "docgraph.json")
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dest, []byte(`{"schemaVersion":1}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(Handler(dir))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/repos/github.com/x/y/docgraph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("want 200, got %d", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(body), `"schemaVersion":1`) {
+		t.Fatalf("bad body: %s", body)
+	}
+
+	// non-docgraph.json path under /repos/ → 404 (no directory listing leak)
+	bad, _ := http.Get(srv.URL + "/repos/github.com/x/y/")
+	if bad.StatusCode != http.StatusNotFound {
+		t.Fatalf("want 404 for non-payload path, got %d", bad.StatusCode)
+	}
+	bad.Body.Close()
+
+	// traversal attempt → 404
+	trav, _ := http.Get(srv.URL + "/repos/../../etc/passwd/docgraph.json")
+	if trav.StatusCode == http.StatusOK {
+		t.Fatalf("traversal must not succeed, got %d", trav.StatusCode)
+	}
+	trav.Body.Close()
 }
