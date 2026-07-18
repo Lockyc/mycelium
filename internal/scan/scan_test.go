@@ -51,6 +51,52 @@ func TestScanComponentsOrphansAndDenylist(t *testing.T) {
 	}
 }
 
+func TestScanAttachesDocGraph(t *testing.T) {
+	root := t.TempDir()
+	widget := filepath.Join(root, "owner", "widget")
+	mkWorking(t, widget)
+	run(t, widget, "remote", "add", "origin", "git@github.com:owner/widget.git")
+	commitSidecar(t, widget, "name=\"widget\"\nsummary=\"a widget\"\n")
+
+	fake := func(repoPath string) ([]byte, error) {
+		return []byte(schemaV1WithDocs), nil
+	}
+	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: fake})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Components) != 1 {
+		t.Fatalf("want 1 component, got %d", len(m.Components))
+	}
+	c := m.Components[0]
+	if c.DocGraph == nil || c.DocGraph.DocCount != 3 {
+		t.Fatalf("digest not attached: %+v", c.DocGraph)
+	}
+	if _, ok := m.DocGraphs[c.ID]; !ok {
+		t.Fatalf("full payload not stashed under id %q; keys=%v", c.ID, m.DocGraphs)
+	}
+}
+
+func TestScanDocGraphErrorIsNonFatal(t *testing.T) {
+	root := t.TempDir()
+	widget := filepath.Join(root, "owner", "widget")
+	mkWorking(t, widget)
+	run(t, widget, "remote", "add", "origin", "git@github.com:owner/widget.git")
+	commitSidecar(t, widget, "name=\"widget\"\nsummary=\"a widget\"\n")
+
+	boom := func(repoPath string) ([]byte, error) { return nil, errDocGraphNotInstalled }
+	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: boom})
+	if err != nil {
+		t.Fatalf("docgraph failure must not fail the scan: %v", err)
+	}
+	if len(m.Components) != 1 || m.Components[0].DocGraph != nil {
+		t.Fatalf("failed docgraph → component with no digest; got %+v", m.Components)
+	}
+	if m.DocGraphs != nil {
+		t.Fatalf("no payloads expected, got %v", m.DocGraphs)
+	}
+}
+
 func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 	root := t.TempDir()
 
