@@ -16,11 +16,12 @@ Both outputs are **for agents, not humans**, and serve two use cases: **read
 **query `graph.json` to extract** (the full-fidelity graph — every field — for
 `jq`/filter/traverse). See [`schema/graph.md`](schema/graph.md#two-outputs-two-agent-use-cases).
 
-**Status:** early WIP. The architecture is distributed: **nodes** scan repo roots
-and push manifests to a central **hub**, which ingests and rebuilds the graph,
-then serves it over HTTP. The node→hub→serve path runs in a private
-reference deployment (a scheduled node behind an auth-gated hub); the graph is
-only as rich as the `mycelium.toml` sidecars committed across the scanned repos.
+**Status:** working, pre-1.0 — the public surface (CLI flags, graph schema) can
+still shift. The architecture is distributed: **nodes** scan repo roots and push
+manifests to a central **hub**, which ingests and rebuilds the graph, then serves
+it over HTTP. The node→hub→serve path runs in a private reference deployment (a
+scheduled node behind an auth-gated hub); the graph is only as rich as the
+`mycelium.toml` sidecars committed across the scanned repos.
 
 ## Build
 
