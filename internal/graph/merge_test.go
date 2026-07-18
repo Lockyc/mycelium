@@ -105,3 +105,24 @@ func TestMergeOrphansDedupIgnoreAndComponentWins(t *testing.T) {
 			"(gadgets deduped, sidecar-later is a component, scratch ignored)", ids)
 	}
 }
+
+func TestMergeCarriesDocGraph(t *testing.T) {
+	m := Manifest{Node: "a", Components: []Component{{
+		ID: "github.com/x/y", Name: "y", DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 7},
+	}}}
+	g := Merge([]Manifest{m}, Overlay{})
+	if len(g.Components) != 1 || g.Components[0].DocGraph == nil || g.Components[0].DocGraph.DocCount != 7 {
+		t.Fatalf("first-seen digest not carried: %+v", g.Components)
+	}
+}
+
+func TestMergeBackfillsDocGraphWhenFirstLacksIt(t *testing.T) {
+	first := Manifest{Node: "a", Components: []Component{{ID: "github.com/x/y", Name: "y"}}}
+	second := Manifest{Node: "b", Components: []Component{{
+		ID: "github.com/x/y", Name: "y", DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 3},
+	}}}
+	g := Merge([]Manifest{first, second}, Overlay{})
+	if len(g.Components) != 1 || g.Components[0].DocGraph == nil || g.Components[0].DocGraph.DocCount != 3 {
+		t.Fatalf("digest not backfilled from second node: %+v", g.Components)
+	}
+}

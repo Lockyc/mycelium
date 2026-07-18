@@ -46,6 +46,9 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 				// entry keeps its own name/summary/etc.
 				existing.Sidecar.Provides = c.Sidecar.Provides
 			}
+			if existing.DocGraph == nil && c.DocGraph != nil {
+				existing.DocGraph = c.DocGraph
+			}
 		}
 	}
 
