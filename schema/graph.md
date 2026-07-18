@@ -118,37 +118,35 @@ Both outputs are for coding agents, not humans. They are the *same graph* render
 - **`MAP.md`** — the map to **read into context**. A compact Markdown digest that is intentionally **lossy**. It is **component-first**: one entry per component and overlay node, name-sorted, carrying summary, kind/status, the *names* of what it provides, who uses it, stack, and tags — then shared capabilities, relationships, and undocumented repos. It drops each capability's `summary` and `url` so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
   - **`Used by`** reverses only the *use* edges (`consumes`, `depends-on`, `deploys-to`), so the line is an entry's blast radius: change this and these must be re-pinned or rebuilt. Thematic edges (`markets`, `sells`, `related`) are excluded — reversing them would assert something false — and appear only under `Relationships`, with their type intact.
   - **`Shared capabilities`** lists only capabilities with more than one provider. A sole provider is already stated on its own entry; there is no full capability index, because one provider is the norm and an index of them restates component names while saying nothing about the components it names. Capability-first lookup is `graph.json`'s job.
-- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `stack`, `url`s, and edges), lossless. Query it with `jq` (or a tool) when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, live here (nested under each component's `sidecar`) — `jq -r '.components[].sidecar.provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
+- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `stack`, `url`s, and edges), lossless. Query it with `jq` (or a tool) when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, live here — `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
 
 Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — the filenames say it.
 
 ### `graph.json` shape (know this before writing a `jq` query)
 
-Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`. The one
-structural rule that determines every query path: **a component's *declared* fields (whatever
-its `mycelium.toml` set) nest under `.sidecar`; its *derived* fields (git and node-captured)
-sit at the top level.** So a component serialises as:
+Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`. A component
+is **flat** — its `mycelium.toml` fields sit at the top level alongside the derived
+`id`/`commit`/`docGraph`, with no wrapper. So a component serialises as:
 
 ```jsonc
 .components[] = {
-  "id":     "github.com/acme/orders-api",  // derived (canonical git URL) — top-level
-  "name":   "orders-api",                  // derived — top-level
-  "commit": "abc123…",                     // derived — top-level
-  "sidecar": {                             // everything declared in mycelium.toml
-    "summary": "…", "kind": "service", "status": "active",
-    "tags":  ["…"], "stack": ["…"],
-    "provides": [ { "name": "…", "summary": "…", "url": "…" } ]
-  },
-  "docGraph": { "url": "/repos/<id>/docgraph.json", "schemaVersion": 1, … }  // derived — top-level
+  "id":       "github.com/acme/orders-api",  // derived (canonical git URL)
+  "name":     "orders-api",                  // derived (== the sidecar name)
+  "commit":   "abc123…",                     // derived (scanned ref)
+  "summary":  "…", "kind": "service", "status": "active",   // declared in mycelium.toml
+  "tags":     ["…"], "stack": ["…"],                        // declared
+  "provides": [ { "name": "…", "summary": "…", "url": "…" } ],  // declared
+  "docGraph": { "url": "/repos/<id>/docgraph.json", "schemaVersion": 1, … }  // derived (node capture)
 }
 ```
 
-Query paths follow directly: a **declared** field is `.components[].sidecar.<field>`
-(`.sidecar.summary`, `.sidecar.stack[]`, `.sidecar.provides[]`); a **derived** field is
-`.components[].<field>` (`.docGraph.url`, `.commit`, `.id`). `.capabilities` is a separate
+Every field is one segment off the component: `.components[].summary`, `.components[].stack[]`,
+`.components[].provides[]`, `.components[].docGraph.url`. `.capabilities` is a separate
 `name → [provider names]` index (built from every component's *and* overlay node's provides),
-so it answers "who provides X" without walking components. Overlay nodes render under
-`.nodes` with the same declared shape minus the `.sidecar` wrapper (they have no repo).
+so it answers "who provides X" without walking components. Overlay nodes render under `.nodes`
+with the same flat shape (name/summary/provides), minus the fields a non-repo has no notion of.
+(The Go model nests the declared fields in a `Sidecar` struct for internal clarity, but the
+JSON is flattened at the boundary — a consumer never sees a `sidecar` key.)
 Tip: while exploring, drop the `?` — `.components[].provides[]` (wrong path) errors loudly
 with *Cannot iterate over null*, whereas `[]?` returns silence whether the path is empty or
 wrong; add `?` back once the path is confirmed.

@@ -18,12 +18,11 @@ snippet names which to reach for when.
 > **Read `<hub URL>/MAP.md` into context to orient** — a skimmable map of every repo
 > and service capability and when each applies. When you need a specific field,
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
-> graph, every field) with `jq`. **Structure:** a component's *declared* fields (from
-> its `mycelium.toml`) nest under `.sidecar` — `.sidecar.summary`, `.sidecar.stack[]`,
-> `.sidecar.provides[]` — while *derived* fields (`id`, `commit`, `docGraph`) sit at the
-> top level; `.capabilities` is a `name → [providers]` index. So the capability
-> summaries the map drops are
-> `jq -r '.components[].sidecar.provides[]? | "\(.name): \(.summary)"' graph.json`.
+> graph, every field) with `jq`. **Structure:** a component is flat — its
+> `mycelium.toml` fields (`summary`, `kind`, `status`, `tags`, `stack`, `provides`) sit
+> at the top level alongside the derived `id`/`commit`/`docGraph`, no wrapper; and
+> `.capabilities` is a `name → [providers]` index. So the capability summaries the map
+> drops are `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`.
 > For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
 > component carries a compact `docGraph` digest; that's enough to gauge a repo's docs

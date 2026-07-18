@@ -295,7 +295,7 @@ func TestRenderMarkdownPointsToCapabilitySummaries(t *testing.T) {
 	}
 	// ...but must point the reader at graph.json and name the provides path so the
 	// lookup is copy-paste, not reverse-engineered each time.
-	if !strings.Contains(md, "graph.json") || !strings.Contains(md, ".components[].sidecar.provides[]") {
+	if !strings.Contains(md, "graph.json") || !strings.Contains(md, ".components[].provides[]") {
 		t.Errorf("map must self-describe the capability-summary query path:\n%s", md)
 	}
 }

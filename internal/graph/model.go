@@ -105,6 +105,56 @@ type Component struct {
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
 }
 
+// componentJSON is the FLAT on-the-wire and in-graph shape of a Component: the
+// declared sidecar fields sit alongside the derived id/commit/docGraph, with no
+// `sidecar` wrapper. This is deliberate — the struct nests Sidecar for internal
+// clarity (declared vs derived), but a consumer querying graph.json should not
+// have to know that: it queries `.components[].provides[]`, not
+// `.components[].sidecar.provides[]`. The sidecar's own `name` is dropped from the
+// output because scan sets Component.Name = Sidecar.Name, so serialising both only
+// duplicated one string. Overlay nodes (OverlayNode) are already flat, so this
+// makes components and nodes consistent in the graph.
+//
+// Footgun: MarshalJSON and UnmarshalJSON below MUST stay symmetric — the same
+// componentJSON is both the write shape (node → manifest, hub → graph.json) and
+// the read shape (hub ingest, `myco audit` re-reading graph.json). Add a field to
+// one path only and a round-trip silently drops it.
+type componentJSON struct {
+	ID       string          `json:"id"`
+	Name     string          `json:"name"`
+	Commit   string          `json:"commit"`
+	Summary  string          `json:"summary"`
+	Kind     string          `json:"kind"`
+	Status   string          `json:"status"`
+	Tags     []string        `json:"tags,omitempty"`
+	Stack    []string        `json:"stack,omitempty"`
+	Provides []Provides      `json:"provides,omitempty"`
+	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
+}
+
+func (c Component) MarshalJSON() ([]byte, error) {
+	return json.Marshal(componentJSON{
+		ID: c.ID, Name: c.Name, Commit: c.Commit,
+		Summary: c.Sidecar.Summary, Kind: c.Sidecar.Kind, Status: c.Sidecar.Status,
+		Tags: c.Sidecar.Tags, Stack: c.Sidecar.Stack, Provides: c.Sidecar.Provides,
+		DocGraph: c.DocGraph,
+	})
+}
+
+func (c *Component) UnmarshalJSON(b []byte) error {
+	var f componentJSON
+	if err := json.Unmarshal(b, &f); err != nil {
+		return err
+	}
+	c.ID, c.Name, c.Commit, c.DocGraph = f.ID, f.Name, f.Commit, f.DocGraph
+	c.Sidecar = Sidecar{
+		Name:    f.Name, // reconstruct the field the flat shape drops (always == Name)
+		Summary: f.Summary, Kind: f.Kind, Status: f.Status,
+		Tags: f.Tags, Stack: f.Stack, Provides: f.Provides,
+	}
+	return nil
+}
+
 type Manifest struct {
 	Node       string      `json:"node"`
 	Source     string      `json:"source"`

@@ -39,6 +39,15 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   `RepoDocGraph*` constants): the hub stamps the `url`, writes the payload, and `serve`
   parses the same prefix/suffix. See the per-repo doc-graph invariant below.
   `schema/graph.md` is the contract for all three; reconcile it with any render change.
+- **`graph.json` flattens each component — no `sidecar` wrapper.** The declared
+  `mycelium.toml` fields serialize at the component top level (`.components[].summary`,
+  `.provides[]`, `.stack[]`), alongside the derived `id`/`commit`/`docGraph` and consistent
+  with overlay nodes — a consumer queries `.provides[]`, never `.sidecar.provides[]`. The
+  `Component`/`Sidecar` struct nesting is internal-only, flattened at the JSON boundary by a
+  single `componentJSON` shape shared by `Component.MarshalJSON`/`UnmarshalJSON`. **Footgun:
+  keep the two symmetric** — that flat shape is both the write path (node→manifest,
+  hub→graph.json) *and* the read path (hub ingest, `myco audit` re-reading graph.json); a
+  field added to the struct but not to `componentJSON` is silently dropped on round-trip.
 - **`MAP.md` is component-first, and has no capability index.** Each entry states what a
   thing is, what it provides, who uses it, and what it is built with — together. A
   capability-first index was tried and dropped: it was a near-bijection (all but a couple of
