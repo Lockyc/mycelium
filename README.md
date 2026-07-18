@@ -57,8 +57,12 @@ per-repo when the branch is absent; omit it to read each repo's default branch.
     myco serve --manifests <dir> --overlay overlay.toml \
       --dir ./graph --ingest-token-file /path/to/token --addr :8080
 
-Serves `/MAP.md` and `/graph.json`, and accepts `POST /manifests`
-(node-keyed, bearer-authenticated); each push rebuilds the served graph.
+Serves `/MAP.md` and `/graph.json`, `GET /repos/<id>/docgraph.json` (a
+component's full doc-graph payload, when it has one), and accepts
+`POST /manifests` (node-keyed, bearer-authenticated); each push rebuilds the
+served graph. Each component in `graph.json` carries a compact `docGraph`
+digest when the node captured one — see
+[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph).
 `--ingest-token-file` is optional — omit it only behind a trusted network
 boundary; the hub then logs a loud warning that ingest is unauthenticated.
 

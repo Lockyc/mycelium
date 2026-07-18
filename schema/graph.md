@@ -122,6 +122,37 @@ Both outputs are for coding agents, not humans. They are the *same graph* render
 
 Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — the filenames say it.
 
+### Per-repo doc-graph (`docGraph`)
+
+Each component in `graph.json` may carry a **`docGraph`** digest — the node's
+capture of that repo's [docgraph](https://github.com/lockyc/docgraph) doc-graph,
+taken during scan (the node is the only role with a working tree). It is derived,
+not declared: nothing in `mycelium.toml` sets it.
+
+- **Digest fields** (all camelCase): `schemaVersion`, `docCount`,
+  `contentEdgeCount`, `metadataEdgeCount`, `contentIslands` (unfindable docs — the
+  rot signal), `metadataIslands` (docs with no declared placement), `entryDocs`
+  (which of `CLAUDE.md`/`README.md`/`docs/index.md` are present).
+- **schemaVersion is pinned to 1.** A payload with any other version is
+  recorded-but-not-interpreted: the digest carries only the observed
+  `schemaVersion`, and `myco audit` reports a `docgraph-version` finding.
+- **Omitted when there's nothing to say:** a repo with no markdown (or no docgraph
+  on the node) carries no `docGraph`; a bare repo is skipped (no working tree).
+- **`MAP.md`** surfaces this only as a rot flag — a component with ≥1 island gets a
+  one-line `docs: N islands ⚠` marker; a clean doc-graph adds nothing.
+- **Full payload:** the node also stashes each repo's complete `docgraph graph
+  --json` out-of-band; the hub serves it at **`GET /repos/<id>/docgraph.json`**
+  (`<id>` is the canonical id, e.g. `/repos/github.com/lockyc/mycelium/docgraph.json`).
+  It is never inlined into `graph.json` — the digest answers "healthy / how big",
+  the payload is for traversal.
+
+**Ref caveat (v1):** docgraph audits the **working tree** (`git ls-files`) and has
+no `--ref` concept, while Mycelium reads sidecars from a **committed ref**. So a
+`docGraph` reflects the node's checkout state, which can differ from the scanned
+ref. A Mycelium node is read-only and typically sits at the ref it scans, so in the
+reference deployment the two agree; a precise per-ref capture is deferred until a
+real divergence bites.
+
 Consistency checks (orphans, dangling edges, staleness) are a separate step,
 `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are

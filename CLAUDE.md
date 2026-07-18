@@ -13,10 +13,12 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 ## Layout
 - `cmd/myco` — CLI + subcommand dispatch.
 - `internal/graph` — model, identity (canonical git-URL dedup), merge, render.
-- `internal/scan` — node role: walk roots, read sidecars + git info → manifest.
+- `internal/scan` — node role: walk roots, read sidecars + git info → manifest;
+  also captures each non-bare component's docgraph doc-graph (`docgraph.go`).
 - `internal/audit` — orphan / dangling-edge / staleness checks over `graph.json`
   (schema validation is a separate step — `myco validate` / `ParseSidecar` at scan).
-- `internal/serve` — HTTP handler for the artifact dir.
+- `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full
+  doc-graph payloads.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
 - `internal/hub` — hub role: Build (merge manifests → graph) and Serve (HTTP + ingest endpoint).
 
@@ -74,6 +76,22 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   A repo that is a component on any node is never an orphan. The overlay `ignore` list
   (canonical ids) suppresses repos that intentionally lack a sidecar — orphan curation
   lives in the overlay, the same private surface as edges and nodes.
+- **Per-repo doc-graph is node-captured, best-effort, schemaVersion-1-pinned.**
+  The node shells out to `docgraph graph --json` per non-bare component (read-only,
+  preserving nodes-are-read-only-on-repos) and attaches a `DocGraphDigest` to the
+  `Component` (rides into `graph.json`) plus the raw full payload to
+  `Manifest.DocGraphs` (out-of-band, keyed by canonical id). **Footgun:** the full
+  payload must stay on `Manifest`, never on `Component` — `Component` is shared by
+  both `Manifest` and `Graph`, so a field on it would either bloat `graph.json` or
+  fail to reach the hub. docgraph absent / bare repo / bad output → no digest, never
+  a failed scan. Unknown `schemaVersion` is recorded, not interpreted — the digest
+  carries only the observed value, and `myco audit` reports it as a
+  `docgraph-version` finding (alongside `doc-rot` for a component with ≥1 island).
+  `entryDocs` is the subset of Mycelium's own `conventionalEntryDocs` (not a
+  docgraph concept) present in the repo. The hub writes payloads to
+  `<outDir>/repos/<id>/docgraph.json` (on-disk layout mirrors the served URL) and
+  `internal/serve` serves `GET /repos/<id>/docgraph.json`. Full field/route detail:
+  `schema/graph.md`.
 
 ## Test / build
     go test ./...
