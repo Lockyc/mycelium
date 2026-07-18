@@ -18,11 +18,14 @@ snippet names which to reach for when.
 > **Read `<hub URL>/MAP.md` into context to orient** — a skimmable map of every repo
 > and service capability and when each applies. When you need a specific field,
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
-> graph, every field) with `jq`. **Structure:** a component is flat — its
-> `mycelium.toml` fields (`summary`, `kind`, `status`, `tags`, `stack`, `provides`) sit
-> at the top level alongside the derived `id`/`commit`/`docGraph`, no wrapper; and
-> `.capabilities` is a `name → [providers]` index. So the capability summaries the map
-> drops are `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`.
+> graph, every field). **Prefer the query interface over hand-written `jq`:** `GET
+> <hub URL>/q` lists every query; then e.g. `GET <hub URL>/q/capability/<name>` for a
+> capability's summary + providers, `GET <hub URL>/q/components?kind=app&stack=rust` to
+> filter, `GET <hub URL>/q/used-by/<name>` for blast radius, `GET <hub URL>/q/search?q=`
+> to find. Each returns already-filtered JSON — no path to construct, and an unknown
+> name is a 404, not a silent empty result. **Fallback** (only for what no named query
+> covers): `jq` over `graph.json`, whose components are flat —
+> `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`.
 > For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
 > component carries a compact `docGraph` digest; that's enough to gauge a repo's docs

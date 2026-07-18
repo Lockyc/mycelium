@@ -91,6 +91,16 @@ Mycelium's pinned `1`). Repos that intentionally have no sidecar are suppressed 
 Lints a single `mycelium.toml` against the schema — run it before committing a new
 sidecar. Prints the parsed name and summary on success, or the schema error.
 
+### Query the graph
+
+    myco query <name> [args] [--dir <dir> | --url <hub>] [--json]
+
+Named queries (capabilities, capability, component, components, used-by, uses,
+search) over a local `graph.json` (`--dir`) or a live hub (`--url`) — text by
+default, `--json` to pipe. Bare `myco query` prints the index. The hub also
+serves the same queries at `GET /q/*` (`GET /q` lists them). No jq required for
+the common cases — see [`schema/graph.md`](schema/graph.md#querying-prefer-over-hand-written-jq).
+
 ## Demo
 
 See a populated graph built from the bundled examples — no real repos needed:

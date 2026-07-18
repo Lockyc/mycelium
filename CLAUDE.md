@@ -20,9 +20,12 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   checks over `graph.json` (schema validation is a separate step — `myco validate` /
   `ParseSidecar` at scan).
 - `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full
-  doc-graph payloads.
+  doc-graph payloads and the `/q/*` query routes.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
 - `internal/hub` — hub role: Build (merge manifests → graph) and Serve (HTTP + ingest endpoint).
+- `internal/query` — first-class named queries over the merged graph (capability /
+  component / relationship / search); the single source both `myco query` and the
+  hub's `/q/*` routes call.
 
 ## Invariants
 - **Two outputs, two agent use cases — both for agents, neither for humans.** `MAP.md`
@@ -48,6 +51,13 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   keep the two symmetric** — that flat shape is both the write path (node→manifest,
   hub→graph.json) *and* the read path (hub ingest, `myco audit` re-reading graph.json); a
   field added to the struct but not to `componentJSON` is silently dropped on round-trip.
+- **Query semantics live once, in `internal/query`.** The `myco query` CLI and the
+  hub's `/q/*` HTTP routes are thin adapters over it — never re-encode a query in
+  either. `/q/*` inherits the hub's existing auth gate (no new auth), reads `graph.json`
+  fresh per request, and returns an explicit 404 on an unknown name (never a silent
+  empty result — that jq failure mode is the thing the query layer exists to remove).
+  The self-documenting index (`GET /q`, bare `myco query`) renders `query.Descriptors()`
+  so it can't drift from the queries.
 - **`MAP.md` is component-first, and has no capability index.** Each entry states what a
   thing is, what it provides, who uses it, and what it is built with — together. A
   capability-first index was tried and dropped: it was a near-bijection (all but a couple of

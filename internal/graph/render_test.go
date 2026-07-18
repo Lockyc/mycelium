@@ -293,10 +293,9 @@ func TestRenderMarkdownPointsToCapabilitySummaries(t *testing.T) {
 	if strings.Contains(md, "uptime checks") {
 		t.Errorf("capability summary must NOT render into the lossy map:\n%s", md)
 	}
-	// ...but must point the reader at graph.json and name the provides path so the
-	// lookup is copy-paste, not reverse-engineered each time.
-	if !strings.Contains(md, "graph.json") || !strings.Contains(md, ".components[].provides[]") {
-		t.Errorf("map must self-describe the capability-summary query path:\n%s", md)
+	// ...but must point the reader at the query interface (no jq for the common case).
+	if !strings.Contains(md, "/q/capabilities") {
+		t.Errorf("map must point at the query interface for capability summaries:\n%s", md)
 	}
 }
 

@@ -118,7 +118,7 @@ Both outputs are for coding agents, not humans. They are the *same graph* render
 - **`MAP.md`** — the map to **read into context**. A compact Markdown digest that is intentionally **lossy**. It is **component-first**: one entry per component and overlay node, name-sorted, carrying summary, kind/status, the *names* of what it provides, who uses it, stack, and tags — then shared capabilities, relationships, and undocumented repos. It drops each capability's `summary` and `url` so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
   - **`Used by`** reverses only the *use* edges (`consumes`, `depends-on`, `deploys-to`), so the line is an entry's blast radius: change this and these must be re-pinned or rebuilt. Thematic edges (`markets`, `sells`, `related`) are excluded — reversing them would assert something false — and appear only under `Relationships`, with their type intact.
   - **`Shared capabilities`** lists only capabilities with more than one provider. A sole provider is already stated on its own entry; there is no full capability index, because one provider is the norm and an index of them restates component names while saying nothing about the components it names. Capability-first lookup is `graph.json`'s job.
-- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `stack`, `url`s, and edges), lossless. Query it with `jq` (or a tool) when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, live here — `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
+- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `stack`, `url`s, and edges), lossless. Query it — prefer the named query interface below — when you need a specific field, an endpoint, or to filter/traverse — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, are best fetched via the query interface — `GET <hub>/q/capability/<name>` or `myco query capability <name>` (no jq). The raw jq fallback, for anything no named query covers, is `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
 
 Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — the filenames say it.
 
@@ -150,6 +150,22 @@ JSON is flattened at the boundary — a consumer never sees a `sidecar` key.)
 Tip: while exploring, drop the `?` — `.components[].provides[]` (wrong path) errors loudly
 with *Cannot iterate over null*, whereas `[]?` returns silence whether the path is empty or
 wrong; add `?` back once the path is confirmed.
+
+## Querying (prefer over hand-written jq)
+
+Mycelium provides named queries so an agent does not construct `jq` for the common
+cases — each returns already-filtered JSON (HTTP) or readable text (CLI). Two
+surfaces, one implementation (`internal/query`):
+
+- **HTTP (the hub):** `GET <hub>/q` lists every query with an example. Then e.g.
+  `GET <hub>/q/capability/monitoring`, `GET <hub>/q/components?kind=app&stack=rust`,
+  `GET <hub>/q/used-by/config-core`, `GET <hub>/q/search?q=newsletter`.
+- **CLI (`myco query`):** the same queries over a local `graph.json` (`--dir`) or a
+  live hub (`--url <hub>`); text by default, `--json` to pipe. Bare `myco query`
+  prints the index.
+
+An unknown name is an explicit 404 / error, never a silent empty result. Fall back to
+`jq` over `graph.json` only for a query no named endpoint covers.
 
 ### Per-repo doc-graph (`docGraph`)
 
