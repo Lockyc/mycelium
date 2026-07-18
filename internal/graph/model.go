@@ -20,6 +20,21 @@ const (
 	GraphJSONName = "graph.json"
 )
 
+// RepoDocGraphPrefix/Suffix and RepoDocGraphRoute are the single source for the
+// per-repo full doc-graph route. The hub stamps RepoDocGraphRoute(id) onto each
+// digest's `url` (so a graph.json consumer follows a link instead of rebuilding
+// the route), the hub writes the payload at the mirrored on-disk path, and the
+// serve handler parses the same prefix/suffix — one definition so the link, the
+// writer, and the reader can't drift. The route is relative (resolve it against
+// the hub the graph was fetched from); the id spans path segments (canonical ids
+// contain slashes).
+const (
+	RepoDocGraphPrefix = "/repos/"
+	RepoDocGraphSuffix = "/docgraph.json"
+)
+
+func RepoDocGraphRoute(id string) string { return RepoDocGraphPrefix + id + RepoDocGraphSuffix }
+
 type Provides struct {
 	Name    string `toml:"name" json:"name"`
 	Summary string `toml:"summary" json:"summary"`
@@ -71,6 +86,11 @@ type DocGraphDigest struct {
 	ContentIslands    []string `json:"contentIslands,omitempty"`  // unfindable docs (the rot signal)
 	MetadataIslands   []string `json:"metadataIslands,omitempty"` // docs with no declared placement
 	EntryDocs         []string `json:"entryDocs,omitempty"`       // conventional roots present
+	// URL is a self-navigating link to this repo's full doc-graph payload —
+	// RepoDocGraphRoute(component id), stamped by the hub at render so a consumer
+	// follows a link rather than reconstructing the route from the id. omitempty:
+	// only a hub-rendered graph carries it (a node's raw manifest does not).
+	URL string `json:"url,omitempty"`
 }
 
 type Component struct {

@@ -22,7 +22,8 @@ snippet names which to reach for when.
 > summaries and urls live in `graph.json` —
 > `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
-> component carries a compact `docGraph` digest **beside its `id`** (the canonical git URL),
-> and the hub serves that repo's **full** doc-graph at **`<hub URL>/repos/<id>/docgraph.json`**
-> — where `<id>` is that same `graph.json` `id` field (e.g. `id` `github.com/acme/web` →
-> `<hub URL>/repos/github.com/acme/web/docgraph.json`). Regenerate with `myco build`.
+> component carries a compact `docGraph` digest; that's enough to gauge a repo's docs
+> without a second fetch. To walk the **full** doc-graph, **follow the digest's `url`**
+> (a link the hub stamps in, e.g. `docGraph.url` = `/repos/github.com/acme/web/docgraph.json`):
+> `curl "<hub URL>$(jq -r '.components[]|select(.name=="<repo>").docGraph.url' graph.json)"`.
+> Regenerate with `myco build`.

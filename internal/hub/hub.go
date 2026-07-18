@@ -56,6 +56,15 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 		}
 	}
 	g := graph.Merge(ms, ov)
+	// Stamp each doc-graph digest with a self-navigating link to its full payload
+	// route, derived from the component id — so a graph.json consumer follows
+	// `docGraph.url` instead of reconstructing /repos/<id>/docgraph.json. Serve-tier
+	// concern, done at the hub (the node doesn't know the route).
+	for i := range g.Components {
+		if g.Components[i].DocGraph != nil {
+			g.Components[i].DocGraph.URL = graph.RepoDocGraphRoute(g.Components[i].ID)
+		}
+	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}

@@ -33,9 +33,11 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   map, query the graph. Not human-vs-machine — both are agent-facing, split by task.
   For a *single repo's own* documentation graph there is a third, per-component tier:
   `graph.json`'s per-component `docGraph` digest gauges it (doc/edge counts, island paths,
-  entry docs), and the hub serves that repo's **full** doc-graph at
-  `GET /repos/<id>/docgraph.json` (`<id>` = the component's canonical id) to traverse — read
-  the digest to gauge, fetch the payload to walk. See the per-repo doc-graph invariant below.
+  entry docs), and the digest's **`url`** is a self-navigating link to that repo's **full**
+  doc-graph payload (`GET` it to traverse) — read the digest to gauge, follow `docGraph.url`
+  to walk, no route to reconstruct. The route is single-sourced (`RepoDocGraphRoute` /
+  `RepoDocGraph*` constants): the hub stamps the `url`, writes the payload, and `serve`
+  parses the same prefix/suffix. See the per-repo doc-graph invariant below.
   `schema/graph.md` is the contract for all three; reconcile it with any render change.
 - **`MAP.md` is component-first, and has no capability index.** Each entry states what a
   thing is, what it provides, who uses it, and what it is built with — together. A
