@@ -296,3 +296,21 @@ func TestRenderMarkdownRendersTags(t *testing.T) {
 		t.Errorf("tagless component should render no backticks:\n%s", none)
 	}
 }
+
+func TestRenderJSONIncludesDocGraphDigest(t *testing.T) {
+	g := Graph{Components: []Component{{
+		ID: "github.com/x/y", Name: "y",
+		DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 4, ContentIslands: []string{"docs/stray.md"}},
+	}}}
+	b, err := RenderJSON(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, `"docGraph"`) || !strings.Contains(s, `"docs/stray.md"`) {
+		t.Fatalf("graph.json must carry the digest: %s", s)
+	}
+	if strings.Contains(s, `"docGraphs"`) {
+		t.Fatalf("graph.json must NOT carry out-of-band full payloads: %s", s)
+	}
+}
