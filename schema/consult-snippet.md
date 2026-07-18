@@ -20,6 +20,7 @@ snippet names which to reach for when.
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
 > graph, every field) with `jq`. For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
-> component carries a compact `docGraph` digest, and the hub serves that repo's **full**
-> doc-graph at **`<hub URL>/repos/<id>/docgraph.json`** (`<id>` = the component's canonical
-> id) to traverse. Regenerate with `myco build`.
+> component carries a compact `docGraph` digest **beside its `id`** (the canonical git URL),
+> and the hub serves that repo's **full** doc-graph at **`<hub URL>/repos/<id>/docgraph.json`**
+> — where `<id>` is that same `graph.json` `id` field (e.g. `id` `github.com/acme/web` →
+> `<hub URL>/repos/github.com/acme/web/docgraph.json`). Regenerate with `myco build`.
