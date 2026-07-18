@@ -14,7 +14,7 @@ type Options struct {
 	ExcludeOwners []string
 	Ref           string // git ref to read sidecars from; "" or absent → HEAD
 
-	// DocGraph runs docgraph for a repo checkout; nil uses the real runDocGraph.
+	// DocGraph runs docgraph for a repo at a git ref; nil uses the real runDocGraph.
 	// Injected so tests need no docgraph binary and CI stays green without it.
 	DocGraph DocGraphFunc
 }

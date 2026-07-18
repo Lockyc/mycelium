@@ -63,7 +63,11 @@ component's full doc-graph payload, when it has one), and accepts
 `POST /manifests` (node-keyed, bearer-authenticated); each push rebuilds the
 served graph. Each component in `graph.json` carries a compact `docGraph`
 digest when the node captured one — see
-[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph).
+[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph). Capturing
+these digests requires **`docgraph` v3.1.0+ on the node's PATH** (it reads the
+graph at the scanned ref via `docgraph graph --ref`, which works on a bare
+repo store too); with an older or absent `docgraph` the digests are simply
+omitted (best-effort, never fatal).
 `--ingest-token-file` is optional — omit it only behind a trusted network
 boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
