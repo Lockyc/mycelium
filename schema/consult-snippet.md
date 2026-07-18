@@ -20,7 +20,8 @@ snippet names which to reach for when.
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
 > graph, every field) with `jq`. The map lists capability *names* only; their
 > summaries and urls live in `graph.json` —
-> `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. For a specific repo's own **documentation graph** —
+> `jq -r '.components[].sidecar.provides[]? | "\(.name): \(.summary)"' graph.json` (they're nested under each
+> component's `sidecar`). For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
 > component carries a compact `docGraph` digest; that's enough to gauge a repo's docs
 > without a second fetch. To walk the **full** doc-graph, **follow the digest's `url`**

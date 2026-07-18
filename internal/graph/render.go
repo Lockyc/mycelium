@@ -111,7 +111,7 @@ func RenderMarkdown(g Graph) string {
 	// sees "Provides: monitoring" and can't know a summary for it exists to query.
 	// Rendered once, not per entry, so the map stays skimmable. See schema/graph.md.
 	b.WriteString("Capability summaries and urls are omitted here to stay skimmable — " +
-		"query `graph.json` for them: `jq -r '.components[].provides[]? | \"\\(.name): \\(.summary)\"'`.\n\n")
+		"query `graph.json` for them: `jq -r '.components[].sidecar.provides[]? | \"\\(.name): \\(.summary)\"'`.\n\n")
 
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(g) {
