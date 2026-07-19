@@ -56,6 +56,12 @@ func runQuery(args []string) error {
 	}
 	g, err := loadQueryGraph(*dir, effURL)
 	if err != nil {
+		// The common miss: no source at all — no --url, no $MYCELIUM_HUB, and no
+		// graph.json in the default cwd. Name the fix rather than leaking a bare
+		// "open graph.json" from the fallback read.
+		if effURL == "" && !flagPassed(fs, "dir") {
+			return fmt.Errorf("no graph source: set $MYCELIUM_HUB to a hub URL, or pass --url <hub> or --dir <artifact dir> (%w)", err)
+		}
 		return err
 	}
 
