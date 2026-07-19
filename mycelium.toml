@@ -5,6 +5,9 @@ status  = "wip"
 tags    = ["graph", "agents", "metadata", "cli"]
 stack   = ["go"]
 
+[github]
+topics_extra = ["knowledge-graph", "ai-agents"]
+
 [[provides]]
 name    = "ecosystem-graph"
 summary = "Serves the merged ecosystem graph as MAP.md + graph.json over HTTP"
