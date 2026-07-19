@@ -93,13 +93,21 @@ sidecar. Prints the parsed name and summary on success, or the schema error.
 
 ### Query the graph
 
-    myco query <name> [args] [--dir <dir> | --url <hub>] [--json]
+`myco query` is the first-class way to explore and discover — it answers named
+questions without your needing to know `graph.json`'s structure:
 
-Named queries (capabilities, capability, component, components, used-by, uses,
-search) over a local `graph.json` (`--dir`) or a live hub (`--url`) — text by
-default, `--json` to pipe. Bare `myco query` prints the index. The hub also
-serves the same queries at `GET /q/*` (`GET /q` lists them). No jq required for
-the common cases — see [`schema/graph.md`](schema/graph.md#querying-prefer-over-hand-written-jq).
+    myco query <name> [args] [--url <hub> | --dir <dir>] [--json]
+
+Queries: `capabilities`, `capability <name>`, `component <name>`,
+`components --kind=… --stack=…`, `used-by <name>`, `uses <name>`, `search <text>`.
+Bare `myco query` prints the index. It reads a local `graph.json` (`--dir`, default
+`.`) or a hub (`--url`, default `$MYCELIUM_HUB` — set that once and no flag is needed;
+flags precede the positional). Text by default, `--json` to pipe.
+
+The hub also serves the same queries over HTTP at `GET /q/*` (`GET /q` lists them) —
+a bonus for `curl` when the binary isn't around. Hand-written `jq` over `graph.json`
+is for specific/programmatic cases only; see
+[`schema/graph.md`](schema/graph.md#querying).
 
 ## Demo
 

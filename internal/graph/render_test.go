@@ -293,9 +293,10 @@ func TestRenderMarkdownPointsToCapabilitySummaries(t *testing.T) {
 	if strings.Contains(md, "uptime checks") {
 		t.Errorf("capability summary must NOT render into the lossy map:\n%s", md)
 	}
-	// ...but must point the reader at the query interface (no jq for the common case).
-	if !strings.Contains(md, "/q/capabilities") {
-		t.Errorf("map must point at the query interface for capability summaries:\n%s", md)
+	// ...but must point the reader at the first-class query tool — `myco query` (no
+	// jq, no need to know the JSON shape) — naming how to recover a capability summary.
+	if !strings.Contains(md, "myco query capability") {
+		t.Errorf("map must point at `myco query` for capability summaries:\n%s", md)
 	}
 }
 

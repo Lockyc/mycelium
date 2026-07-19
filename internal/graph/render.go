@@ -105,13 +105,20 @@ func RenderMarkdown(g Graph) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium map\n\n")
 
-	// Self-describe the one lossy omission an agent can't otherwise tell is there:
-	// each entry lists capability *names* but not their summaries/urls. Point at the
-	// query interface (no jq needed); graph.json + jq remains the documented fallback
-	// in schema/graph.md. Rendered once, not per entry, so the map stays skimmable.
-	b.WriteString("Capability summaries and urls are omitted here to stay skimmable — " +
-		"query them: `GET <hub>/q/capabilities` (or `myco query capabilities`), " +
-		"or one at `GET <hub>/q/capability/<name>`.\n\n")
+	// Frame the map for its reader: it is the "orient" surface, read whole into
+	// context. Lookup is not its job — point at `myco query` as the first-class way
+	// to query (it needs no knowledge of graph.json's shape, unlike jq). This also
+	// self-describes the one lossy omission an agent can't otherwise tell is there —
+	// each entry lists capability *names* but not their summaries/urls. Rendered
+	// once, not per entry, so the map stays skimmable. (jq over graph.json is the
+	// specific/programmatic path, documented in schema/graph.md, not here.)
+	b.WriteString("A lossy overview to read whole and orient — *what exists, and when " +
+		"does each apply?* To look anything up, **query the graph with `myco query`** " +
+		"(the first-class way — it answers named questions without your needing to know " +
+		"`graph.json`'s structure): `myco query` alone lists the queries; e.g. " +
+		"`myco query capability <name>`, `myco query used-by <name>`. Capability " +
+		"summaries and urls are dropped here to stay skimmable — recover them with " +
+		"`myco query capability <name>`.\n\n")
 
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(g) {

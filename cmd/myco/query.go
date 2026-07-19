@@ -22,7 +22,7 @@ func runQuery(args []string) error {
 	sub := args[0]
 	fs := flag.NewFlagSet("query", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "artifact dir (with graph.json)")
-	url := fs.String("url", "", "hub URL to fetch graph.json from instead of --dir")
+	url := fs.String("url", os.Getenv("MYCELIUM_HUB"), "hub URL to fetch graph.json from (default $MYCELIUM_HUB); overrides --dir")
 	asJSON := fs.Bool("json", false, "emit JSON instead of text")
 	kind := fs.String("kind", "", "components: filter by kind")
 	stack := fs.String("stack", "", "components: filter by stack member")
@@ -33,7 +33,13 @@ func runQuery(args []string) error {
 	}
 	pos := fs.Args()
 
-	g, err := loadQueryGraph(*dir, *url)
+	// $MYCELIUM_HUB makes --url ambient, so `myco query <name>` needs no flag. An
+	// explicit --dir (without --url) still selects a local artifact over the hub.
+	effURL := *url
+	if !flagPassed(fs, "url") && flagPassed(fs, "dir") {
+		effURL = ""
+	}
+	g, err := loadQueryGraph(*dir, effURL)
 	if err != nil {
 		return err
 	}
@@ -116,6 +122,19 @@ func emit[T any](asJSON bool, v T, text func(T) string) error {
 	return nil
 }
 
+// flagPassed reports whether the named flag was set on the command line (as
+// opposed to left at its default) — used to let an explicit --dir override an
+// ambient $MYCELIUM_HUB default on --url.
+func flagPassed(fs *flag.FlagSet, name string) bool {
+	set := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
+}
+
 func loadQueryGraph(dir, url string) (graph.Graph, error) {
 	var data []byte
 	var err error
@@ -152,7 +171,7 @@ func queryIndex() string {
 	for _, d := range query.Descriptors() {
 		fmt.Fprintf(&b, "  %-13s %-32s %s\n", d.Name, d.Args, d.Example)
 	}
-	b.WriteString("\nflags: --dir <artifact dir> | --url <hub> | --json\n")
+	b.WriteString("\nflags: --url <hub> (default $MYCELIUM_HUB) | --dir <artifact dir> | --json\n")
 	return b.String()
 }
 
