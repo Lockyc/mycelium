@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -65,8 +66,33 @@ func TestRunQueryComponentsJSON(t *testing.T) {
 
 func TestRunQueryUnknownCapabilityErrors(t *testing.T) {
 	dir := writeGraph(t)
+	// --dir sits AFTER the positional: interspersed-flag parsing must honor it, so
+	// the graph actually loads and the error is the real "no such capability" — not
+	// a file-not-found masquerading as success-of-the-assertion because a dropped
+	// --dir fell back to ./graph.json.
 	err := runQuery([]string{"capability", "nope", "--dir", dir})
 	if err == nil {
 		t.Fatal("unknown capability must return a non-nil error, not empty success")
+	}
+	if !strings.Contains(err.Error(), "no such capability") {
+		t.Fatalf("expected a 'no such capability' error (proving --dir after the positional was honored), got: %v", err)
+	}
+}
+
+// Flags must be honored in any position — Go's flag package stops at the first
+// non-flag, so runQuery loop-parses to accept flags placed after the positional
+// arg (the residual footgun this fixes: `myco query used-by config-core --url X`
+// used to silently drop --url).
+func TestRunQueryFlagsAfterPositional(t *testing.T) {
+	dir := writeGraph(t)
+	out := captureStdout(t, func() error {
+		return runQuery([]string{"capability", "sidebar", "--dir", dir, "--json"})
+	})
+	var v map[string]any
+	if err := json.Unmarshal([]byte(out), &v); err != nil {
+		t.Fatalf("--json after the positional not honored / invalid JSON: %v\n%s", err, out)
+	}
+	if v["name"] != "sidebar" {
+		t.Fatalf("expected capability sidebar (--dir after the positional honored), got: %s", out)
 	}
 }

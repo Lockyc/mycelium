@@ -28,10 +28,25 @@ func runQuery(args []string) error {
 	stack := fs.String("stack", "", "components: filter by stack member")
 	status := fs.String("status", "", "components: filter by status")
 	tag := fs.String("tag", "", "components: filter by tag")
-	if err := fs.Parse(args[1:]); err != nil {
-		return err
+	// Parse flags interspersed with positionals. Go's flag package stops at the
+	// first non-flag arg, so a plain fs.Parse would silently ignore any flag placed
+	// after the positional (`myco query used-by config-core --url X` would drop
+	// --url). Loop instead: consume leading flags, peel one positional, repeat —
+	// so flags work in any position. fs.actual accumulates across Parse calls, so
+	// flagPassed below still sees flags set in any round.
+	var pos []string
+	rest := args[1:]
+	for {
+		if err := fs.Parse(rest); err != nil {
+			return err
+		}
+		rest = fs.Args()
+		if len(rest) == 0 {
+			break
+		}
+		pos = append(pos, rest[0])
+		rest = rest[1:]
 	}
-	pos := fs.Args()
 
 	// $MYCELIUM_HUB makes --url ambient, so `myco query <name>` needs no flag. An
 	// explicit --dir (without --url) still selects a local artifact over the hub.
