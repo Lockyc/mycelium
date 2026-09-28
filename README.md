@@ -1,5 +1,6 @@
 # Mycelium
 
+[![Release](https://img.shields.io/github/v/release/lockyc/mycelium?sort=semver&label=release)](https://github.com/lockyc/mycelium/releases/latest)
 [![CI](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml/badge.svg)](https://github.com/Lockyc/mycelium/actions/workflows/ci.yml)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555)
 ![Go](https://img.shields.io/github/go-mod/go-version/Lockyc/mycelium?logo=go&logoColor=white)
@@ -39,13 +40,14 @@ Or build in place — the binary lands in the repo root, so invoke it as `./myco
     myco scan --roots <dir>[,<dir>] --node <id> --out manifest.json
 
 Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
-metadata (origin remote, tags), and writes a manifest (JSON). The `--node` id
+metadata (origin remote, tags), and writes a manifest (JSON) to `--out`, or stdout
+without it. The `--node` id
 tags this manifest; used by a hub to track which node pushed it.
 
 ### Node (scan where the repos live, push to a hub)
 
     myco scan --roots <repo-store> --node <id> \
-      --source local-checkout --exclude-owners vendor --fallback-host <host> \
+      --exclude-owners vendor --fallback-host <host> \
       --ref dev --push https://<hub> --token-file /path/to/token
 
 Reads each repo's committed `mycelium.toml` (bare repos and working trees alike),
@@ -64,7 +66,8 @@ component's full doc-graph payload, when it has one), and accepts
 served graph. Each component in `graph.json` carries a compact `docGraph`
 digest when the node captured one — see
 [`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph). Capturing
-these digests requires **`docgraph` v3.1.0+ on the node's PATH** (it reads the
+these digests requires **[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on the
+node's PATH** (it reads the
 graph at the scanned ref via `docgraph graph --ref`, which works on a bare
 repo store too); with an older or absent `docgraph` the digests are simply
 omitted (best-effort, never fatal).
@@ -99,10 +102,10 @@ questions without your needing to know `graph.json`'s structure:
     myco query <name> [args] [--url <hub> | --dir <dir>] [--json]
 
 Queries: `capabilities`, `capability <name>`, `component <name>`,
-`components --kind=… --stack=…`, `used-by <name>`, `uses <name>`, `search <text>`.
+`components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`, `search <text>`.
 Bare `myco query` prints the index. It reads a local `graph.json` (`--dir`, default
-`.`) or a hub (`--url`, default `$MYCELIUM_HUB` — set that once and no flag is needed;
-flags precede the positional). Text by default, `--json` to pipe.
+`.`) or a hub (`--url`, default `$MYCELIUM_HUB` — set that once and no flag is needed).
+Flags may go before or after the positional. Text by default, `--json` to pipe.
 
 The hub also serves the same queries over HTTP at `GET /q/*` (`GET /q` lists them) —
 a bonus for `curl` when the binary isn't around. Hand-written `jq` over `graph.json`
