@@ -160,10 +160,10 @@ wrong `jq` path gives. One implementation (`internal/query`) sits behind two sur
 
 - **CLI — `myco query` (reach for this):** `myco query` alone lists the queries;
   `myco query <name> [args]` runs one — `capabilities`, `capability <name>`,
-  `component <name>`, `components --kind=… --stack=…`, `used-by <name>`, `uses <name>`,
+  `component <name>`, `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
   `search <text>`. Text by default, `--json` to pipe. It reads a local `graph.json`
   (`--dir`, default `.`) or a hub (`--url <hub>`, default `$MYCELIUM_HUB` — set that
-  once and no flag is needed). Flags precede the positional:
+  once and no flag is needed). Flags go before or after the positional:
   `myco query used-by --url <hub> config-core`.
 - **HTTP `/q/*` — a bonus, when the binary isn't around:** the same queries by `curl`.
   `GET <hub>/q` lists them; e.g. `GET <hub>/q/capability/monitoring`,
