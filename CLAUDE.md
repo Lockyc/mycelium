@@ -125,6 +125,10 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   `internal/serve` serves `GET /repos/<id>/docgraph.json`. Full field/route detail:
   `schema/graph.md`.
 
+## Deferred work
+Conscious deferrals live in [`docs/FOLLOWUPS.md`](docs/FOLLOWUPS.md) — check it before
+re-deriving a "missing" feature, and record a new deferral there.
+
 ## Test / build
     go test ./...
     go build -o myco ./cmd/myco
