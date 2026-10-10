@@ -58,3 +58,21 @@ func TestHubHandlerIngestRebuildsAndServes(t *testing.T) {
 		t.Fatalf("MAP.md status %d", md.StatusCode)
 	}
 }
+
+// A fresh deployment starts before any node has pushed: Serve must create the
+// manifests dir and build an empty graph rather than exit on the missing dir.
+func TestServeStartsWithoutManifestsDir(t *testing.T) {
+	man := filepath.Join(t.TempDir(), "manifests")
+	out := t.TempDir()
+	// An unbindable addr makes Serve return right after its startup build.
+	err := Serve(man, "", out, "", "127.0.0.1:-1")
+	if err == nil {
+		t.Fatal("Serve on an unbindable addr returned nil")
+	}
+	if _, statErr := os.Stat(filepath.Join(out, graph.GraphJSONName)); statErr != nil {
+		t.Fatalf("startup build did not run (Serve err = %v): %v", err, statErr)
+	}
+	if fi, statErr := os.Stat(man); statErr != nil || !fi.IsDir() {
+		t.Fatalf("manifests dir not created: %v", statErr)
+	}
+}

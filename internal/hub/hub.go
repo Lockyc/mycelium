@@ -151,6 +151,13 @@ func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 // Serve builds the artifacts once then listens on addr, serving its static
 // routes and the authenticated ingest endpoint. Blocks until the server exits.
 func Serve(manifestsDir, overlayPath, dir, ingestToken, addr string) error {
+	// A fresh deployment has no manifests dir until the first push; create it so
+	// the hub starts empty and waits for that push. Build itself stays strict, so
+	// a mistyped --manifests on `myco build` still fails rather than rendering an
+	// empty graph.
+	if err := os.MkdirAll(manifestsDir, 0o755); err != nil {
+		return err
+	}
 	if err := Build(manifestsDir, overlayPath, dir); err != nil {
 		return err
 	}
