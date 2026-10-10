@@ -190,7 +190,8 @@ not declared: nothing in `mycelium.toml` sets it.
   route from the id.
 - **schemaVersion is pinned to 1.** A payload with any other version is
   recorded-but-not-interpreted: the digest carries only the observed
-  `schemaVersion`, and `myco audit` reports a `docgraph-version` finding.
+  `schemaVersion` (no payload, so no `url`), and `myco audit` reports a
+  `docgraph-version` finding.
 - **Omitted when there's nothing to say:** a repo with no markdown, or a node
   without docgraph on PATH, carries no `docGraph`. Bare repos are captured like
   any other (see Ref consistency below).

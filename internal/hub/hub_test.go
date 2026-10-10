@@ -137,3 +137,45 @@ func TestBuildClearsStalePayloads(t *testing.T) {
 		t.Fatalf("stale payload should be cleared, stat err = %v", err)
 	}
 }
+
+// A digest recorded for a docgraph schemaVersion Mycelium doesn't interpret has
+// no payload, so its url must stay empty — a stamped link would 404.
+func TestBuildStampsURLOnlyWithPayload(t *testing.T) {
+	manifestsDir := t.TempDir()
+	outDir := t.TempDir()
+	m := graph.Manifest{
+		Node: "n",
+		Components: []graph.Component{
+			{ID: "github.com/x/v1", Name: "v1", Sidecar: graph.Sidecar{Name: "v1", Summary: "s"},
+				DocGraph: &graph.DocGraphDigest{SchemaVersion: 1, DocCount: 1}},
+			{ID: "github.com/x/v2", Name: "v2", Sidecar: graph.Sidecar{Name: "v2", Summary: "s"},
+				DocGraph: &graph.DocGraphDigest{SchemaVersion: 2}},
+		},
+		DocGraphs: map[string]json.RawMessage{"github.com/x/v1": json.RawMessage(`{"schemaVersion":1}`)},
+	}
+	data, _ := json.Marshal(m)
+	if err := os.WriteFile(filepath.Join(manifestsDir, "n.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Build(manifestsDir, "", outDir); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(outDir, graph.GraphJSONName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var g graph.Graph
+	if err := json.Unmarshal(raw, &g); err != nil {
+		t.Fatal(err)
+	}
+	urls := map[string]string{}
+	for _, c := range g.Components {
+		urls[c.Name] = c.DocGraph.URL
+	}
+	if urls["v1"] != graph.RepoDocGraphRoute("github.com/x/v1") {
+		t.Errorf("v1 url = %q, want the payload route", urls["v1"])
+	}
+	if urls["v2"] != "" {
+		t.Errorf("v2 (no payload) url = %q, want empty", urls["v2"])
+	}
+}

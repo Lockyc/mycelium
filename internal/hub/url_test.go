@@ -24,6 +24,7 @@ func TestBuildStampsDocGraphURL(t *testing.T) {
 			Sidecar:  graph.Sidecar{Name: "y", Summary: "s"},
 			DocGraph: &graph.DocGraphDigest{SchemaVersion: 1, DocCount: 3},
 		}},
+		DocGraphs: map[string]json.RawMessage{"github.com/x/y": json.RawMessage(`{"schemaVersion":1}`)},
 	}
 	data, _ := json.MarshalIndent(m, "", "  ")
 	if err := os.WriteFile(filepath.Join(manifestsDir, "n.json"), data, 0o644); err != nil {
