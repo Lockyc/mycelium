@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lockyc/mycelium/internal/graph"
 	"github.com/lockyc/mycelium/internal/query"
@@ -174,8 +175,12 @@ func loadQueryGraph(dir, url string) (graph.Graph, error) {
 	return g, nil
 }
 
+// queryClient bounds a hub fetch so an agent's query fails rather than hangs
+// on a stalled hub.
+var queryClient = &http.Client{Timeout: 30 * time.Second}
+
 func httpGet(u string) ([]byte, error) {
-	resp, err := http.Get(u)
+	resp, err := queryClient.Get(u)
 	if err != nil {
 		return nil, err
 	}

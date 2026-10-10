@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lockyc/mycelium/internal/atomicfile"
 	"github.com/lockyc/mycelium/internal/graph"
@@ -19,6 +20,11 @@ const ManifestPath = "/manifests"
 // maxManifestBytes caps an ingest request body so an oversized (or streamed)
 // POST can't exhaust hub memory. Manifests are small; 32 MiB is generous.
 const maxManifestBytes = 32 << 20
+
+// pushClient bounds a push end to end. The hub rebuilds synchronously before it
+// replies, so the bound is generous; it exists so a stalled hub fails the
+// scheduled scan instead of hanging it while later runs queue behind.
+var pushClient = &http.Client{Timeout: 2 * time.Minute}
 
 func Push(hubURL, token string, m graph.Manifest) error {
 	body, err := json.Marshal(m)
@@ -33,7 +39,7 @@ func Push(hubURL, token string, m graph.Manifest) error {
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := pushClient.Do(req)
 	if err != nil {
 		return err
 	}

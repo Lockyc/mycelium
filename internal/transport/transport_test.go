@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/lockyc/mycelium/internal/graph"
 )
@@ -149,5 +150,22 @@ func TestIngestSurfacesRebuildError(t *testing.T) {
 	err := Push(srv.URL, "", graph.Manifest{Node: "node-a"})
 	if err == nil {
 		t.Fatal("want error when rebuild fails")
+	}
+}
+
+// A hub that accepts the connection and never answers must fail the push, not
+// hang the scheduled scan.
+func TestPushTimesOutOnStalledHub(t *testing.T) {
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release
+	}))
+	defer srv.Close()
+	defer close(release)
+	saved := pushClient.Timeout
+	pushClient.Timeout = 50 * time.Millisecond
+	defer func() { pushClient.Timeout = saved }()
+	if err := Push(srv.URL, "", graph.Manifest{Node: "n"}); err == nil {
+		t.Fatal("push to a stalled hub returned nil, want a timeout error")
 	}
 }
