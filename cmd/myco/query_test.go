@@ -96,3 +96,19 @@ func TestRunQueryFlagsAfterPositional(t *testing.T) {
 		t.Fatalf("expected capability sidebar (--dir after the positional honored), got: %s", out)
 	}
 }
+
+// Extra positionals are an error, never silently dropped: an unquoted
+// multi-word search must not answer for its first word alone.
+func TestRunQueryRejectsExtraPositionals(t *testing.T) {
+	dir := writeGraph(t)
+	for _, args := range [][]string{
+		{"search", "config", "core", "--dir", dir},
+		{"component", "warden", "extra", "--dir", dir},
+		{"components", "app", "--dir", dir},
+		{"capabilities", "sidebar", "--dir", dir},
+	} {
+		if err := runQuery(args); err == nil {
+			t.Errorf("runQuery(%q) = nil, want an arity error", args)
+		}
+	}
+}

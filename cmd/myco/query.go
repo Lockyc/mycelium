@@ -68,6 +68,9 @@ func runQuery(args []string) error {
 
 	switch sub {
 	case "capabilities":
+		if err := noArgs(pos, sub); err != nil {
+			return err
+		}
 		return emit(*asJSON, query.Capabilities(g), textCapabilities)
 	case "capability":
 		name, err := arg1(pos, sub)
@@ -90,6 +93,9 @@ func runQuery(args []string) error {
 		}
 		return emit(*asJSON, c, textComponent)
 	case "components":
+		if err := noArgs(pos, sub); err != nil {
+			return err
+		}
 		cs := query.Components(g, query.ComponentFilter{Kind: *kind, Stack: *stack, Status: *status, Tag: *tag})
 		return emit(*asJSON, cs, textComponents)
 	case "used-by":
@@ -123,11 +129,25 @@ func runQuery(args []string) error {
 	}
 }
 
+// arg1 returns the one positional a query takes. More than one is an error, not
+// a silent truncation: `search config core` answering for "config" alone is a
+// confident answer to a question nobody asked.
 func arg1(pos []string, sub string) (string, error) {
 	if len(pos) < 1 {
 		return "", fmt.Errorf("query %s needs an argument (e.g. `myco query %s <name>`)", sub, sub)
 	}
+	if len(pos) > 1 {
+		return "", fmt.Errorf("query %s takes one argument, got %d (%s) — quote a multi-word value", sub, len(pos), strings.Join(pos, " "))
+	}
 	return pos[0], nil
+}
+
+// noArgs rejects positionals on a query that takes none (filters are flags).
+func noArgs(pos []string, sub string) error {
+	if len(pos) > 0 {
+		return fmt.Errorf("query %s takes no argument, got %s", sub, strings.Join(pos, " "))
+	}
+	return nil
 }
 
 // emit prints v as JSON when asJSON, else via the text renderer.
