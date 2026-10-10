@@ -40,7 +40,7 @@ Or build in place — the binary lands in the repo root, so invoke it as `./myco
     myco scan --roots <dir>[,<dir>] --node <id> --out manifest.json
 
 Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
-metadata (origin remote, tags), and writes a manifest (JSON) to `--out`, or stdout
+metadata (origin remote, commit at the scanned ref), and writes a manifest (JSON) to `--out`, or stdout
 without it. The `--node` id
 tags this manifest; used by a hub to track which node pushed it.
 
