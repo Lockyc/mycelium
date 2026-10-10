@@ -124,7 +124,8 @@ Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — th
 
 ### `graph.json` shape (know this before writing a `jq` query)
 
-Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`. A component
+Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`, and `nodes`
+(present when the overlay defines any). A component
 is **flat** — its `mycelium.toml` fields sit at the top level alongside the derived
 `id`/`commit`/`docGraph`, with no wrapper. So a component serialises as:
 
