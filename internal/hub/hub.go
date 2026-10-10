@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lockyc/mycelium/internal/atomicfile"
 	"github.com/lockyc/mycelium/internal/graph"
 	"github.com/lockyc/mycelium/internal/serve"
 	"github.com/lockyc/mycelium/internal/transport"
@@ -72,10 +73,10 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, graph.GraphJSONName), jsonData, 0o644); err != nil {
+	if err := atomicfile.WriteFile(filepath.Join(outDir, graph.GraphJSONName), jsonData, 0o644); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644); err != nil {
+	if err := atomicfile.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644); err != nil {
 		return err
 	}
 	return writeDocGraphs(outDir, ms)
@@ -84,37 +85,35 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 // writeDocGraphs writes each component's full docgraph payload to
 // <outDir>/repos/<id>/docgraph.json — the on-disk layout mirrors the served URL
 // (serve.Handler's /repos/ route). First-seen wins across manifests (matching
-// component dedup); the repos subtree is cleared first so a removed repo's stale
-// payload never lingers. Non-atomic, consistent with Build's other writes.
+// component dedup). The whole repos tree is rebuilt aside and swapped in, so a
+// removed repo's stale payload never lingers and a reader never sees it half-built.
 func writeDocGraphs(outDir string, ms []graph.Manifest) error {
-	reposDir := filepath.Join(outDir, "repos")
-	if err := os.RemoveAll(reposDir); err != nil {
-		return err
-	}
-	seen := map[string]bool{}
-	for _, m := range ms {
-		for id, payload := range m.DocGraphs {
-			if seen[id] {
-				continue
-			}
-			// Reject an id that isn't a clean relative path (defense against a
-			// crafted manifest); canonical ids never contain "." segments or "..".
-			// graph.SafeRelID is the single predicate shared with serve's read-time
-			// guard on the same id → filesystem-path trust boundary.
-			if !graph.SafeRelID(id) {
-				continue
-			}
-			seen[id] = true
-			dest := filepath.Join(reposDir, filepath.FromSlash(id), "docgraph.json")
-			if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-				return err
-			}
-			if err := os.WriteFile(dest, payload, 0o644); err != nil {
-				return err
+	return atomicfile.ReplaceDir(filepath.Join(outDir, "repos"), func(reposDir string) error {
+		seen := map[string]bool{}
+		for _, m := range ms {
+			for id, payload := range m.DocGraphs {
+				if seen[id] {
+					continue
+				}
+				// Reject an id that isn't a clean relative path (defense against a
+				// crafted manifest); canonical ids never contain "." segments or "..".
+				// graph.SafeRelID is the single predicate shared with serve's read-time
+				// guard on the same id → filesystem-path trust boundary.
+				if !graph.SafeRelID(id) {
+					continue
+				}
+				seen[id] = true
+				dest := filepath.Join(reposDir, filepath.FromSlash(id), "docgraph.json")
+				if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+					return err
+				}
+				if err := os.WriteFile(dest, payload, 0o644); err != nil {
+					return err
+				}
 			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 // Handler builds the mux: the artifact routes (MAP.md, graph.json, and the

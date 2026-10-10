@@ -23,6 +23,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   doc-graph payloads and the `/q/*` query routes.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
 - `internal/hub` — hub role: Build (merge manifests → graph) and Serve (HTTP + ingest endpoint).
+- `internal/atomicfile` — temp+rename writes for every file the hub serves or reads back.
 - `internal/query` — first-class named queries over the merged graph (capability /
   component / relationship / search); the single source both `myco query` and the
   hub's `/q/*` routes call.

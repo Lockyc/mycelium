@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lockyc/mycelium/internal/atomicfile"
 	"github.com/lockyc/mycelium/internal/graph"
 )
 
@@ -39,36 +40,6 @@ func Push(hubURL, token string, m graph.Manifest) error {
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		return fmt.Errorf("push to hub: %s", resp.Status)
-	}
-	return nil
-}
-
-// writeManifestAtomic writes node's manifest to <dir>/<node>.json via a temp file
-// + rename, so a concurrent rebuild never observes a partial write. node is already
-// validated as a safe single path segment by the caller. The temp name carries a
-// non-.json suffix so a leaked temp (rename failure) is ignored by loadManifests.
-func writeManifestAtomic(dir, node string, data []byte) error {
-	tmp, err := os.CreateTemp(dir, "."+node+".*.tmp")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmpName)
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
-		return err
-	}
-	if err := os.Chmod(tmpName, 0o644); err != nil {
-		os.Remove(tmpName)
-		return err
-	}
-	if err := os.Rename(tmpName, filepath.Join(dir, node+".json")); err != nil {
-		os.Remove(tmpName)
-		return err
 	}
 	return nil
 }
@@ -112,7 +83,7 @@ func IngestHandler(manifestsDir, token string, onIngest func() error) http.Handl
 		// node-keyed: a re-push from the same node replaces its contribution.
 		// Write to a temp file and rename so a concurrent rebuild can never read a
 		// half-written manifest (loadManifests reads every *.json on each rebuild).
-		if err := writeManifestAtomic(manifestsDir, m.Node, data); err != nil {
+		if err := atomicfile.WriteFile(filepath.Join(manifestsDir, m.Node+".json"), data, 0o644); err != nil {
 			http.Error(w, "store", http.StatusInternalServerError)
 			return
 		}
