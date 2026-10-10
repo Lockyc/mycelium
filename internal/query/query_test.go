@@ -1,6 +1,7 @@
 package query
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -112,6 +113,32 @@ func TestUsedByReversesOnlyUseEdges(t *testing.T) {
 	// unknown name is explicit not-found, not empty success.
 	if _, ok := UsedBy(g, "ghost"); ok {
 		t.Error("used-by on unknown name reported found")
+	}
+}
+
+// A use edge may target a capability (the overlay names what is consumed, not
+// who serves it). It must still land in the provider's blast radius, and the
+// capability itself answers used-by.
+func TestUsedByCapabilityTarget(t *testing.T) {
+	g := fixture()
+	g.Edges = append(g.Edges,
+		graph.Edge{From: "lector", To: "config-shape", Type: "consumes"},
+		graph.Edge{From: "warden", To: "config-shape", Type: "consumes"},
+	)
+	rels, ok := UsedBy(g, "config-core")
+	if !ok {
+		t.Fatal("config-core should exist")
+	}
+	want := []Relation{{"lector", "consumes"}, {"warden", "consumes"}, {"warden", "depends-on"}}
+	if !reflect.DeepEqual(rels, want) {
+		t.Errorf("provider's used-by = %+v, want %+v", rels, want)
+	}
+	rels, ok = UsedBy(g, "config-shape")
+	if !ok {
+		t.Fatal("a capability should answer used-by")
+	}
+	if want := []Relation{{"lector", "consumes"}, {"warden", "consumes"}}; !reflect.DeepEqual(rels, want) {
+		t.Errorf("capability's used-by = %+v, want %+v", rels, want)
 	}
 }
 

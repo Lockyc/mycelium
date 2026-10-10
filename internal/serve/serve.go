@@ -76,7 +76,7 @@ func Handler(dir string) http.Handler {
 		case "used-by":
 			rels, ok := query.UsedBy(g, name)
 			if !ok {
-				writeErr(w, http.StatusNotFound, "no such component: "+name)
+				writeErr(w, http.StatusNotFound, "no such component or capability: "+name)
 				return
 			}
 			writeJSON(w, http.StatusOK, rels)

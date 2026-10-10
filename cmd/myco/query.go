@@ -98,7 +98,7 @@ func runQuery(args []string) error {
 		}
 		rels, ok := query.UsedBy(g, name)
 		if !ok {
-			return fmt.Errorf("no such component: %s", name)
+			return fmt.Errorf("no such component or capability: %s", name)
 		}
 		return emit(*asJSON, rels, textRelations)
 	case "uses":

@@ -257,6 +257,33 @@ func TestRenderMarkdownUsedBy(t *testing.T) {
 	}
 }
 
+// An overlay edge may target a capability; the providers of that capability are
+// what the edge actually reaches, so Used by must land on them (named once each).
+func TestRenderMarkdownUsedByCapabilityTarget(t *testing.T) {
+	g := Graph{
+		Components: []Component{
+			{Name: "orders-api", Sidecar: Sidecar{Summary: "orders"}},
+			{Name: "billing-web", Sidecar: Sidecar{Summary: "billing"}},
+		},
+		Nodes:        []OverlayNode{{Name: "shared-postgres", Summary: "db", Provides: []string{"postgres"}}},
+		Capabilities: map[string][]string{"order-events": {"orders-api"}, "postgres": {"shared-postgres"}},
+		Edges: []Edge{
+			{From: "billing-web", To: "order-events", Type: "consumes"},
+			{From: "billing-web", To: "orders-api", Type: "depends-on"},
+			{From: "orders-api", To: "postgres", Type: "consumes"},
+		},
+	}
+	md := RenderMarkdown(g)
+	orders := md[strings.Index(md, "### orders-api"):]
+	orders = orders[:strings.Index(orders, "\n\n")+1]
+	if !strings.Contains(orders, "Used by: billing-web\n") {
+		t.Errorf("capability-targeted edge must reach its provider, once:\n%s", orders)
+	}
+	if !strings.Contains(md, "### shared-postgres\ndb\nProvides: **postgres**\nUsed by: orders-api\n") {
+		t.Errorf("overlay-node provider must show its capability's users:\n%s", md)
+	}
+}
+
 // ParseSidecar requires only name+summary, so kind and status are each optional.
 // Joining them unconditionally rendered a dangling separator ("_ · active_").
 func TestRenderMarkdownPartialKindStatus(t *testing.T) {

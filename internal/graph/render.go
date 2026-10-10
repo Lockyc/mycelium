@@ -37,17 +37,20 @@ type entry struct {
 // Relationships section, which renders every edge with its type intact.
 var useEdgeTypes = map[string]bool{"consumes": true, "depends-on": true, "deploys-to": true}
 
-func usedBy(edges []Edge) map[string][]string {
-	rev := map[string][]string{}
-	for _, e := range edges {
-		if useEdgeTypes[e.Type] {
-			rev[e.To] = append(rev[e.To], e.From)
+// usedByNames flattens UsedByIndex to the distinct user names per entity, in
+// order — the MAP.md line names each user once, whatever edge types it uses by.
+func usedByNames(g Graph) map[string][]string {
+	out := map[string][]string{}
+	for target, refs := range UsedByIndex(g) {
+		var names []string
+		for _, r := range refs {
+			if len(names) == 0 || names[len(names)-1] != r.From {
+				names = append(names, r.From)
+			}
 		}
+		out[target] = names
 	}
-	for _, users := range rev {
-		sort.Strings(users) // edges arrive in overlay order; render deterministically
-	}
-	return rev
+	return out
 }
 
 func joinNonEmpty(sep string, parts ...string) string {
@@ -61,7 +64,7 @@ func joinNonEmpty(sep string, parts ...string) string {
 }
 
 func entries(g Graph) []entry {
-	rev := usedBy(g.Edges)
+	rev := usedByNames(g)
 	out := make([]entry, 0, len(g.Components)+len(g.Nodes))
 	for _, comp := range g.Components {
 		provides := make([]string, 0, len(comp.Sidecar.Provides))

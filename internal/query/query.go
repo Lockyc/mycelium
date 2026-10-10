@@ -136,17 +136,17 @@ type QueryDesc struct {
 }
 
 // UsedBy returns the entities that use name via a use-edge (reverse direction):
-// this is name's blast radius. ok=false when name is not a known component or
-// overlay node (explicit not-found, distinct from "known but nothing uses it").
+// this is name's blast radius, as graph.UsedByIndex defines it — including users
+// of any capability name provides. name may be a component, an overlay node, or
+// a capability. ok=false when it is none of those (explicit not-found, distinct
+// from "known but nothing uses it").
 func UsedBy(g graph.Graph, name string) ([]Relation, bool) {
-	if !entityExists(g, name) {
+	if _, isCap := g.Capabilities[name]; !isCap && !entityExists(g, name) {
 		return nil, false
 	}
 	out := []Relation{}
-	for _, e := range g.Edges {
-		if e.To == name && graph.IsUseEdge(e.Type) {
-			out = append(out, Relation{Name: e.From, Type: e.Type})
-		}
+	for _, r := range graph.UsedByIndex(g)[name] {
+		out = append(out, Relation{Name: r.From, Type: r.Type})
 	}
 	return out, true
 }
