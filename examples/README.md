@@ -14,5 +14,6 @@ these into throwaway git repos in a temp dir and runs `myco scan` / `build` /
 The three example repos (`orders-api`, `billing-web`, `shared-lib`) plus the
 overlay produce a graph with three components, three capabilities
 (`order-events`, `billing-ui`, `postgres`), and four resolved relationship
-edges — so `myco audit` reports clean. See [`schema/graph.md`](../schema/graph.md)
-for the full field reference.
+edges, none dangling. The demo also adds two sidecar-less repos: `needs-sidecar`, which
+`myco audit` reports as an orphan, and `scratch`, which the overlay's `ignore` list
+suppresses. See [`schema/graph.md`](../schema/graph.md) for the full field reference.
