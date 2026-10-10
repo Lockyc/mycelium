@@ -53,7 +53,8 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   field added to the struct but not to `componentJSON` is silently dropped on round-trip.
 - **Query semantics live once, in `internal/query`.** The `myco query` CLI and the
   hub's `/q/*` HTTP routes are thin adapters over it — never re-encode a query in
-  either. `/q/*` inherits the hub's existing auth gate (no new auth), reads `graph.json`
+  either. `/q/*` is unauthenticated like every read route (only ingest carries a bearer
+  token; read access control belongs to the deployment's fronting proxy), reads `graph.json`
   fresh per request, and returns an explicit 404 on an unknown name (never a silent
   empty result — that jq failure mode is the thing the query layer exists to remove).
   The self-documenting index (`GET /q`, bare `myco query`) renders `query.Descriptors()`
