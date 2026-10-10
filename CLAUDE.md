@@ -53,7 +53,8 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   field added to the struct but not to `componentJSON` is silently dropped on round-trip.
 - **Query semantics live once, in `internal/query`.** The `myco query` CLI and the
   hub's `/q/*` HTTP routes are thin adapters over it — never re-encode a query in
-  either. `/q/*` inherits the hub's existing auth gate (no new auth), reads `graph.json`
+  either. `/q/*` is unauthenticated like every read route (only ingest carries a bearer
+  token; read access control belongs to the deployment's fronting proxy), reads `graph.json`
   fresh per request, and returns an explicit 404 on an unknown name (never a silent
   empty result — that jq failure mode is the thing the query layer exists to remove).
   The self-documenting index (`GET /q`, bare `myco query`) renders `query.Descriptors()`
@@ -74,9 +75,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - **Size is not the constraint — signal is.** Shaving lines buys nothing measurable, so judge a
   field by whether it answers a question the summary can't. That is why `stack` is rendered
   (non-derivable) and each capability's `summary` is not (it would multiply the file for a fact
-  the entry already implies). *Point-in-time evidence, as of the v0.5.0 scan of the reference
-  deployment — the fleet grows, so re-measure rather than trusting these:* the whole map was
-  ~6 KB (~1.6k tokens), `stack` was populated 20/20, and `summary` 32/32 at ~3x the file.
+  the entry already implies).
 - **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
   actor — managed service, SaaS dep) rides in `Graph.Nodes` and renders in the same
   name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,
