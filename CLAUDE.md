@@ -75,9 +75,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - **Size is not the constraint — signal is.** Shaving lines buys nothing measurable, so judge a
   field by whether it answers a question the summary can't. That is why `stack` is rendered
   (non-derivable) and each capability's `summary` is not (it would multiply the file for a fact
-  the entry already implies). *Point-in-time evidence, as of the v0.5.0 scan of the reference
-  deployment — the fleet grows, so re-measure rather than trusting these:* the whole map was
-  ~6 KB (~1.6k tokens), `stack` was populated 20/20, and `summary` 32/32 at ~3x the file.
+  the entry already implies).
 - **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
   actor — managed service, SaaS dep) rides in `Graph.Nodes` and renders in the same
   name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,
