@@ -10,14 +10,13 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-myco="$root/myco"
-if [ ! -x "$myco" ]; then
-	echo "building myco..." >&2
-	(cd "$root" && go build -o myco ./cmd/myco)
-fi
 
 work=$(mktemp -d)
 if [ -z "${KEEP:-}" ]; then trap 'rm -rf "$work"' EXIT; fi
+# Always build from the current tree, so the smoke test exercises this code.
+myco="$work/myco"
+echo "building myco..." >&2
+(cd "$root" && go build -o "$myco" ./cmd/myco)
 repos="$work/repos"
 manifests="$work/manifests"
 out="$work/graph"
