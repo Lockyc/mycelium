@@ -106,7 +106,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   lives in the overlay, the same private surface as edges and nodes.
 - **A broken sidecar is a finding, never a failed scan** — a repo whose committed
   `mycelium.toml` can't be read or parsed rides the manifest as an `InvalidSidecar` the
-  same way, and the node's scan carries on. Nothing alerts on a failed scheduled scan, so
+  same way, and the node's scan carries on. A failed scheduled scan is easy to miss, and
   failing would silently freeze every other repo on the node at its last push.
 - **Per-repo doc-graph is node-captured, best-effort, schemaVersion-1-pinned.**
   The node shells out to `docgraph graph --json --ref <resolved ref>` per
