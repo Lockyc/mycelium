@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +40,13 @@ func DiscoverRepos(roots []string) ([]Repo, error) {
 	for _, root := range roots {
 		err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
-				return err
+				// An unreadable root is a misconfigured scan; an unreadable dir
+				// below it is one corner of the store, so skip it and scan the rest.
+				if path == root {
+					return err
+				}
+				fmt.Fprintln(os.Stderr, "warning: skipping unreadable", path+":", err)
+				return filepath.SkipDir
 			}
 			if !d.IsDir() {
 				return nil
