@@ -7,6 +7,7 @@
 package query
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -92,24 +93,15 @@ func Components(g graph.Graph, f ComponentFilter) []graph.Component {
 		if f.Status != "" && c.Sidecar.Status != f.Status {
 			continue
 		}
-		if f.Stack != "" && !contains(c.Sidecar.Stack, f.Stack) {
+		if f.Stack != "" && !slices.Contains(c.Sidecar.Stack, f.Stack) {
 			continue
 		}
-		if f.Tag != "" && !contains(c.Sidecar.Tags, f.Tag) {
+		if f.Tag != "" && !slices.Contains(c.Sidecar.Tags, f.Tag) {
 			continue
 		}
 		out = append(out, c)
 	}
 	return out
-}
-
-func contains(hay []string, needle string) bool {
-	for _, h := range hay {
-		if h == needle {
-			return true
-		}
-	}
-	return false
 }
 
 // Relation is one end of a use-edge for UsedBy/Uses: the related entity and the

@@ -2,6 +2,7 @@ package scan
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
 )
@@ -61,7 +62,7 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 		comp := graph.Component{
 			ID:      repoID(r, opts.FallbackHost),
 			Name:    sc.Name,
-			Commit:  trim(commit),
+			Commit:  strings.TrimRight(string(commit), "\r\n"),
 			Sidecar: sc,
 		}
 		// Best-effort doc-graph: docgraph reads the committed ref from the object
@@ -82,12 +83,4 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 		m.Components = append(m.Components, comp)
 	}
 	return m, nil
-}
-
-func trim(b []byte) string {
-	s := string(b)
-	for len(s) > 0 && (s[len(s)-1] == '\n' || s[len(s)-1] == '\r') {
-		s = s[:len(s)-1]
-	}
-	return s
 }
