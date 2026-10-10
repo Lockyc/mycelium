@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -35,6 +36,30 @@ func Audit(g graph.Graph, previousIDs []string) []Finding {
 		if len(islands) > 0 {
 			out = append(out, Finding{Kind: "doc-rot",
 				Detail: fmt.Sprintf("%s: %d island doc(s) — %s", c.ID, len(islands), strings.Join(islands, ", "))})
+		}
+	}
+	// Names key edges, capabilities and every name-based query, so two entries
+	// sharing one name are indistinguishable downstream: report each shared name
+	// with everything that claims it.
+	claims := map[string][]string{}
+	var names []string
+	claim := func(name, who string) {
+		if claims[name] == nil {
+			names = append(names, name)
+		}
+		claims[name] = append(claims[name], who)
+	}
+	for _, c := range g.Components {
+		claim(c.Name, c.ID)
+	}
+	for _, n := range g.Nodes {
+		claim(n.Name, "overlay node")
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if len(claims[name]) > 1 {
+			out = append(out, Finding{Kind: "duplicate-name",
+				Detail: fmt.Sprintf("%q is claimed by %s", name, strings.Join(claims[name], ", "))})
 		}
 	}
 	present := map[string]bool{}

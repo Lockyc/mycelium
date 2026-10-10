@@ -12,7 +12,7 @@ The sidecar documents a single repository or service (one file per repo). It is 
 
 ### Fields
 
-- **`name`** (required, string): Short identifier for the component (e.g., `"orders-api"`, `"billing-web"`). Used as the canonical key in the graph.
+- **`name`** (required, string): Short identifier for the component (e.g., `"orders-api"`, `"billing-web"`). Must be unique across the fleet (components and overlay nodes alike): edges, capabilities and queries reference entries by name, and `myco audit` reports a `duplicate-name` finding when two share one.
 - **`summary`** (required, string): One-line human-readable description of purpose or value.
 - **`kind`** (optional, string): Component category. Valid values: `service`, `app`, `library`, `docs`, `infra`, `tool`.
 - **`status`** (optional, enum): Lifecycle stage. Valid values: `active`, `wip`, `experimental`, `archived`. Indicates maintenance level and stability.
@@ -214,7 +214,7 @@ out.) Requires **docgraph v3.1.0+** on the node (the first version with
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 
-Consistency checks (orphans, dangling edges, staleness, doc-rot, docgraph-version)
+Consistency checks (orphans, dangling edges, duplicate names, staleness, doc-rot, docgraph-version)
 are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the

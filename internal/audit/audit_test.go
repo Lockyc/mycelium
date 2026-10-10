@@ -64,3 +64,28 @@ func TestAuditReportsUnknownDocgraphVersion(t *testing.T) {
 		t.Fatalf("expected a docgraph-version finding: %+v", found)
 	}
 }
+
+func TestAuditReportsDuplicateNames(t *testing.T) {
+	g := graph.Graph{
+		Components: []graph.Component{
+			{ID: "github.com/a/substrate", Name: "substrate"},
+			{ID: "git.example.com/b/substrate", Name: "substrate"},
+			{ID: "github.com/a/unique", Name: "unique"},
+			{ID: "github.com/a/postgres", Name: "postgres"},
+		},
+		Nodes: []graph.OverlayNode{{Name: "postgres"}},
+	}
+	var got []string
+	for _, f := range Audit(g, nil) {
+		if f.Kind == "duplicate-name" {
+			got = append(got, f.Detail)
+		}
+	}
+	want := []string{
+		`"postgres" is claimed by github.com/a/postgres, overlay node`,
+		`"substrate" is claimed by github.com/a/substrate, git.example.com/b/substrate`,
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("duplicate-name findings = %q, want %q", got, want)
+	}
+}
