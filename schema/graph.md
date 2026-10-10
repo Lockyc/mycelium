@@ -124,8 +124,9 @@ Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — th
 
 ### `graph.json` shape (know this before writing a `jq` query)
 
-Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`, and `nodes`
-(present when the overlay defines any). A component
+Top-level keys: `components`, `capabilities`, `edges`, `dangling_edges`, `orphans`, plus `nodes`
+(present when the overlay defines any) and `invalid_sidecars` (present when a scanned repo's
+committed `mycelium.toml` failed to read or parse: `id`, `name`, `error`). A component
 is **flat** — its `mycelium.toml` fields sit at the top level alongside the derived
 `id`/`commit`/`docGraph`, with no wrapper. So a component serialises as:
 
@@ -213,10 +214,11 @@ working-tree state — on every repo, bare or not. Requires **docgraph v3.1.0+**
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 
-Consistency checks (orphans, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version)
+Consistency checks (orphans, invalid sidecars, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version)
 are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the
-overlay `ignore` list) rather than only at scan time.
+overlay `ignore` list) rather than only at scan time. An invalid sidecar rides the
+same way and is reported as `invalid-sidecar`; the node's scan carries on past it.
 
 The overlap between sidecar and overlay (when a repo has an entry in both) is valid: the sidecar documents the public face; the overlay can add internal edges, private capabilities, or infrastructure relationships.

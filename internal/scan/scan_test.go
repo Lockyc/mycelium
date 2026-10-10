@@ -3,7 +3,10 @@ package scan
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/lockyc/mycelium/internal/graph"
 )
 
 func commitSidecar(t *testing.T, dir, body string) {
@@ -189,5 +192,52 @@ func TestScanRefPrefersBranchWithHEADFallback(t *testing.T) {
 	}
 	if !got2["onlymain"] {
 		t.Fatalf("no ref: onlymain should be found via HEAD, got %+v", m2.Components)
+	}
+}
+
+// A broken sidecar in one repo must not fail the node's scan: the repo is
+// recorded as invalid (with no node-local path in its error) and every other
+// repo is still scanned.
+func TestScanRecordsInvalidSidecarAndContinues(t *testing.T) {
+	root := t.TempDir()
+	good := filepath.Join(root, "acme", "good")
+	mkWorking(t, good)
+	run(t, good, "remote", "add", "origin", "git@github.com:acme/good.git")
+	commitSidecar(t, good, "name=\"good\"\nsummary=\"fine\"\n")
+
+	nosummary := filepath.Join(root, "acme", "nosummary")
+	mkWorking(t, nosummary)
+	run(t, nosummary, "remote", "add", "origin", "git@github.com:acme/nosummary.git")
+	commitSidecar(t, nosummary, "name=\"nosummary\"\n")
+
+	badtoml := filepath.Join(root, "acme", "badtoml")
+	mkWorking(t, badtoml)
+	run(t, badtoml, "remote", "add", "origin", "git@github.com:acme/badtoml.git")
+	commitSidecar(t, badtoml, "name = = \"x\"\n")
+
+	m, err := Scan([]string{root}, Options{Node: "n", DocGraph: func(string, string) ([]byte, error) { return nil, errDocGraphNotInstalled }})
+	if err != nil {
+		t.Fatalf("a broken sidecar failed the whole scan: %v", err)
+	}
+	if len(m.Components) != 1 || m.Components[0].ID != "github.com/acme/good" {
+		t.Fatalf("components = %+v, want only good", m.Components)
+	}
+	got := map[string]graph.InvalidSidecar{}
+	for _, inv := range m.InvalidSidecars {
+		got[inv.ID] = inv
+	}
+	if len(got) != 2 {
+		t.Fatalf("invalid = %+v, want nosummary and badtoml", m.InvalidSidecars)
+	}
+	if inv := got["github.com/acme/nosummary"]; !strings.Contains(inv.Error, "summary") || inv.Path != nosummary {
+		t.Errorf("nosummary = %+v", inv)
+	}
+	if inv := got["github.com/acme/badtoml"]; !strings.Contains(inv.Error, "parse sidecar") {
+		t.Errorf("badtoml = %+v", inv)
+	}
+	for _, inv := range m.InvalidSidecars {
+		if strings.Contains(inv.Error, root) {
+			t.Errorf("error leaks a node-local path: %q", inv.Error)
+		}
 	}
 }

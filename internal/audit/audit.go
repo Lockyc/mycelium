@@ -19,6 +19,10 @@ func Audit(g graph.Graph, previousIDs []string) []Finding {
 		out = append(out, Finding{Kind: "orphan",
 			Detail: fmt.Sprintf("repo without mycelium.toml: %s", o.ID)})
 	}
+	for _, inv := range g.InvalidSidecars {
+		out = append(out, Finding{Kind: "invalid-sidecar",
+			Detail: fmt.Sprintf("%s: %s", inv.ID, inv.Error)})
+	}
 	for _, e := range g.DanglingEdges {
 		out = append(out, Finding{Kind: "dangling-edge",
 			Detail: fmt.Sprintf("%s %s %s — %s", e.From, e.Type, e.To, e.Reason)})

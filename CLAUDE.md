@@ -16,7 +16,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - `internal/scan` — node role: walk roots, read sidecars + git info → manifest;
   also captures each component's docgraph doc-graph, at the scanned ref
   (`docgraph.go`).
-- `internal/audit` — orphan / dangling-edge / invalid-edge-type / duplicate-name / staleness / doc-rot / docgraph-version
+- `internal/audit` — orphan / invalid-sidecar / dangling-edge / invalid-edge-type / duplicate-name / staleness / doc-rot / docgraph-version
   checks over `graph.json` (schema validation is a separate step — `myco validate` /
   `ParseSidecar` at scan).
 - `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full
@@ -104,6 +104,10 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   A repo that is a component on any node is never an orphan. The overlay `ignore` list
   (canonical ids) suppresses repos that intentionally lack a sidecar — orphan curation
   lives in the overlay, the same private surface as edges and nodes.
+- **A broken sidecar is a finding, never a failed scan** — a repo whose committed
+  `mycelium.toml` can't be read or parsed rides the manifest as an `InvalidSidecar` the
+  same way, and the node's scan carries on. Nothing alerts on a failed scheduled scan, so
+  failing would silently freeze every other repo on the node at its last push.
 - **Per-repo doc-graph is node-captured, best-effort, schemaVersion-1-pinned.**
   The node shells out to `docgraph graph --json --ref <resolved ref>` per
   component (read-only, preserving nodes-are-read-only-on-repos — docgraph reads

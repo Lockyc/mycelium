@@ -163,6 +163,10 @@ type Manifest struct {
 	ScannedAt  string      `json:"scanned_at"`
 	Components []Component `json:"components"`
 	Orphans    []Orphan    `json:"orphans,omitempty"`
+	// InvalidSidecars are scanned repos whose committed mycelium.toml could not
+	// be read or parsed. omitempty keeps a clean manifest byte-identical to one
+	// from a node that predates the field.
+	InvalidSidecars []InvalidSidecar `json:"invalid_sidecars,omitempty"`
 	// DocGraphs carries each component's FULL `docgraph graph --json` payload,
 	// keyed by canonical id, out-of-band from the digest on Component. It rides
 	// the manifest to the hub but is never part of Graph, so it never bloats
@@ -179,6 +183,19 @@ type Orphan struct {
 	// Path is the node-local repo path, kept in-memory for the scan-time warning
 	// only. Never serialized — like Component.Path, graph.json and the pushed
 	// manifest carry no filesystem paths (a node's path is meaningless downstream).
+	Path string `json:"-"`
+}
+
+// InvalidSidecar is a scanned repo whose committed mycelium.toml is unreadable
+// or fails ParseSidecar. Like an Orphan it rides the manifest into the graph,
+// so one broken sidecar becomes a per-repo audit finding while the node's scan
+// carries on — rather than failing the scan and silently freezing every other
+// repo on that node at its last pushed state.
+type InvalidSidecar struct {
+	ID    string `json:"id"`    // canonical git-remote id (or fallback host/owner/name)
+	Name  string `json:"name"`  // repo basename
+	Error string `json:"error"` // why the sidecar was rejected; carries no node-local path
+	// Path is node-local, kept in-memory for the scan-time warning only (as Orphan.Path).
 	Path string `json:"-"`
 }
 

@@ -42,9 +42,20 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 			continue
 		}
 		ref := resolveRef(r, opts.Ref)
+		// One repo's broken sidecar never fails the node's scan: it is recorded
+		// for the audit and the rest of the node still reaches the hub.
+		invalid := func(err error) {
+			m.InvalidSidecars = append(m.InvalidSidecars, graph.InvalidSidecar{
+				ID:    repoID(r, opts.FallbackHost),
+				Name:  r.Name,
+				Error: err.Error(),
+				Path:  r.Dir,
+			})
+		}
 		data, found, err := sidecarAtRef(r, ref)
 		if err != nil {
-			return graph.Manifest{}, err
+			invalid(err)
+			continue
 		}
 		if !found {
 			m.Orphans = append(m.Orphans, graph.Orphan{
@@ -56,7 +67,8 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 		}
 		sc, err := graph.ParseSidecar(data)
 		if err != nil {
-			return graph.Manifest{}, err
+			invalid(err)
+			continue
 		}
 		commit, _ := r.Git("rev-parse", ref).Output()
 		comp := graph.Component{

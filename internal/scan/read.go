@@ -32,13 +32,14 @@ func sidecarAtRef(r Repo, ref string) ([]byte, bool, error) {
 	}
 	// git ran but exited non-zero: the path is absent at ref (or ref is unborn)
 	// — a genuine "no sidecar". Any non-ExitError (git not runnable, permission
-	// denied) is infrastructure breakage: surface it rather than silently
-	// dropping every scanned repo as an orphan.
+	// denied) is infrastructure breakage: surface it (Scan records the repo as an
+	// invalid sidecar) rather than silently dropping it as an orphan. The error
+	// carries no node-local path; it rides the manifest downstream.
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
 		return nil, false, nil
 	}
-	return nil, false, fmt.Errorf("read sidecar at %s in %s: %w", ref, r.Dir, err)
+	return nil, false, fmt.Errorf("read %s at %s: %w", graph.SidecarName, ref, err)
 }
 
 func repoID(r Repo, fallbackHost string) string {

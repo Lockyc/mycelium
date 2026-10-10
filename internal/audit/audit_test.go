@@ -105,3 +105,14 @@ func TestAuditReportsInvalidEdgeType(t *testing.T) {
 		t.Fatalf("want one invalid-edge-type finding for the typo, got %q", got)
 	}
 }
+
+func TestAuditReportsInvalidSidecar(t *testing.T) {
+	g := graph.Graph{InvalidSidecars: []graph.InvalidSidecar{
+		{ID: "github.com/acme/broken", Name: "broken", Error: `mycelium.toml "broken": missing required field 'summary'`},
+	}}
+	found := Audit(g, nil)
+	if len(found) != 1 || found[0].Kind != "invalid-sidecar" ||
+		!strings.Contains(found[0].Detail, "github.com/acme/broken") || !strings.Contains(found[0].Detail, "summary") {
+		t.Fatalf("want one invalid-sidecar finding naming the repo and cause, got %+v", found)
+	}
+}

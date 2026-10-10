@@ -16,6 +16,9 @@ type Graph struct {
 	Edges         []Edge              `json:"edges"`
 	DanglingEdges []DanglingEdge      `json:"dangling_edges"`
 	Orphans       []Orphan            `json:"orphans"`
+	// InvalidSidecars is omitempty, so a graph.json written by an older hub
+	// (which lacks the key) and one with nothing invalid read back identically.
+	InvalidSidecars []InvalidSidecar `json:"invalid_sidecars,omitempty"`
 }
 
 // DanglingEdge is an overlay edge that failed to resolve: its source must be a
@@ -137,7 +140,25 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 		orphans = append(orphans, orphanByID[id])
 	}
 
+	// Invalid sidecars: deduped by id like orphans. A repo that is a valid
+	// component on another node (say, one reading a different ref) is not listed —
+	// the graph already carries it. The overlay ignore list does not apply: it
+	// excuses a repo for having no sidecar, not for having a broken one.
+	invalidByID := map[string]InvalidSidecar{}
+	for _, m := range manifests {
+		for _, inv := range m.InvalidSidecars {
+			if _, seen := invalidByID[inv.ID]; !seen && !present[inv.ID] {
+				invalidByID[inv.ID] = inv
+			}
+		}
+	}
+	var invalid []InvalidSidecar
+	for _, inv := range invalidByID {
+		invalid = append(invalid, inv)
+	}
+	sort.Slice(invalid, func(i, j int) bool { return invalid[i].ID < invalid[j].ID })
+
 	nodes := append([]OverlayNode(nil), ov.Nodes...)
 
-	return Graph{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans}
+	return Graph{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans, InvalidSidecars: invalid}
 }

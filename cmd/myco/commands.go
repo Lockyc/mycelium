@@ -54,6 +54,9 @@ func runScan(args []string) error {
 	for _, o := range m.Orphans {
 		fmt.Fprintln(os.Stderr, "warning: orphan (no committed mycelium.toml):", o.Path)
 	}
+	for _, inv := range m.InvalidSidecars {
+		fmt.Fprintf(os.Stderr, "warning: invalid sidecar in %s: %s\n", inv.Path, inv.Error)
+	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return err

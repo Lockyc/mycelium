@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -124,5 +125,40 @@ func TestMergeBackfillsDocGraphWhenFirstLacksIt(t *testing.T) {
 	g := Merge([]Manifest{first, second}, Overlay{})
 	if len(g.Components) != 1 || g.Components[0].DocGraph == nil || g.Components[0].DocGraph.DocCount != 3 {
 		t.Fatalf("digest not backfilled from second node: %+v", g.Components)
+	}
+}
+
+func TestMergeInvalidSidecarsDedupAndComponentWins(t *testing.T) {
+	nodeA := Manifest{
+		Components:      []Component{{ID: "github.com/acme/fixed-elsewhere", Name: "fixed-elsewhere"}},
+		InvalidSidecars: []InvalidSidecar{{ID: "github.com/acme/broken", Name: "broken", Error: "missing summary"}},
+	}
+	nodeB := Manifest{InvalidSidecars: []InvalidSidecar{
+		{ID: "github.com/acme/broken", Name: "broken", Error: "missing summary"},
+		{ID: "github.com/acme/fixed-elsewhere", Name: "fixed-elsewhere", Error: "parse sidecar"},
+	}}
+	g := Merge([]Manifest{nodeA, nodeB}, Overlay{})
+	if len(g.InvalidSidecars) != 1 || g.InvalidSidecars[0].ID != "github.com/acme/broken" {
+		t.Fatalf("invalid = %+v; want only broken (deduped; fixed-elsewhere is a component)", g.InvalidSidecars)
+	}
+}
+
+// The field is additive: a manifest or graph.json from a myco that predates it
+// still loads, and a graph with nothing invalid serialises without the key.
+func TestInvalidSidecarsBackwardCompatible(t *testing.T) {
+	var m Manifest
+	if err := json.Unmarshal([]byte(`{"node":"old","components":[],"orphans":[]}`), &m); err != nil {
+		t.Fatalf("pre-field manifest failed to load: %v", err)
+	}
+	var g Graph
+	if err := json.Unmarshal([]byte(`{"components":[],"capabilities":{},"edges":[],"dangling_edges":[],"orphans":[]}`), &g); err != nil {
+		t.Fatalf("pre-field graph.json failed to load: %v", err)
+	}
+	out, err := json.Marshal(Merge([]Manifest{m}, Overlay{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "invalid_sidecars") {
+		t.Errorf("a clean graph should omit invalid_sidecars: %s", out)
 	}
 }
