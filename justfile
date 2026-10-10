@@ -59,6 +59,11 @@ gate:
 release notes="":
     #!/usr/bin/env bash
     set -euo pipefail
+    # The gate tests this checkout but the release ships local dev, so they must be one tree.
+    if [ "$(git symbolic-ref --short -q HEAD || true)" != dev ]; then
+      echo "✗ not on dev — release from a dev checkout (the gate tests the tree you are on)" >&2
+      exit 1
+    fi
     version="$(tr -d '[:space:]' < VERSION)"
     tag="v${version}"
     if [ -n "$(git status --porcelain)" ]; then
