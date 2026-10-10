@@ -81,8 +81,8 @@ func TestRunQueryUnknownCapabilityErrors(t *testing.T) {
 
 // Flags must be honored in any position — Go's flag package stops at the first
 // non-flag, so runQuery loop-parses to accept flags placed after the positional
-// arg (the residual footgun this fixes: `myco query used-by config-core --url X`
-// used to silently drop --url).
+// arg — otherwise `myco query used-by config-core --url X` would silently drop
+// --url.
 func TestRunQueryFlagsAfterPositional(t *testing.T) {
 	dir := writeGraph(t)
 	out := captureStdout(t, func() error {

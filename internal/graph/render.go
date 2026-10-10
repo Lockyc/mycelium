@@ -87,13 +87,7 @@ func entries(g Graph) []entry {
 // RenderMarkdown builds the lossy map an agent reads into context to orient.
 //
 // It is component-first: each entry states what a thing is and what it provides,
-// together. The capability-first index this replaced was a near-bijection — all
-// but a couple of capabilities had exactly one provider — so it spent a line per
-// capability restating a component name, while telling a reader nothing about the
-// component it named ("git-mirror — homelab" requires jumping to homelab's entry
-// to learn what homelab even is). Sort order was its only real advantage, and
-// that is worth nothing to this file's reader: MAP.md is read whole, into
-// context. Lookup is graph.json's job — read to orient, query to extract.
+// together. Lookup is graph.json's job — read to orient, query to extract.
 func RenderMarkdown(g Graph) string {
 	var b strings.Builder
 	b.WriteString("# Mycelium map\n\n")
@@ -117,8 +111,8 @@ func RenderMarkdown(g Graph) string {
 	for _, e := range entries(g) {
 		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)
 		// Only name+summary are required of a sidecar (see ParseSidecar), so join
-		// whichever of kind/status is present rather than assuming both — a missing
-		// kind used to render a dangling separator ("_ · active_").
+		// whichever of kind/status is present rather than assuming both, so a
+		// missing kind never leaves a dangling separator ("_ · active_").
 		if meta := joinNonEmpty(" · ", e.kind, e.status); meta != "" {
 			fmt.Fprintf(&b, "_%s_\n", meta)
 		}
@@ -188,12 +182,10 @@ func RenderMarkdown(g Graph) string {
 	// "None" says the ecosystem is fully documented. Repos that intentionally
 	// lack a sidecar are already filtered out via the overlay ignore list.
 	//
-	// The blurb must read as a DEFECT REPORT, not a workaround. It used to say
-	// "look at them directly if relevant", which framed an orphan as a normal
-	// alternate path and gave the reader a way to proceed without ever noticing
-	// anything was wrong — so orphans sat unfixed while agents read past them
-	// every day. This section's reader is the only routine reader the signal
-	// has; if the wording doesn't prompt a fix, nothing does.
+	// The blurb must read as a DEFECT REPORT, not a workaround: wording that
+	// frames an orphan as a normal alternate path lets the reader proceed without
+	// noticing anything is wrong. This section's reader is the only routine
+	// reader the signal has; if the wording doesn't prompt a fix, nothing does.
 	b.WriteString("\n## Undocumented repos\n\n")
 	if len(g.Orphans) == 0 {
 		b.WriteString("_None — every scanned repo has an entry above._\n")

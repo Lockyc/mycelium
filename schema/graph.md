@@ -209,9 +209,7 @@ not declared: nothing in `mycelium.toml` sets it.
 **Ref consistency:** the node reads the doc-graph with `docgraph graph --ref
 <ref>`, at the **same committed ref** it scanned the sidecar from. So a
 component's `docGraph` reflects exactly the scanned ref — not the node's
-working-tree state — on every repo, bare or not. (This resolves the
-working-tree caveat of the initial release, which read whatever was checked
-out.) Requires **docgraph v3.1.0+** on the node (the first version with
+working-tree state — on every repo, bare or not. Requires **docgraph v3.1.0+** on the node (the first version with
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 

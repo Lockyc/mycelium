@@ -94,9 +94,8 @@ release notes="":
     git tag -a "${tag}" -m "${tag}" main
     git push origin "${tag}"
     # Build the release body. NOT --generate-notes: it summarises merged PRs, and this repo
-    # integrates by direct merge to dev, so it yields a bare compare link and says nothing —
-    # v0.4.0 shipped with empty notes that way. Commit subjects since the previous tag are
-    # the real changelog here; a notes=<file> override carries prose when a release needs it.
+    # integrates by direct merge to dev, so it yields a bare compare link and says nothing.
+    # Commit subjects since the previous tag are the real changelog here; a notes=<file> override carries prose when a release needs it.
     body="$(mktemp)"
     trap 'rm -f "$body"' EXIT
     if [ -n "{{notes}}" ]; then
