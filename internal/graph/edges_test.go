@@ -14,3 +14,16 @@ func TestIsUseEdge(t *testing.T) {
 		}
 	}
 }
+
+func TestIsEdgeType(t *testing.T) {
+	for _, ty := range []string{"consumes", "depends-on", "deploys-to", "markets", "sells", "related"} {
+		if !IsEdgeType(ty) {
+			t.Errorf("IsEdgeType(%q) = false, want true", ty)
+		}
+	}
+	for _, ty := range []string{"", "depend-on", "uses"} {
+		if IsEdgeType(ty) {
+			t.Errorf("IsEdgeType(%q) = true, want false", ty)
+		}
+	}
+}

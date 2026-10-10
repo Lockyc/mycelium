@@ -80,7 +80,7 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
     myco audit --dir ./graph
 
 `audit` reports graph rot: **orphans** (scanned repos with no committed
-`mycelium.toml`), dangling overlay edges, **duplicate names** (two entries claiming one
+`mycelium.toml`), dangling overlay edges, edges of an unknown `type`, **duplicate names** (two entries claiming one
 name), and components that vanished since the last
 run — plus **doc-rot** (a component with island docs: unfindable or unplaced) and
 **docgraph-version** (a component whose docgraph `schemaVersion` is newer than

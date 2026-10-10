@@ -215,7 +215,7 @@ out.) Requires **docgraph v3.1.0+** on the node (the first version with
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 
-Consistency checks (orphans, dangling edges, duplicate names, staleness, doc-rot, docgraph-version)
+Consistency checks (orphans, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version)
 are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the

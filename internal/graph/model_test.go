@@ -143,3 +143,16 @@ func TestManifestDocGraphsRoundTrip(t *testing.T) {
 		t.Fatalf("raw payload not preserved: %s", round.DocGraphs["github.com/x/y"])
 	}
 }
+
+func TestLintSidecar(t *testing.T) {
+	if p := LintSidecar(Sidecar{Name: "x", Summary: "s"}); p != nil {
+		t.Errorf("empty optional kind/status should lint clean, got %v", p)
+	}
+	if p := LintSidecar(Sidecar{Name: "x", Summary: "s", Kind: "service", Status: "wip"}); p != nil {
+		t.Errorf("documented values should lint clean, got %v", p)
+	}
+	p := LintSidecar(Sidecar{Name: "x", Summary: "s", Kind: "servce", Status: "dead"})
+	if len(p) != 2 || !strings.Contains(p[0], `kind "servce"`) || !strings.Contains(p[1], `status "dead"`) {
+		t.Errorf("want one problem each for kind and status, got %v", p)
+	}
+}

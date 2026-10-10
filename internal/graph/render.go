@@ -27,16 +27,6 @@ type entry struct {
 	docIslands int // content+metadata island count; a rot flag, only rendered when > 0
 }
 
-// useEdgeTypes are the edge types that mean "from actually uses to", so reversing
-// one yields a true "Used by" — and, together, an entry's blast radius: change
-// this thing and these are what must be re-pinned or rebuilt.
-//
-// The other types (markets, sells, related) are thematic, not consumption, so
-// they are deliberately excluded: "business sells reductable" reversed onto
-// reductable as "Used by: business" would be plainly false. They stay in the
-// Relationships section, which renders every edge with its type intact.
-var useEdgeTypes = map[string]bool{"consumes": true, "depends-on": true, "deploys-to": true}
-
 // usedByNames flattens UsedByIndex to the distinct user names per entity, in
 // order — the MAP.md line names each user once, whatever edge types it uses by.
 func usedByNames(g Graph) map[string][]string {

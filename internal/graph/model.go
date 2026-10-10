@@ -3,6 +3,8 @@ package graph
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 
 	toml "github.com/pelletier/go-toml/v2"
 )
@@ -192,6 +194,28 @@ func ParseSidecar(data []byte) (Sidecar, error) {
 		return Sidecar{}, fmt.Errorf("%s %q: missing required field 'summary'", SidecarName, sc.Name)
 	}
 	return sc, nil
+}
+
+// SidecarKinds and SidecarStatuses are the valid values of the optional `kind`
+// and `status` fields (schema/graph.md). Name and summary are enforced at parse;
+// these are linted only by `myco validate`, so one bad value never aborts a scan.
+var (
+	SidecarKinds    = []string{"service", "app", "library", "docs", "infra", "tool"}
+	SidecarStatuses = []string{"active", "wip", "experimental", "archived"}
+)
+
+// LintSidecar returns one problem per sidecar field holding a value outside its
+// documented set; nil when the sidecar is clean. An empty optional field is fine.
+func LintSidecar(sc Sidecar) []string {
+	var problems []string
+	check := func(field, value string, valid []string) {
+		if value != "" && !slices.Contains(valid, value) {
+			problems = append(problems, fmt.Sprintf("%s %q is not one of: %s", field, value, strings.Join(valid, ", ")))
+		}
+	}
+	check("kind", sc.Kind, SidecarKinds)
+	check("status", sc.Status, SidecarStatuses)
+	return problems
 }
 
 func ParseOverlay(data []byte) (Overlay, error) {

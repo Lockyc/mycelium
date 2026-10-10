@@ -16,7 +16,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - `internal/scan` — node role: walk roots, read sidecars + git info → manifest;
   also captures each component's docgraph doc-graph, at the scanned ref
   (`docgraph.go`).
-- `internal/audit` — orphan / dangling-edge / duplicate-name / staleness / doc-rot / docgraph-version
+- `internal/audit` — orphan / dangling-edge / invalid-edge-type / duplicate-name / staleness / doc-rot / docgraph-version
   checks over `graph.json` (schema validation is a separate step — `myco validate` /
   `ParseSidecar` at scan).
 - `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full

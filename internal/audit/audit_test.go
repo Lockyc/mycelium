@@ -89,3 +89,19 @@ func TestAuditReportsDuplicateNames(t *testing.T) {
 		t.Fatalf("duplicate-name findings = %q, want %q", got, want)
 	}
 }
+
+func TestAuditReportsInvalidEdgeType(t *testing.T) {
+	g := graph.Graph{Edges: []graph.Edge{
+		{From: "a", To: "b", Type: "depends-on"},
+		{From: "a", To: "c", Type: "depend-on"},
+	}}
+	var got []string
+	for _, f := range Audit(g, nil) {
+		if f.Kind == "invalid-edge-type" {
+			got = append(got, f.Detail)
+		}
+	}
+	if len(got) != 1 || !strings.Contains(got[0], "a depend-on c") {
+		t.Fatalf("want one invalid-edge-type finding for the typo, got %q", got)
+	}
+}

@@ -23,6 +23,12 @@ func Audit(g graph.Graph, previousIDs []string) []Finding {
 		out = append(out, Finding{Kind: "dangling-edge",
 			Detail: fmt.Sprintf("%s %s %s — %s", e.From, e.Type, e.To, e.Reason)})
 	}
+	for _, e := range g.Edges {
+		if !graph.IsEdgeType(e.Type) {
+			out = append(out, Finding{Kind: "invalid-edge-type",
+				Detail: fmt.Sprintf("%s %s %s — unknown edge type, so it is left out of Used by", e.From, e.Type, e.To)})
+		}
+	}
 	for _, c := range g.Components {
 		if c.DocGraph == nil {
 			continue

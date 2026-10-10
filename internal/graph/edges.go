@@ -2,11 +2,30 @@ package graph
 
 import "sort"
 
+// useEdgeTypes are the edge types that mean "from actually uses to", so reversing
+// one yields a true "Used by" — and, together, an entry's blast radius: change
+// this thing and these are what must be re-pinned or rebuilt.
+//
+// thematicEdgeTypes (markets, sells, related) are not consumption, so they are
+// deliberately excluded from Used by: "business sells reductable" reversed onto
+// reductable as "Used by: business" would be plainly false. They stay in the
+// Relationships section, which renders every edge with its type intact.
+//
+// Together the two sets are every valid edge type (schema/graph.md's `type` enum).
+var (
+	useEdgeTypes      = map[string]bool{"consumes": true, "depends-on": true, "deploys-to": true}
+	thematicEdgeTypes = map[string]bool{"markets": true, "sells": true, "related": true}
+)
+
 // IsUseEdge reports whether an edge type means "from actually uses to" — the
 // dependency edges (consumes / depends-on / deploys-to) that define blast radius.
-// It is the exported accessor over useEdgeTypes (defined in render.go), so the
-// query layer reuses the one definition of that set instead of re-encoding it.
+// The query layer reuses it instead of re-encoding the set.
 func IsUseEdge(edgeType string) bool { return useEdgeTypes[edgeType] }
+
+// IsEdgeType reports whether edgeType is a valid edge type at all. An unknown
+// type (a typo like "depend-on") still renders under Relationships but is
+// silently absent from Used by, so the audit reports it.
+func IsEdgeType(edgeType string) bool { return useEdgeTypes[edgeType] || thematicEdgeTypes[edgeType] }
 
 // UseRef is one reverse use edge: From uses the indexed entity via Type.
 type UseRef struct {
