@@ -16,7 +16,7 @@ type Options struct {
 	Ref           string // git ref to read sidecars from; "" or absent → HEAD
 
 	// DocGraph runs docgraph for a repo at a git ref; nil uses the real runDocGraph.
-	// Injected so tests need no docgraph binary and CI stays green without it.
+	// Injected so tests need no docgraph binary.
 	DocGraph DocGraphFunc
 }
 
