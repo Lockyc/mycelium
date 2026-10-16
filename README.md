@@ -49,9 +49,14 @@ without it. `--node` names the node the manifest comes from.
       --ref dev --push https://<hub> --token-file /path/to/token
 
 Reads each repo's committed `mycelium.toml` (bare repos and working trees alike),
-skips denied owners, and POSTs the manifest to the hub. `--ref <branch>` reads
-the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
+skips the owners listed in `--exclude-owners`, and POSTs the manifest to the hub.
+`--fallback-host` is the host recorded for repos with no origin remote. `--ref <branch>`
+reads the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
 per-repo when the branch is absent; omit it to read each repo's default branch.
+
+To include each repo's doc-graph digest (below), the node needs
+**[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on its PATH**; without it,
+or with an older one, the scan leaves the digests out and carries on.
 
 ### Hub (ingest manifests, rebuild, serve)
 
@@ -63,10 +68,7 @@ component's full doc-graph payload, when it has one), and accepts
 `POST /manifests` (node-keyed, bearer-authenticated); each push rebuilds the
 served graph. Each component in `graph.json` carries a compact `docGraph`
 digest when the node captured one — see
-[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph). Capturing
-these digests requires **[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on the
-node's PATH**; without it, or with an older one, the digests are omitted and the
-scan carries on.
+[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph).
 `--ingest-token-file` is optional — omit it only behind a trusted network
 boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
@@ -75,13 +77,20 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
     myco build --manifests <dir> --overlay overlay.toml --dir ./graph
     myco audit --dir ./graph
 
-`audit` reports graph rot: **orphans** (scanned repos with no committed
-`mycelium.toml`), **invalid sidecars** (a committed `mycelium.toml` that fails to parse —
-the scan records it and carries on), dangling overlay edges, edges of an unknown `type`, **duplicate names** (two entries claiming one
-name), and components that vanished since the last
-run — plus **doc-rot** (a component with island docs: unfindable or unplaced) and
-**docgraph-version** (a component whose docgraph `schemaVersion` is newer than
-Mycelium's pinned `1`). Repos that intentionally have no sidecar are suppressed via an
+`audit` reports graph rot:
+
+- **orphans** — scanned repos with no committed `mycelium.toml`;
+- **invalid sidecars** — a committed `mycelium.toml` that fails to parse (the scan
+  records it and carries on);
+- dangling overlay edges, and edges of an unknown `type`;
+- **duplicate names** — two entries claiming one name;
+- components that vanished since the last run;
+- **doc-rot** — a component with docs nothing links to, or docs with no declared place
+  in its doc graph;
+- **docgraph-version** — a component whose docgraph `schemaVersion` is newer than 1,
+  the version Mycelium reads.
+
+Repos that intentionally have no sidecar are suppressed via an
 `ignore` list of canonical ids in the private `overlay.toml` (see
 [`schema/graph.md`](schema/graph.md)).
 
