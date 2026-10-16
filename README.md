@@ -9,8 +9,8 @@
 `myco` reads per-repo `mycelium.toml` metadata across a set of repo roots, merges
 it with a private relationship overlay into one agent-readable graph
 (`MAP.md` + `graph.json`), audits that graph for rot, and serves it over
-HTTP. It gives a coding agent a proactive map of an ecosystem — which repos and
-services exist and when each applies — instead of relying on a human to point.
+HTTP. It gives a coding agent a map of an ecosystem: which repos and services
+exist and when each applies.
 
 Both outputs are **for agents, not humans**, and serve two use cases: **read
 `MAP.md` into context to orient** (a lossy, skimmable Markdown digest), and
@@ -20,9 +20,8 @@ Both outputs are **for agents, not humans**, and serve two use cases: **read
 **Status:** working, pre-1.0 — the public surface (CLI flags, graph schema) can
 still shift. The architecture is distributed: **nodes** scan repo roots and push
 manifests to a central **hub**, which ingests and rebuilds the graph, then serves
-it over HTTP. The node→hub→serve path runs in a private reference deployment (a
-scheduled node behind an auth-gated hub); the graph is only as rich as the
-`mycelium.toml` sidecars committed across the scanned repos.
+it over HTTP. The graph is only as rich as the `mycelium.toml` sidecars committed
+across the scanned repos.
 
 ## Build
 
@@ -41,8 +40,7 @@ Or build in place — the binary lands in the repo root, so invoke it as `./myco
 
 Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
 metadata (origin remote, commit at the scanned ref), and writes a manifest (JSON) to `--out`, or stdout
-without it. The `--node` id
-tags this manifest; used by a hub to track which node pushed it.
+without it. `--node` names the node the manifest comes from.
 
 ### Node (scan where the repos live, push to a hub)
 
@@ -67,10 +65,8 @@ served graph. Each component in `graph.json` carries a compact `docGraph`
 digest when the node captured one — see
 [`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph). Capturing
 these digests requires **[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on the
-node's PATH** (it reads the
-graph at the scanned ref via `docgraph graph --ref`, which works on a bare
-repo store too); with an older or absent `docgraph` the digests are simply
-omitted (best-effort, never fatal).
+node's PATH**; without it, or with an older one, the digests are omitted and the
+scan carries on.
 `--ingest-token-file` is optional — omit it only behind a trusted network
 boundary; the hub then logs a loud warning that ingest is unauthenticated.
 
@@ -109,10 +105,8 @@ Bare `myco query` prints the index. It reads a local `graph.json` (`--dir`, defa
 `.`) or a hub (`--url`, default `$MYCELIUM_HUB` — set that once and no flag is needed).
 Flags may go before or after the positional. Text by default, `--json` to pipe.
 
-The hub also serves the same queries over HTTP at `GET /q/*` (`GET /q` lists them) —
-a bonus for `curl` when the binary isn't around. Hand-written `jq` over `graph.json`
-is for specific/programmatic cases only; see
-[`schema/graph.md`](schema/graph.md#querying).
+The hub also serves the same queries over HTTP at `GET /q/*` (`GET /q` lists them).
+For `jq` over `graph.json`, see [`schema/graph.md`](schema/graph.md#querying).
 
 ## Demo
 
