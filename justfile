@@ -79,29 +79,20 @@ release notes="":
       exit 1
     fi
     just gate
-    git push origin dev
-    # main only ever fast-forwards to a release commit. Both ref updates are
-    # ff-only, so a diverged main (local or remote) fails here instead of being
-    # rewound and losing its out-of-band commit.
-    if ! git fetch -q origin main:main || ! git fetch -q . dev:main; then
-      echo "✗ main is checked out here, or diverged from dev — release from a dev checkout;" >&2
-      echo "  if diverged: git merge origin/main on dev, then re-run the release." >&2
-      exit 1
-    fi
     # Resolve the previous tag BEFORE tagging, so it doesn't find this release's own tag.
     prev="$(git describe --tags --abbrev=0 2>/dev/null || true)"
-    git push origin main
-    git tag -a "${tag}" -m "${tag}" main
-    git push origin "${tag}"
-    # Build the release body. NOT --generate-notes: it summarises merged PRs, and this repo
-    # integrates by direct merge to dev, so it yields a bare compare link and says nothing.
-    # Commit subjects since the previous tag are the real changelog here; a notes=<file> override carries prose when a release needs it.
+    # Build and check the release body before anything is pushed, so a release with nothing
+    # to say stops here rather than leaving a public tag with no release. NOT --generate-notes:
+    # it summarises merged PRs, and this repo integrates by direct merge to dev, so it yields a
+    # bare compare link and says nothing. Commit subjects since the previous tag are the real
+    # changelog here (dev is what main fast-forwards to); a notes=<file> override carries prose
+    # when a release needs it.
     body="$(mktemp)"
     trap 'rm -f "$body"' EXIT
     if [ -n "{{notes}}" ]; then
       cat "{{notes}}" > "$body"
     elif [ -n "$prev" ]; then
-      git log --no-merges --pretty='- %s' "${prev}..main" > "$body"
+      git log --no-merges --pretty='- %s' "${prev}..dev" > "$body"
     else
       echo "- initial release" > "$body"
     fi
@@ -111,6 +102,18 @@ release notes="":
       echo "✗ refusing to publish ${tag}: no commits since ${prev:-the beginning} and no notes=<file>" >&2
       exit 1
     fi
+    git push origin dev
+    # main only ever fast-forwards to a release commit. Both ref updates are
+    # ff-only, so a diverged main (local or remote) fails here instead of being
+    # rewound and losing its out-of-band commit.
+    if ! git fetch -q origin main:main || ! git fetch -q . dev:main; then
+      echo "✗ main is checked out here, or diverged from dev — release from a dev checkout;" >&2
+      echo "  if diverged: git merge origin/main on dev, then re-run the release." >&2
+      exit 1
+    fi
+    git push origin main
+    git tag -a "${tag}" -m "${tag}" main
+    git push origin "${tag}"
     if [ -n "$prev" ]; then
       printf '\n**Full Changelog**: %s/compare/%s...%s\n' \
         "$(gh repo view --json url -q .url)" "$prev" "$tag" >> "$body"
