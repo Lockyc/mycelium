@@ -37,9 +37,11 @@ func Audit(g graph.Graph, previousIDs []string) []Finding {
 		if c.DocGraph == nil {
 			continue
 		}
-		if c.DocGraph.SchemaVersion != 0 && c.DocGraph.SchemaVersion != 1 {
+		// Version 0 is a payload with no schemaVersion at all — a broken docgraph, whose
+		// empty digest would otherwise read as a repo with no doc-rot.
+		if c.DocGraph.SchemaVersion != graph.DocGraphSchemaVersion {
 			out = append(out, Finding{Kind: "docgraph-version",
-				Detail: fmt.Sprintf("%s: docgraph schemaVersion %d newer than Mycelium understands (pins 1)", c.ID, c.DocGraph.SchemaVersion)})
+				Detail: fmt.Sprintf("%s: docgraph schemaVersion %d, Mycelium reads %d", c.ID, c.DocGraph.SchemaVersion, graph.DocGraphSchemaVersion)})
 			continue
 		}
 		islands := append(append([]string{}, c.DocGraph.ContentIslands...), c.DocGraph.MetadataIslands...)

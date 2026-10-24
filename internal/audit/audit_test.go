@@ -52,16 +52,20 @@ func TestAuditReportsDocRot(t *testing.T) {
 func TestAuditReportsUnknownDocgraphVersion(t *testing.T) {
 	g := graph.Graph{Components: []graph.Component{
 		{ID: "github.com/x/newer", Name: "newer", DocGraph: &graph.DocGraphDigest{SchemaVersion: 2}},
+		// no schemaVersion at all: a broken docgraph, not a clean repo
+		{ID: "github.com/x/unversioned", Name: "unversioned", DocGraph: &graph.DocGraphDigest{}},
 	}}
 	found := Audit(g, nil)
-	var ok bool
-	for _, f := range found {
-		if f.Kind == "docgraph-version" && strings.Contains(f.Detail, "github.com/x/newer") {
-			ok = true
+	for _, id := range []string{"github.com/x/newer", "github.com/x/unversioned"} {
+		var ok bool
+		for _, f := range found {
+			if f.Kind == "docgraph-version" && strings.Contains(f.Detail, id) {
+				ok = true
+			}
 		}
-	}
-	if !ok {
-		t.Fatalf("expected a docgraph-version finding: %+v", found)
+		if !ok {
+			t.Fatalf("expected a docgraph-version finding for %s: %+v", id, found)
+		}
 	}
 }
 

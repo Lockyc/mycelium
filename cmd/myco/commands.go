@@ -40,6 +40,10 @@ func runScan(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	// The hub refuses a manifest with no node id; say so before scanning the whole store.
+	if *push != "" && *node == "" {
+		return fmt.Errorf("scan --push needs --node (the hub rejects a manifest without a node id)")
+	}
 	m, err := scan.Scan(splitRoots(*roots), scan.Options{
 		Node:          *node,
 		Source:        *source,

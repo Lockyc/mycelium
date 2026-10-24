@@ -51,7 +51,8 @@ Reads each repo's committed `mycelium.toml` (bare repos and working trees alike)
 skips the owners listed in `--exclude-owners`, and POSTs the manifest to the hub.
 `--fallback-host` is the host recorded for repos with no origin remote. `--ref <branch>`
 reads the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
-per-repo when the branch is absent; omit it to read each repo's default branch.
+per-repo when the branch is absent; omit it to read each repo's HEAD (a bare repo's default branch, or a working tree's
+checked-out branch).
 
 To include each repo's doc-graph digest (below), the node needs
 **[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on its PATH**; without it,

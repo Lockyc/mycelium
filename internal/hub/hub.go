@@ -65,7 +65,10 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	// whose payload is written gets a url: a digest recorded for an unknown
 	// schemaVersion carries no payload, and a link to it would 404.
 	for i := range g.Components {
-		if g.Components[i].DocGraph != nil && payloads[g.Components[i].ID] != nil {
+		// The kept digest must itself be the readable version: with two nodes on different
+		// docgraph versions, it can come from a manifest other than the payload's.
+		if dg := g.Components[i].DocGraph; dg != nil && dg.SchemaVersion == graph.DocGraphSchemaVersion &&
+			payloads[g.Components[i].ID] != nil {
 			g.Components[i].DocGraph.URL = graph.RepoDocGraphRoute(g.Components[i].ID)
 		}
 	}

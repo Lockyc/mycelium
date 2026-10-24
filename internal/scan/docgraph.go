@@ -12,9 +12,9 @@ import (
 	"github.com/lockyc/mycelium/internal/graph"
 )
 
-// docgraphSchemaVersion is the docgraph graph payload version Mycelium understands.
-// A payload with any other version is recorded-but-not-interpreted (see buildDigest).
-const docgraphSchemaVersion = 1
+// docgraphSchemaVersion is graph.DocGraphSchemaVersion. A payload with any other
+// version is recorded-but-not-interpreted (see buildDigest).
+const docgraphSchemaVersion = graph.DocGraphSchemaVersion
 
 // conventionalEntryDocs is Mycelium's set of orientation-doc paths. docgraph's
 // frozen contract exposes no root/entry flag, so entryDocs is the subset of THIS

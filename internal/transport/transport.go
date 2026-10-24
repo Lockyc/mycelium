@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -45,6 +46,11 @@ func Push(hubURL, token string, m graph.Manifest) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
+		// The hub's body names the reason (missing node id, unauthorized, rebuild failed).
+		reason, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		if msg := strings.TrimSpace(string(reason)); msg != "" {
+			return fmt.Errorf("push to hub: %s: %s", resp.Status, msg)
+		}
 		return fmt.Errorf("push to hub: %s", resp.Status)
 	}
 	return nil

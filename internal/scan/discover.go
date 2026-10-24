@@ -51,8 +51,10 @@ func DiscoverRepos(roots []string) ([]Repo, error) {
 			if !d.IsDir() {
 				return nil
 			}
-			// Skip agent worktree checkouts entirely.
-			if strings.Contains(path, filepath.Join(".claude", "worktrees")) {
+			// Skip agent worktree checkouts beneath the root. Judged on the path relative to
+			// the root, so a root that itself sits in a worktree still scans.
+			if rel, err := filepath.Rel(root, path); err == nil &&
+				strings.Contains(filepath.Join(".", rel), filepath.Join(".claude", "worktrees")) {
 				return filepath.SkipDir
 			}
 			owner := filepath.Base(filepath.Dir(path))

@@ -80,6 +80,12 @@ type Overlay struct {
 // and are few by construction; the full node/edge lists are not (they live in
 // the out-of-band full payload, Manifest.DocGraphs). Built by the node from
 // `docgraph graph --json`; carried into graph.json unchanged.
+//
+// DocGraphSchemaVersion is the docgraph payload version Mycelium reads: the scan
+// interprets only that version, the audit flags any other, and the hub links only
+// its payloads.
+const DocGraphSchemaVersion = 1
+
 type DocGraphDigest struct {
 	SchemaVersion     int      `json:"schemaVersion"`
 	DocCount          int      `json:"docCount"`

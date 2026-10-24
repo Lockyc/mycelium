@@ -64,6 +64,19 @@ func TestDiscoverReposBareAndWorking(t *testing.T) {
 
 // One unreadable directory in a shared store must not abort discovery of the
 // rest; only an unreadable root is fatal.
+// A root that itself sits inside an agent worktree still scans; only worktrees beneath it skip.
+func TestDiscoverReposFromARootInsideAWorktree(t *testing.T) {
+	root := filepath.Join(t.TempDir(), ".claude", "worktrees", "x", "repos")
+	mkWorking(t, filepath.Join(root, "acme", "widgets"))
+	repos, err := DiscoverRepos([]string{root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 {
+		t.Fatalf("want the one repo under a worktree-resident root, got %+v", repos)
+	}
+}
+
 func TestDiscoverReposSkipsUnreadableSubdir(t *testing.T) {
 	root := t.TempDir()
 	mkWorking(t, filepath.Join(root, "acme", "widgets"))
