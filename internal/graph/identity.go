@@ -6,15 +6,17 @@ import (
 )
 
 // CanonicalID normalizes a git remote URL to a stable host/owner/repo identity.
-// Handles scp-style (git@host:owner/repo.git) and URL-style
-// (scheme://[user@]host[:port]/owner/repo.git). The port is dropped so one repo
-// reached over different transports (ssh on :2222, https on :443) is one id.
+// Handles scp-style ([user@]host:owner/repo.git — the user is optional, as with an
+// ~/.ssh/config Host alias) and URL-style (scheme://[user@]host[:port]/owner/repo.git).
+// The port is dropped so one repo reached over different transports (ssh on :2222,
+// https on :443) is one id.
 func CanonicalID(remote string) string {
 	s := strings.TrimSpace(remote)
-	// scp-style: git@host:owner/repo(.git)
-	if !strings.Contains(s, "://") && strings.Contains(s, "@") && strings.Contains(s, ":") {
-		at := strings.Index(s, "@")
-		s = s[at+1:]                        // host:owner/repo.git
+	colon, slash := strings.Index(s, ":"), strings.Index(s, "/")
+	if !strings.Contains(s, "://") && colon >= 0 && (slash < 0 || colon < slash) {
+		if at := strings.Index(s, "@"); at >= 0 && at < colon {
+			s = s[at+1:] // host:owner/repo.git
+		}
 		s = strings.Replace(s, ":", "/", 1) // host/owner/repo.git
 	} else {
 		if i := strings.Index(s, "://"); i >= 0 {

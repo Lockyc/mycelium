@@ -12,6 +12,8 @@ func TestCanonicalID(t *testing.T) {
 		"ssh://git@git.example.com:2222/acme/billing.git": "git.example.com/acme/billing",
 		"https://git.example.com:8443/acme/billing":       "git.example.com/acme/billing",
 		"git@git.example.com:acme/billing":                "git.example.com/acme/billing",
+		// scp-style with no user (an ssh Host alias) keeps its owner
+		"github.com:acme/widgets.git": "github.com/acme/widgets",
 		// a trailing slash must not shield the .git suffix
 		"https://github.com/acme/widgets.git/": "github.com/acme/widgets",
 	}
