@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/lockyc/mycelium/internal/graph"
 )
@@ -13,8 +14,23 @@ type Finding struct {
 	Detail string
 }
 
+// StaleManifestAfter is how far a manifest may trail the freshest one before the
+// audit calls its node silent: nodes scan on an 8h timer, so this is about nine
+// missed scans — a retired or broken node, not one between runs.
+const StaleManifestAfter = 72 * time.Hour
+
 func Audit(g graph.Graph, previousIDs []string) []Finding {
 	var out []Finding
+	if len(g.Sources) > 1 {
+		newest, err := time.Parse(time.RFC3339, g.Sources[0].ScannedAt)
+		for _, s := range g.Sources[1:] {
+			at, perr := time.Parse(time.RFC3339, s.ScannedAt)
+			if err == nil && perr == nil && newest.Sub(at) > StaleManifestAfter {
+				out = append(out, Finding{Kind: "stale-manifest",
+					Detail: fmt.Sprintf("node %s last scanned %s, %s behind the freshest — retire its manifest or fix its scan", s.Node, s.ScannedAt, newest.Sub(at).Round(time.Hour))})
+			}
+		}
+	}
 	for _, o := range g.Orphans {
 		out = append(out, Finding{Kind: "orphan",
 			Detail: fmt.Sprintf("repo without mycelium.toml: %s", o.ID)})

@@ -107,6 +107,22 @@ func TestMergeOrphansDedupIgnoreAndComponentWins(t *testing.T) {
 	}
 }
 
+func TestMergeFreshestManifestWinsWhateverItsOrder(t *testing.T) {
+	stale := Manifest{Node: "retired", ScannedAt: "2026-10-01T08:00:00Z", Components: []Component{
+		{ID: "github.com/acme/api", Name: "api", Commit: "old"},
+	}}
+	fresh := Manifest{Node: "forgejo", ScannedAt: "2026-10-24T08:00:00Z", Components: []Component{
+		{ID: "github.com/acme/api", Name: "api", Commit: "new"},
+	}}
+	g := Merge([]Manifest{stale, fresh}, Overlay{}) // the stale one first, as a filename sort might put it
+	if g.Components[0].Commit != "new" {
+		t.Fatalf("want the freshest manifest's entry, got commit %q", g.Components[0].Commit)
+	}
+	if len(g.Sources) != 2 || g.Sources[0].Node != "forgejo" {
+		t.Fatalf("want sources freshest first: %+v", g.Sources)
+	}
+}
+
 func TestMergeCarriesDocGraph(t *testing.T) {
 	m := Manifest{Node: "a", Components: []Component{{
 		ID: "github.com/x/y", Name: "y", DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 7},

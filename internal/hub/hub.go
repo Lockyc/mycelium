@@ -89,13 +89,14 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 }
 
 // docGraphPayloads collects the full docgraph payloads Build serves, keyed by
-// component id: first-seen wins across manifests (matching component dedup),
-// and an id that isn't a clean relative path is dropped (defense against a
-// crafted manifest; canonical ids never contain "." segments or ".."). It is the
-// one decider of which payloads exist — both the url stamp and the writer read it.
+// component id: the freshest manifest wins (graph.FreshestFirst, matching
+// component dedup in graph.Merge), and an id that isn't a clean relative path is
+// dropped (defense against a crafted manifest; canonical ids never contain "."
+// segments or ".."). It is the one decider of which payloads exist — both the url
+// stamp and the writer read it.
 func docGraphPayloads(ms []graph.Manifest) map[string]json.RawMessage {
 	out := map[string]json.RawMessage{}
-	for _, m := range ms {
+	for _, m := range graph.FreshestFirst(ms) {
 		for id, payload := range m.DocGraphs {
 			if _, seen := out[id]; seen || payload == nil {
 				continue

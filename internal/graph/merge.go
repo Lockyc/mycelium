@@ -19,6 +19,25 @@ type Graph struct {
 	// InvalidSidecars is omitempty, so a graph.json written by an older hub
 	// (which lacks the key) and one with nothing invalid read back identically.
 	InvalidSidecars []InvalidSidecar `json:"invalid_sidecars,omitempty"`
+	// Sources is each manifest merged in, freshest first — what the audit reads
+	// to flag a node that has stopped reporting.
+	Sources []Source `json:"sources,omitempty"`
+}
+
+// Source is one merged manifest's origin: the node that scanned and when.
+type Source struct {
+	Node      string `json:"node"`
+	ScannedAt string `json:"scanned_at"`
+}
+
+// FreshestFirst orders manifests newest scan first (RFC 3339 UTC strings sort
+// lexically), stably, so ties keep their input order. Wherever two manifests
+// report the same component the first one in this order wins, so a node that
+// has stopped scanning can never outvote a live one.
+func FreshestFirst(ms []Manifest) []Manifest {
+	out := append([]Manifest(nil), ms...)
+	sort.SliceStable(out, func(i, j int) bool { return out[i].ScannedAt > out[j].ScannedAt })
+	return out
 }
 
 // DanglingEdge is an overlay edge that failed to resolve: its source must be a
@@ -29,10 +48,16 @@ type DanglingEdge struct {
 	Reason string `json:"reason"`
 }
 
+// Merge folds the manifests (taken FreshestFirst) and the overlay into one graph.
+// A component reported by several manifests keeps the freshest one's entry,
+// backfilled from older ones only where it is empty.
 func Merge(manifests []Manifest, ov Overlay) Graph {
+	manifests = FreshestFirst(manifests)
 	byID := map[string]*Component{}
 	var order []string
+	var sources []Source
 	for _, m := range manifests {
+		sources = append(sources, Source{Node: m.Node, ScannedAt: m.ScannedAt})
 		for _, c := range m.Components {
 			existing, ok := byID[c.ID]
 			if !ok {
@@ -45,7 +70,7 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 				existing.Commit = c.Commit
 			}
 			if len(existing.Sidecar.Provides) == 0 && len(c.Sidecar.Provides) > 0 {
-				// backfill only the capability list; the authoritative (first-seen)
+				// backfill only the capability list; the authoritative (freshest)
 				// entry keeps its own name/summary/etc.
 				existing.Sidecar.Provides = c.Sidecar.Provides
 			}
@@ -160,5 +185,5 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 
 	nodes := append([]OverlayNode(nil), ov.Nodes...)
 
-	return Graph{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans, InvalidSidecars: invalid}
+	return Graph{Components: comps, Nodes: nodes, Capabilities: capIndex, Edges: edges, DanglingEdges: dangling, Orphans: orphans, InvalidSidecars: invalid, Sources: sources}
 }

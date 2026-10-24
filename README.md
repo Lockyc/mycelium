@@ -87,8 +87,11 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
 - components that vanished since the last run;
 - **doc-rot** — a component with docs nothing links to, or docs with no declared place
   in its doc graph;
-- **docgraph-version** — a component whose docgraph `schemaVersion` is newer than 1,
-  the version Mycelium reads.
+- **docgraph-version** — a component whose docgraph `schemaVersion` is not 1, the
+  version Mycelium reads (including none at all);
+- **stale-manifest** — a node whose last manifest trails the freshest by more than
+  three days: it has stopped scanning, and the freshest manifest already outranks
+  it wherever both report a repo.
 
 Repos that intentionally have no sidecar are suppressed via an
 `ignore` list of canonical ids in the private `overlay.toml` (see

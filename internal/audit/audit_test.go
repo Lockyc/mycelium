@@ -69,6 +69,23 @@ func TestAuditReportsUnknownDocgraphVersion(t *testing.T) {
 	}
 }
 
+func TestAuditReportsStaleManifest(t *testing.T) {
+	g := graph.Graph{Sources: []graph.Source{
+		{Node: "forgejo", ScannedAt: "2026-10-24T08:00:00Z"},
+		{Node: "laptop", ScannedAt: "2026-10-23T08:00:00Z"},  // a day behind: between runs
+		{Node: "retired", ScannedAt: "2026-10-01T08:00:00Z"}, // weeks behind: silent
+	}}
+	var stale []string
+	for _, f := range Audit(g, nil) {
+		if f.Kind == "stale-manifest" {
+			stale = append(stale, f.Detail)
+		}
+	}
+	if len(stale) != 1 || !strings.Contains(stale[0], "retired") {
+		t.Fatalf("want one stale-manifest finding, for retired: %v", stale)
+	}
+}
+
 func TestAuditReportsDuplicateNames(t *testing.T) {
 	g := graph.Graph{
 		Components: []graph.Component{
