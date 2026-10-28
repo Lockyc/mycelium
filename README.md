@@ -39,7 +39,7 @@ Or build in place — the binary lands in the repo root, so invoke it as `./myco
 
 Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
 metadata (origin remote, commit at the scanned ref), and writes a manifest (JSON) to `--out`, or stdout
-without it. `--node` names the node the manifest comes from.
+without it. `--node` names the node the manifest comes from; `--push` requires it.
 
 ### Node (scan where the repos live, push to a hub)
 
