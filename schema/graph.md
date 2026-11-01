@@ -164,7 +164,8 @@ wrong `jq` path gives. One implementation (`internal/query`) sits behind two sur
 
 - **CLI — `myco query` (reach for this):** `myco query` alone lists the queries;
   `myco query <name> [args]` runs one — `capabilities`, `capability <name>`,
-  `component <name>`, `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
+  `component <name>` (any entry — a component, or an overlay node in its `.nodes[]` shape,
+  which has no `id`/`commit`/`kind`/`status`), `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
   `search <text>`. Text by default, `--json` to pipe. It reads a local `graph.json`
   (`--dir`, default `.`) or a hub (`--url <hub>`, default `$MYCELIUM_HUB` — set that
   once and no flag is needed). Flags go before or after the positional:

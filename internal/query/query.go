@@ -7,6 +7,7 @@
 package query
 
 import (
+	"encoding/json"
 	"slices"
 	"sort"
 	"strings"
@@ -73,14 +74,36 @@ func Capability(g graph.Graph, name string) (CapabilityView, bool) {
 	return v, true
 }
 
-// Component returns one component by name, or ok=false if absent.
-func Component(g graph.Graph, name string) (graph.Component, bool) {
-	for _, c := range g.Components {
-		if c.Name == name {
-			return c, true
+// Entry is one map entry — a scanned component or an overlay node — in the
+// shape graph.json carries it: a component marshals as its `.components[]`
+// object, a node as its `.nodes[]` object (name/summary/provides, no
+// id/commit/kind/status). Exactly one field is set.
+type Entry struct {
+	Component *graph.Component
+	Node      *graph.OverlayNode
+}
+
+func (e Entry) MarshalJSON() ([]byte, error) {
+	if e.Component != nil {
+		return json.Marshal(*e.Component)
+	}
+	return json.Marshal(e.Node)
+}
+
+// Component returns the entry named name — a component, or else an overlay
+// node, since MAP.md lists both as entries — or ok=false if neither exists.
+func Component(g graph.Graph, name string) (Entry, bool) {
+	for i := range g.Components {
+		if g.Components[i].Name == name {
+			return Entry{Component: &g.Components[i]}, true
 		}
 	}
-	return graph.Component{}, false
+	for i := range g.Nodes {
+		if g.Nodes[i].Name == name {
+			return Entry{Node: &g.Nodes[i]}, true
+		}
+	}
+	return Entry{}, false
 }
 
 // Components returns components matching f (AND across set fields).

@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -61,12 +62,35 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestComponent(t *testing.T) {
-	c, ok := Component(fixture(), "warden")
-	if !ok || c.Sidecar.Summary != "terminals console" {
-		t.Errorf("component lookup failed: %+v ok=%v", c, ok)
+	e, ok := Component(fixture(), "warden")
+	if !ok || e.Component == nil || e.Component.Sidecar.Summary != "terminals console" {
+		t.Errorf("component lookup failed: %+v ok=%v", e, ok)
 	}
 	if _, ok := Component(fixture(), "ghost"); ok {
 		t.Error("unknown component reported found")
+	}
+}
+
+// An overlay node is an entry (MAP.md lists it under Components), so the
+// component query answers for it in the node's own graph.json shape.
+func TestComponentFallsThroughToNode(t *testing.T) {
+	g := fixture()
+	g.Nodes = []graph.OverlayNode{{Name: "shared-postgres", Summary: "managed postgres", Provides: []string{"postgres"}}}
+	e, ok := Component(g, "shared-postgres")
+	if !ok || e.Node == nil || e.Component != nil || e.Node.Summary != "managed postgres" {
+		t.Fatalf("node lookup failed: %+v ok=%v", e, ok)
+	}
+	b, err := json.Marshal(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"name":"shared-postgres","summary":"managed postgres","provides":["postgres"]}`; string(b) != want {
+		t.Errorf("node entry JSON = %s, want %s", b, want)
+	}
+	cb, _ := json.Marshal(Entry{Component: &g.Components[0]})
+	wb, _ := json.Marshal(g.Components[0])
+	if string(cb) != string(wb) {
+		t.Errorf("component entry JSON = %s, want the component's own shape %s", cb, wb)
 	}
 }
 

@@ -124,7 +124,8 @@ func TestQueryRoutes(t *testing.T) {
 	dir := t.TempDir()
 	const g = `{
   "components":[{"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","kind":"app","status":"active","stack":["rust"],"provides":[{"name":"sidebar","summary":"the sidebar"}]}],
-  "capabilities":{"sidebar":["warden"]},
+  "nodes":[{"name":"shared-postgres","summary":"managed postgres","provides":["postgres"]}],
+  "capabilities":{"sidebar":["warden"],"postgres":["shared-postgres"]},
   "edges":[],"dangling_edges":[],"orphans":[]
 }`
 	if err := os.WriteFile(filepath.Join(dir, "graph.json"), []byte(g), 0o644); err != nil {
@@ -152,6 +153,13 @@ func TestQueryRoutes(t *testing.T) {
 	// component result is flat (no sidecar wrapper), same as graph.json
 	if body, _ := get(t, srv.URL+"/q/component/warden"); strings.Contains(body, `"sidecar"`) {
 		t.Errorf("component result must be flat: %s", body)
+	}
+	// an overlay node answers too, in its .nodes[] shape
+	if body, code := get(t, srv.URL+"/q/component/shared-postgres"); code != 200 || !strings.Contains(body, "managed postgres") {
+		t.Errorf("/q/component for an overlay node wrong: %d %s", code, body)
+	}
+	if body, code := get(t, srv.URL+"/q/component/ghost"); code != 404 || !strings.Contains(body, "error") {
+		t.Errorf("unknown entry should 404 json: %d %s", code, body)
 	}
 }
 

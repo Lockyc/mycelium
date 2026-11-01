@@ -62,12 +62,12 @@ func Handler(dir string) http.Handler {
 			}
 			writeJSON(w, http.StatusOK, v)
 		case "component":
-			c, ok := query.Component(g, name)
+			e, ok := query.Component(g, name)
 			if !ok {
-				writeErr(w, http.StatusNotFound, "no such component: "+name)
+				writeErr(w, http.StatusNotFound, "no such component or node: "+name)
 				return
 			}
-			writeJSON(w, http.StatusOK, c)
+			writeJSON(w, http.StatusOK, e)
 		case "components":
 			qs := r.URL.Query()
 			writeJSON(w, http.StatusOK, query.Components(g, query.ComponentFilter{

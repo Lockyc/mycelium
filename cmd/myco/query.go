@@ -87,11 +87,11 @@ func runQuery(args []string) error {
 		if err != nil {
 			return err
 		}
-		c, ok := query.Component(g, name)
+		e, ok := query.Component(g, name)
 		if !ok {
-			return fmt.Errorf("no such component: %s", name)
+			return fmt.Errorf("no such component or node: %s", name)
 		}
-		return emit(*asJSON, c, textComponent)
+		return emit(*asJSON, e, textEntry)
 	case "components":
 		if err := noArgs(pos, sub); err != nil {
 			return err
@@ -242,6 +242,18 @@ func textCapability(v query.CapabilityView) string {
 	}
 	fmt.Fprintf(&b, "  providers: %s\n", strings.Join(v.Providers, ", "))
 	return b.String()
+}
+
+func textEntry(e query.Entry) string {
+	if e.Node != nil {
+		var b strings.Builder
+		fmt.Fprintf(&b, "%s — %s\n  overlay node\n", e.Node.Name, e.Node.Summary)
+		for _, p := range e.Node.Provides {
+			fmt.Fprintf(&b, "  provides %s\n", p)
+		}
+		return b.String()
+	}
+	return textComponent(*e.Component)
 }
 
 func textComponent(c graph.Component) string {
