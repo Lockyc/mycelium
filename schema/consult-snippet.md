@@ -32,4 +32,5 @@ snippet names which to reach for when.
 > without a second fetch. To walk the **full** doc-graph, **follow the digest's `url`**
 > (a link the hub stamps in, e.g. `docGraph.url` = `/repos/github.com/acme/web/docgraph.json`):
 > `curl "<hub URL>$(jq -r '.components[]|select(.name=="<repo>").docGraph.url' graph.json)"`.
-> Regenerate with `myco build`.
+> The hub rebuilds the graph whenever a node pushes a scan (`myco scan --push`); a newly
+> committed sidecar appears after its node's next push.

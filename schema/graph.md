@@ -223,4 +223,4 @@ merged into the graph, so the audit reports them fleet-wide (minus any id in the
 overlay `ignore` list) rather than only at scan time. An invalid sidecar rides the
 same way and is reported as `invalid-sidecar`; the node's scan carries on past it.
 
-The overlap between sidecar and overlay (when a repo has an entry in both) is valid: the sidecar documents the public face; the overlay can add internal edges, private capabilities, or infrastructure relationships.
+The overlay refers to a sidecar's component by name in `[[edge]]` blocks: the sidecar documents the public face, the overlay adds internal edges and infrastructure relationships. Private capabilities a public sidecar must not carry go on a separately named overlay `[[node]]`, since entry names must be unique (see `name` above).
