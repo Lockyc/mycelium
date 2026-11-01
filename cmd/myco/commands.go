@@ -115,7 +115,7 @@ func runValidate(args []string) error {
 	if err != nil {
 		return err
 	}
-	if problems := graph.LintSidecar(sc); len(problems) > 0 {
+	if problems := append(graph.LintSidecar(sc), graph.LintSidecarKeys(data)...); len(problems) > 0 {
 		return fmt.Errorf("%s %q: %s", graph.SidecarName, sc.Name, strings.Join(problems, "; "))
 	}
 	fmt.Printf("ok: %s — %s\n", sc.Name, sc.Summary)

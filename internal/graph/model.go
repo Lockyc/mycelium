@@ -1,7 +1,9 @@
 package graph
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -238,6 +240,38 @@ func LintSidecar(sc Sidecar) []string {
 	}
 	check("kind", sc.Kind, SidecarKinds)
 	check("status", sc.Status, SidecarStatuses)
+	return problems
+}
+
+// LintSidecarKeys returns one problem per key in a sidecar's TOML that the
+// Sidecar schema does not declare — the misspellings (`stak`, `[[provide]]`, a
+// typo inside `[[provides]]`) that the lenient ParseSidecar silently drops.
+// Unknown keys come from a strict re-decode, so the known set is the struct's
+// own toml tags. An unknown top-level table (`[github]`, `[fleet]`) is another
+// tool's namespace and is not a problem: the set of such tools is open-ended.
+// Only `myco validate` calls this; scan stays lenient.
+func LintSidecarKeys(data []byte) []string {
+	var sc Sidecar
+	err := toml.NewDecoder(bytes.NewReader(data)).DisallowUnknownFields().Decode(&sc)
+	var strict *toml.StrictMissingError
+	if !errors.As(err, &strict) {
+		return nil // clean, or a syntax error ParseSidecar already reports
+	}
+	var raw map[string]any
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return nil
+	}
+	var problems []string
+	for _, e := range strict.Errors {
+		key := e.Key()
+		if len(key) == 0 {
+			continue
+		}
+		if _, isTable := raw[key[0]].(map[string]any); isTable {
+			continue
+		}
+		problems = append(problems, fmt.Sprintf("unknown key %q", strings.Join(key, ".")))
+	}
 	return problems
 }
 

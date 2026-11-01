@@ -100,6 +100,11 @@ func TestValidateLintsEnums(t *testing.T) {
 	if err := runValidate([]string{bad}); err == nil {
 		t.Fatal("kind typo passed validate")
 	}
+	typo := filepath.Join(dir, "typo.toml")
+	os.WriteFile(typo, []byte("name=\"x\"\nsummary=\"s\"\nstak=[\"go\"]\n[github]\ntopics_extra=[\"a\"]\n"), 0o644)
+	if err := runValidate([]string{typo}); err == nil || !strings.Contains(err.Error(), `unknown key "stak"`) {
+		t.Fatalf("misspelled key must fail validate naming it, got %v", err)
+	}
 }
 
 // One broken sidecar on a node must not stall the node: `scan --push` still

@@ -102,7 +102,8 @@ Repos that intentionally have no sidecar are suppressed via an
     myco validate <mycelium.toml>
 
 Lints a single `mycelium.toml` against the schema — run it before committing a new
-sidecar. Prints the parsed name and summary on success, or the schema error.
+sidecar. Prints the parsed name and summary on success, or the schema error —
+including any misspelled key the scan would silently drop.
 
 ### Query the graph
 

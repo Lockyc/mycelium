@@ -156,3 +156,26 @@ func TestLintSidecar(t *testing.T) {
 		t.Errorf("want one problem each for kind and status, got %v", p)
 	}
 }
+
+func TestLintSidecarKeys(t *testing.T) {
+	const base = "name = \"x\"\nsummary = \"s\"\n"
+	cases := []struct {
+		name, toml string
+		want       []string
+	}{
+		{"clean", base + "stack = [\"go\"]\n[[provides]]\nname = \"c\"\nsummary = \"cs\"\nurl = \"u\"\n", nil},
+		{"third-party tables are namespaces", base + "[github]\ntopics_extra = [\"a\"]\n[fleet]\nexempt = [\"readme\"]\nexempt_note = \"n\"\n", nil},
+		{"misspelled array key", base + "stak = [\"go\"]\n", []string{`unknown key "stak"`}},
+		{"misspelled scalar key", base + "knd = \"app\"\n", []string{`unknown key "knd"`}},
+		{"misspelled array of tables", base + "[[provide]]\nname = \"c\"\nsummary = \"cs\"\n", []string{`unknown key "provide"`}},
+		{"typo inside provides", base + "[[provides]]\nname = \"c\"\nsumary = \"cs\"\n", []string{`unknown key "provides.sumary"`}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := LintSidecarKeys([]byte(c.toml))
+			if strings.Join(got, "|") != strings.Join(c.want, "|") {
+				t.Errorf("LintSidecarKeys = %q, want %q", got, c.want)
+			}
+		})
+	}
+}

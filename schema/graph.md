@@ -36,6 +36,10 @@ Each block documents a discrete capability or service exported by the component.
 - **`summary`** (required, string): What the capability does.
 - **`url`** (optional, string): Endpoint or documentation URL. In a public/shared repo it must be public-safe — omit an internal endpoint (put it in the overlay); a private repo's sidecar may list an internal URL directly.
 
+### Other tools' tables
+
+Any other top-level **table** (e.g. `[github]`, `[fleet]`) is another tool's namespace: Mycelium ignores it. Any other top-level scalar or array key, an array of tables (`[[provide]]`), or an undeclared key inside `[[provides]]` is a misspelling — the scan drops it silently, and `myco validate` reports it as `unknown key`.
+
 ### Example: Public-Safe Sidecar
 
 ```toml
