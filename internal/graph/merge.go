@@ -49,8 +49,10 @@ type DanglingEdge struct {
 }
 
 // Merge folds the manifests (taken FreshestFirst) and the overlay into one graph.
-// A component reported by several manifests keeps the freshest one's entry,
-// backfilled from older ones only where it is empty.
+// A component reported by several manifests keeps the freshest one's entry.
+// Only derived fields (Commit, DocGraph), where empty means "not captured", are
+// backfilled from older ones; declared sidecar fields never are — an empty
+// `provides` is the sidecar's own declaration.
 func Merge(manifests []Manifest, ov Overlay) Graph {
 	manifests = FreshestFirst(manifests)
 	byID := map[string]*Component{}
@@ -68,11 +70,6 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 			}
 			if existing.Commit == "" && c.Commit != "" {
 				existing.Commit = c.Commit
-			}
-			if len(existing.Sidecar.Provides) == 0 && len(c.Sidecar.Provides) > 0 {
-				// backfill only the capability list; the authoritative (freshest)
-				// entry keeps its own name/summary/etc.
-				existing.Sidecar.Provides = c.Sidecar.Provides
 			}
 			if existing.DocGraph == nil && c.DocGraph != nil {
 				existing.DocGraph = c.DocGraph

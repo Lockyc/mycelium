@@ -123,6 +123,23 @@ func TestMergeFreshestManifestWinsWhateverItsOrder(t *testing.T) {
 	}
 }
 
+func TestMergeNeverRevivesProvidesTheFreshestSidecarDropped(t *testing.T) {
+	stale := Manifest{Node: "retired", ScannedAt: "2026-10-01T08:00:00Z", Components: []Component{{
+		ID: "github.com/acme/api", Name: "api",
+		Sidecar: Sidecar{Name: "api", Provides: []Provides{{Name: "order-events"}}},
+	}}}
+	fresh := Manifest{Node: "forgejo", ScannedAt: "2026-10-24T08:00:00Z", Components: []Component{{
+		ID: "github.com/acme/api", Name: "api", Sidecar: Sidecar{Name: "api"},
+	}}}
+	g := Merge([]Manifest{stale, fresh}, Overlay{})
+	if p := g.Components[0].Sidecar.Provides; len(p) != 0 {
+		t.Fatalf("a removed capability came back from the stale manifest: %+v", p)
+	}
+	if _, ok := g.Capabilities["order-events"]; ok {
+		t.Fatal("order-events still advertised")
+	}
+}
+
 func TestMergeCarriesDocGraph(t *testing.T) {
 	m := Manifest{Node: "a", Components: []Component{{
 		ID: "github.com/x/y", Name: "y", DocGraph: &DocGraphDigest{SchemaVersion: 1, DocCount: 7},

@@ -167,6 +167,17 @@ func TestSearch(t *testing.T) {
 	}
 }
 
+func TestSearchFindsOverlayNodes(t *testing.T) {
+	g := fixture()
+	g.Nodes = append(g.Nodes, graph.OverlayNode{Name: "shared-postgres", Summary: "the managed database"})
+	for _, q := range []string{"postgres", "MANAGED"} {
+		hits := Search(g, q)
+		if len(hits) != 1 || hits[0].Kind != "node" || hits[0].Name != "shared-postgres" {
+			t.Errorf("Search(%q) = %+v, want the overlay node", q, hits)
+		}
+	}
+}
+
 func TestDescriptorsCoverAllQueries(t *testing.T) {
 	names := map[string]bool{}
 	for _, d := range Descriptors() {

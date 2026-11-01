@@ -114,7 +114,7 @@ type Relation struct {
 // SearchHit is one search match — what matched and where.
 type SearchHit struct {
 	Name    string `json:"name"`
-	Kind    string `json:"kind"` // "component" or "capability"
+	Kind    string `json:"kind"` // "component", "node" or "capability"
 	Summary string `json:"summary,omitempty"`
 }
 
@@ -157,9 +157,9 @@ func Uses(g graph.Graph, name string) ([]Relation, bool) {
 	return out, true
 }
 
-// Search is a case-insensitive substring match over component names + summaries
-// and capability names. Not a ranked/fuzzy engine (YAGNI). An empty query
-// returns no hits.
+// Search is a case-insensitive substring match over the names + summaries of
+// every entry (components and overlay nodes) and capability names. Not a
+// ranked/fuzzy engine (YAGNI). An empty query returns no hits.
 func Search(g graph.Graph, text string) []SearchHit {
 	q := strings.ToLower(strings.TrimSpace(text))
 	out := []SearchHit{}
@@ -170,6 +170,12 @@ func Search(g graph.Graph, text string) []SearchHit {
 		if strings.Contains(strings.ToLower(c.Name), q) ||
 			strings.Contains(strings.ToLower(c.Sidecar.Summary), q) {
 			out = append(out, SearchHit{Name: c.Name, Kind: "component", Summary: c.Sidecar.Summary})
+		}
+	}
+	for _, n := range g.Nodes {
+		if strings.Contains(strings.ToLower(n.Name), q) ||
+			strings.Contains(strings.ToLower(n.Summary), q) {
+			out = append(out, SearchHit{Name: n.Name, Kind: "node", Summary: n.Summary})
 		}
 	}
 	caps := make([]string, 0, len(g.Capabilities))
