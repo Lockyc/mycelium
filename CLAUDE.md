@@ -144,7 +144,7 @@ pull-mirror) are deployment-specific and live with that private deployment's doc
   runs `gate`, fast-forwards `main`, tags `v<VERSION>`, and publishes the GitHub release.
   Plain Go CLI — no signing/updater.
 - **Never a release without notes.** `just release` builds the body from the commit
-  subjects since the previous tag; `just release notes=<file>` overrides that with prose
+  subjects since the previous tag; `just release <file>` overrides that with prose
   when a release needs explaining (a breaking change, a migration). It refuses to publish
   an empty body. **Footgun:** do not reach for `gh release create --generate-notes` — it
   summarises merged *PRs*, and this repo integrates by direct merge to `dev` with no PRs,

@@ -54,7 +54,7 @@ gate:
 
 # Cut the release for the current VERSION: fast-forward main → tag v<VERSION> → GitHub release.
 # Run on dev with VERSION already bumped and committed; the tree must be clean and gate-green.
-# Notes default to the commit subjects since the previous tag; pass notes=<file> for prose.
+# Notes default to the commit subjects since the previous tag; pass a notes file (`just release <file>`) for prose.
 [group("release")]
 release notes="":
     #!/usr/bin/env bash
@@ -85,7 +85,7 @@ release notes="":
     # to say stops here rather than leaving a public tag with no release. NOT --generate-notes:
     # it summarises merged PRs, and this repo integrates by direct merge to dev, so it yields a
     # bare compare link and says nothing. Commit subjects since the previous tag are the real
-    # changelog here (dev is what main fast-forwards to); a notes=<file> override carries prose
+    # changelog here (dev is what main fast-forwards to); a notes-file argument carries prose
     # when a release needs it.
     body="$(mktemp)"
     trap 'rm -f "$body"' EXIT
@@ -99,16 +99,24 @@ release notes="":
     # Check emptiness BEFORE appending the compare link — otherwise the link (and the blank
     # line before it) is itself content, and a release with nothing to say passes the check.
     if [ ! -s "$body" ]; then
-      echo "✗ refusing to publish ${tag}: no commits since ${prev:-the beginning} and no notes=<file>" >&2
+      echo "✗ refusing to publish ${tag}: no commits since ${prev:-the beginning} and no notes file" >&2
       exit 1
     fi
     git push origin dev
     # main only ever fast-forwards to a release commit. Both ref updates are
     # ff-only, so a diverged main (local or remote) fails here instead of being
-    # rewound and losing its out-of-band commit.
-    if ! git fetch -q origin main:main || ! git fetch -q . dev:main; then
-      echo "✗ main is checked out here, or diverged from dev — release from a dev checkout;" >&2
-      echo "  if diverged: git merge origin/main on dev, then re-run the release." >&2
+    # rewound and losing its out-of-band commit. git won't fetch into a branch a
+    # worktree has checked out, so when one holds main it is fast-forwarded there.
+    main_wt="$(git worktree list --porcelain | awk '/^worktree /{w=substr($0,10)} /^branch refs\/heads\/main$/{print w}')"
+    git fetch -q origin
+    if [ -n "$main_wt" ]; then
+      advanced() { git -C "$main_wt" merge -q --ff-only origin/main && git -C "$main_wt" merge -q --ff-only dev; }
+    else
+      advanced() { git fetch -q origin main:main && git fetch -q . dev:main; }
+    fi
+    if ! advanced; then
+      echo "✗ main diverged from dev${main_wt:+, or its checkout at $main_wt has local changes} —" >&2
+      echo "  git merge origin/main on dev, then re-run the release." >&2
       exit 1
     fi
     git push origin main
