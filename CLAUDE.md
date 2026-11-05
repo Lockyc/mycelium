@@ -33,13 +33,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   summaries/urls to stay skimmable. `graph.json` (`RenderJSON`) is the **full-fidelity graph
   to query** — every field, for `jq`/filter/traverse. The filenames carry the rule: read the
   map, query the graph. Not human-vs-machine — both are agent-facing, split by task.
-  For a *single repo's own* documentation graph there is a third, per-component tier:
-  `graph.json`'s per-component `docGraph` digest gauges it (doc/edge counts, island paths,
-  entry docs), and the digest's **`url`** is a self-navigating link to that repo's **full**
-  doc-graph payload (`GET` it to traverse) — read the digest to gauge, follow `docGraph.url`
-  to walk, no route to reconstruct. The route is single-sourced (`RepoDocGraphRoute` /
-  `RepoDocGraph*` constants): the hub stamps the `url`, writes the payload, and `serve`
-  parses the same prefix/suffix. See the per-repo doc-graph invariant below.
+  A third, per-repo tier (the `docGraph` digest + full payload) is below.
   `schema/graph.md` is the contract for all three; reconcile it with any render change.
 - **`graph.json` flattens each component — no `sidecar` wrapper.** The declared
   `mycelium.toml` fields serialize at the component top level (`.components[].summary`,
@@ -107,25 +101,13 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   same way, and the node's scan carries on. A failed scheduled scan is easy to miss, and
   failing would silently freeze every other repo on the node at its last push.
 - **Per-repo doc-graph is node-captured, best-effort, schemaVersion-1-pinned.**
-  The node shells out to `docgraph graph --json --ref <resolved ref>` per
-  component (read-only, preserving nodes-are-read-only-on-repos — docgraph reads
-  the committed ref from the object store via `git ls-tree`/`git show`, so it runs
-  on **bare** repos too and the digest reflects the exact scanned ref, not a
-  working tree) and attaches a `DocGraphDigest` to the `Component` (rides into
-  `graph.json`) plus the raw full payload to `Manifest.DocGraphs` (out-of-band,
-  keyed by canonical id). Requires **docgraph v3.1.0+** on the node; an
-  absent/older binary (no `--ref`) or bad output degrades to no digest, never a
-  failed scan. **Footgun:** the full payload must stay on `Manifest`, never on
-  `Component` — `Component` is shared by both `Manifest` and `Graph`, so a field
-  on it would either bloat `graph.json` or fail to reach the hub. Unknown
-  `schemaVersion` is recorded, not interpreted — the digest
-  carries only the observed value, and `myco audit` reports it as a
-  `docgraph-version` finding (alongside `doc-rot` for a component with ≥1 island).
-  `entryDocs` is the subset of Mycelium's own `conventionalEntryDocs` (not a
-  docgraph concept) present in the repo. The hub writes payloads to
-  `<outDir>/repos/<id>/docgraph.json` (on-disk layout mirrors the served URL) and
-  `internal/serve` serves `GET /repos/<id>/docgraph.json`. Full field/route detail:
-  `schema/graph.md`.
+  The node runs `docgraph graph --json --ref <scanned ref>` (read-only, works on bare
+  repos) and attaches a `DocGraphDigest` to the `Component` plus the full payload to
+  `Manifest.DocGraphs`; an absent/old docgraph or bad output degrades to no digest,
+  never a failed scan. **Footgun:** the full payload must stay on `Manifest`, never on
+  `Component` — `Component` is shared by both `Manifest` and `Graph`, so a field on it
+  would either bloat `graph.json` or fail to reach the hub. The route is single-sourced
+  in `RepoDocGraphRoute`. Fields, routes, version handling: `schema/graph.md`.
 
 ## Deferred work
 Conscious deferrals live in [`docs/FOLLOWUPS.md`](docs/FOLLOWUPS.md) — check it before
