@@ -80,9 +80,6 @@ func TestScanAttachesDocGraph(t *testing.T) {
 	if c.DocGraph == nil || c.DocGraph.DocCount != 3 {
 		t.Fatalf("digest not attached: %+v", c.DocGraph)
 	}
-	if _, ok := m.DocGraphs[c.ID]; !ok {
-		t.Fatalf("full payload not stashed under id %q; keys=%v", c.ID, m.DocGraphs)
-	}
 }
 
 func TestScanDocGraphErrorIsNonFatal(t *testing.T) {
@@ -99,9 +96,6 @@ func TestScanDocGraphErrorIsNonFatal(t *testing.T) {
 	}
 	if len(m.Components) != 1 || m.Components[0].DocGraph != nil {
 		t.Fatalf("failed docgraph → component with no digest; got %+v", m.Components)
-	}
-	if m.DocGraphs != nil {
-		t.Fatalf("no payloads expected, got %v", m.DocGraphs)
 	}
 }
 
@@ -129,10 +123,7 @@ func TestScanBareRepoGetsDocGraph(t *testing.T) {
 		t.Fatalf("want 1 component from the bare repo, got %d", len(m.Components))
 	}
 	if m.Components[0].DocGraph == nil || m.Components[0].DocGraph.DocCount != 3 {
-		t.Fatalf("bare repo must now get a digest, got %+v", m.Components[0].DocGraph)
-	}
-	if _, ok := m.DocGraphs[m.Components[0].ID]; !ok {
-		t.Fatalf("bare repo full payload not stashed; keys=%v", m.DocGraphs)
+		t.Fatalf("bare repo must get a digest, got %+v", m.Components[0].DocGraph)
 	}
 }
 

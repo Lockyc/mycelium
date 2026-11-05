@@ -63,8 +63,7 @@ or with an older one, the scan leaves the digests out and carries on.
     myco serve --manifests <dir> --overlay overlay.toml \
       --dir ./graph --ingest-token-file /path/to/token --addr :8080
 
-Serves `/MAP.md` and `/graph.json`, `GET /repos/<id>/docgraph.json` (a
-component's full doc-graph payload, when it has one), and accepts
+Serves `/MAP.md`, `/graph.json` and the `/q/*` queries, and accepts
 `POST /manifests` (node-keyed, bearer-authenticated); each push rebuilds the
 served graph. Each component in `graph.json` carries a compact `docGraph`
 digest when the node captured one — see

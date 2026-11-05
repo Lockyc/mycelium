@@ -29,8 +29,6 @@ snippet names which to reach for when.
 > For a specific repo's own **documentation graph** —
 > which docs it has, how they link, whether any are unfindable — each `graph.json`
 > component carries a compact `docGraph` digest; that's enough to gauge a repo's docs
-> without a second fetch. To walk the **full** doc-graph, **follow the digest's `url`**
-> (a link the hub stamps in, e.g. `docGraph.url` = `/repos/github.com/acme/web/docgraph.json`):
-> `curl "<hub URL>$(jq -r '.components[]|select(.name=="<repo>").docGraph.url' graph.json)"`.
+> without a checkout. To walk the **full** doc-graph, run `docgraph graph` in the repo.
 > The hub rebuilds the graph whenever a node pushes a scan (`myco scan --push`); a newly
 > committed sidecar appears after its node's next push.

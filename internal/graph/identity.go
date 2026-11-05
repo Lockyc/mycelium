@@ -1,9 +1,6 @@
 package graph
 
-import (
-	"path"
-	"strings"
-)
+import "strings"
 
 // CanonicalID normalizes a git remote URL to a stable host/owner/repo identity.
 // Handles scp-style ([user@]host:owner/repo.git — the user is optional, as with an
@@ -37,13 +34,4 @@ func CanonicalID(remote string) string {
 		return strings.ToLower(parts[0]) + "/" + strings.ToLower(parts[1])
 	}
 	return strings.ToLower(s)
-}
-
-// SafeRelID reports whether id is a safe, clean relative path — non-empty, equal
-// to its own path.Clean, no leading dot, no ".." segment. Both trust boundaries
-// that turn a component id into a filesystem path (the hub writing
-// repos/<id>/docgraph.json, the serve route reading it) gate on this one predicate
-// so the rule cannot drift between them.
-func SafeRelID(id string) bool {
-	return id != "" && id == path.Clean(id) && !strings.HasPrefix(id, ".") && !strings.Contains(id, "..")
 }

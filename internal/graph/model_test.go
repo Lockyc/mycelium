@@ -127,23 +127,6 @@ func TestComponentDocGraphSerializes(t *testing.T) {
 	}
 }
 
-func TestManifestDocGraphsRoundTrip(t *testing.T) {
-	m := Manifest{Node: "n", DocGraphs: map[string]json.RawMessage{
-		"github.com/x/y": json.RawMessage(`{"schemaVersion":1,"nodes":[]}`),
-	}}
-	b, err := json.Marshal(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var round Manifest
-	if err := json.Unmarshal(b, &round); err != nil {
-		t.Fatal(err)
-	}
-	if string(round.DocGraphs["github.com/x/y"]) != `{"schemaVersion":1,"nodes":[]}` {
-		t.Fatalf("raw payload not preserved: %s", round.DocGraphs["github.com/x/y"])
-	}
-}
-
 func TestLintSidecar(t *testing.T) {
 	if p := LintSidecar(Sidecar{Name: "x", Summary: "s"}); p != nil {
 		t.Errorf("empty optional kind/status should lint clean, got %v", p)

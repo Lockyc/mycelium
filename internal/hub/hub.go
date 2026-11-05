@@ -57,21 +57,6 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 		}
 	}
 	g := graph.Merge(ms, ov)
-	payloads := docGraphPayloads(ms)
-	// Stamp each doc-graph digest with a self-navigating link to its full payload
-	// route, derived from the component id — so a graph.json consumer follows
-	// `docGraph.url` instead of reconstructing /repos/<id>/docgraph.json. Serve-tier
-	// concern, done at the hub (the node doesn't know the route). Only a component
-	// whose payload is written gets a url: a digest recorded for an unknown
-	// schemaVersion carries no payload, and a link to it would 404.
-	for i := range g.Components {
-		// The kept digest must itself be the readable version: with two nodes on different
-		// docgraph versions, it can come from a manifest other than the payload's.
-		if dg := g.Components[i].DocGraph; dg != nil && dg.SchemaVersion == graph.DocGraphSchemaVersion &&
-			payloads[g.Components[i].ID] != nil {
-			g.Components[i].DocGraph.URL = graph.RepoDocGraphRoute(g.Components[i].ID)
-		}
-	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}
@@ -82,53 +67,7 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	if err := atomicfile.WriteFile(filepath.Join(outDir, graph.GraphJSONName), jsonData, 0o644); err != nil {
 		return err
 	}
-	if err := atomicfile.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644); err != nil {
-		return err
-	}
-	return writeDocGraphs(outDir, payloads)
-}
-
-// docGraphPayloads collects the full docgraph payloads Build serves, keyed by
-// component id: the freshest manifest wins (graph.FreshestFirst, matching
-// component dedup in graph.Merge), and an id that isn't a clean relative path is
-// dropped (defense against a crafted manifest; canonical ids never contain "."
-// segments or ".."). It is the one decider of which payloads exist — both the url
-// stamp and the writer read it.
-func docGraphPayloads(ms []graph.Manifest) map[string]json.RawMessage {
-	out := map[string]json.RawMessage{}
-	for _, m := range graph.FreshestFirst(ms) {
-		for id, payload := range m.DocGraphs {
-			if _, seen := out[id]; seen || payload == nil {
-				continue
-			}
-			// graph.SafeRelID is the single predicate shared with serve's read-time
-			// guard on the same id → filesystem-path trust boundary.
-			if !graph.SafeRelID(id) {
-				continue
-			}
-			out[id] = payload
-		}
-	}
-	return out
-}
-
-// writeDocGraphs writes each payload to <outDir>/repos/<id>/docgraph.json — the
-// on-disk layout mirrors the served URL (serve.Handler's /repos/ route). The
-// whole repos tree is rebuilt aside and swapped in, so a removed repo's stale
-// payload never lingers and a reader never sees it half-built.
-func writeDocGraphs(outDir string, payloads map[string]json.RawMessage) error {
-	return atomicfile.ReplaceDir(filepath.Join(outDir, "repos"), func(reposDir string) error {
-		for id, payload := range payloads {
-			dest := filepath.Join(reposDir, filepath.FromSlash(id), "docgraph.json")
-			if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-				return err
-			}
-			if err := os.WriteFile(dest, payload, 0o644); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	return atomicfile.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644)
 }
 
 // Handler builds the mux: the artifact routes (MAP.md, graph.json, and the

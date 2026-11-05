@@ -144,12 +144,12 @@ is **flat** — its `mycelium.toml` fields sit at the top level alongside the de
   "summary":  "…", "kind": "service", "status": "active",   // declared in mycelium.toml
   "tags":     ["…"], "stack": ["…"],                        // declared
   "provides": [ { "name": "…", "summary": "…", "url": "…" } ],  // declared
-  "docGraph": { "url": "/repos/<id>/docgraph.json", "schemaVersion": 1, … }  // derived (node capture)
+  "docGraph": { "schemaVersion": 1, "docCount": 12, … }  // derived (node capture)
 }
 ```
 
 Every field is one segment off the component: `.components[].summary`, `.components[].stack[]`,
-`.components[].provides[]`, `.components[].docGraph.url`. `.capabilities` is a separate
+`.components[].provides[]`, `.components[].docGraph.contentIslands[]`. `.capabilities` is a separate
 `name → [provider names]` index (built from every component's *and* overlay node's provides),
 so it answers "who provides X" without walking components. Overlay nodes render under `.nodes`
 with the same flat shape (name/summary/provides), minus the fields a non-repo has no notion of.
@@ -192,27 +192,17 @@ not declared: nothing in `mycelium.toml` sets it.
 - **Digest fields** (all camelCase): `schemaVersion`, `docCount`,
   `contentEdgeCount`, `metadataEdgeCount`, `contentIslands` (unfindable docs — the
   rot signal), `metadataIslands` (docs with no declared placement), `entryDocs`
-  (which of `CLAUDE.md`/`README.md`/`docs/index.md` are present), and **`url`** — a
-  self-navigating link to this repo's full doc-graph payload (see Full payload),
-  stamped by the hub so a consumer *follows the link* rather than reconstructing the
-  route from the id.
+  (which of `CLAUDE.md`/`README.md`/`docs/index.md` are present).
 - **schemaVersion is pinned to 1.** A payload with any other version is
   recorded-but-not-interpreted: the digest carries only the observed
-  `schemaVersion` (no payload, so no `url`), and `myco audit` reports a
-  `docgraph-version` finding.
+  `schemaVersion`, and `myco audit` reports a `docgraph-version` finding.
 - **Omitted when there's nothing to say:** a repo with no markdown, or a node
   without docgraph on PATH, carries no `docGraph`. Bare repos are captured like
   any other (see Ref consistency below).
 - **`MAP.md`** surfaces this only as a rot flag — a component with ≥1 island gets a
   one-line `docs: N islands ⚠` marker; a clean doc-graph adds nothing.
-- **Full payload:** the node also stashes each repo's complete `docgraph graph
-  --json` out-of-band; the hub serves it at the digest's **`url`** —
-  **`GET /repos/<id>/docgraph.json`** (`<id>` is the canonical id, e.g.
-  `/repos/github.com/lockyc/mycelium/docgraph.json`). Follow `docGraph.url`; don't
-  rebuild it. It is never inlined into `graph.json` — the digest answers "healthy /
-  how big", the payload is for traversal. The route has one source
-  (`graph.RepoDocGraphRoute` / the `RepoDocGraph*` constants): the hub stamps the
-  `url`, writes the payload, and the serve handler parses the same prefix/suffix.
+- **Traversal is not served:** the digest answers "healthy / how big"; to walk a
+  repo's doc-graph, run `docgraph graph` in it.
 
 **Ref consistency:** the node reads the doc-graph with `docgraph graph --ref
 <ref>`, at the **same committed ref** it scanned the sidecar from. So a

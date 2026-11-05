@@ -359,9 +359,6 @@ func TestRenderJSONIncludesDocGraphDigest(t *testing.T) {
 	if !strings.Contains(s, `"docGraph"`) || !strings.Contains(s, `"docs/stray.md"`) {
 		t.Fatalf("graph.json must carry the digest: %s", s)
 	}
-	if strings.Contains(s, `"docGraphs"`) {
-		t.Fatalf("graph.json must NOT carry out-of-band full payloads: %s", s)
-	}
 }
 
 func TestRenderMarkdownFlagsDocIslands(t *testing.T) {

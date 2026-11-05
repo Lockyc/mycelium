@@ -17,8 +17,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   also captures each component's docgraph doc-graph, at the scanned ref
   (`docgraph.go`).
 - `internal/audit` — consistency checks over `graph.json` (the list: `schema/graph.md`).
-- `internal/serve` — HTTP handler for the artifact dir; also serves per-repo full
-  doc-graph payloads and the `/q/*` query routes.
+- `internal/serve` — HTTP handler for the artifact dir and the `/q/*` query routes.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
 - `internal/hub` — hub role: Build (merge manifests → graph) and Serve (HTTP + ingest endpoint).
 - `internal/atomicfile` — temp+rename writes for every file the hub serves or reads back.
@@ -33,7 +32,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   summaries/urls to stay skimmable. `graph.json` (`RenderJSON`) is the **full-fidelity graph
   to query** — every field, for `jq`/filter/traverse. The filenames carry the rule: read the
   map, query the graph. Not human-vs-machine — both are agent-facing, split by task.
-  A third, per-repo tier (the `docGraph` digest + full payload) is below.
+  A third, per-repo tier (the `docGraph` digest) is below.
   `schema/graph.md` is the contract for all three; reconcile it with any render change.
 - **`graph.json` flattens each component — no `sidecar` wrapper.** The declared
   `mycelium.toml` fields serialize at the component top level (`.components[].summary`,
@@ -102,12 +101,10 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   failing would silently freeze every other repo on the node at its last push.
 - **Per-repo doc-graph is node-captured, best-effort, schemaVersion-1-pinned.**
   The node runs `docgraph graph --json --ref <scanned ref>` (read-only, works on bare
-  repos) and attaches a `DocGraphDigest` to the `Component` plus the full payload to
-  `Manifest.DocGraphs`; an absent/old docgraph or bad output degrades to no digest,
-  never a failed scan. **Footgun:** the full payload must stay on `Manifest`, never on
-  `Component` — `Component` is shared by both `Manifest` and `Graph`, so a field on it
-  would either bloat `graph.json` or fail to reach the hub. The route is single-sourced
-  in `RepoDocGraphRoute`. Fields, routes, version handling: `schema/graph.md`.
+  repos) and attaches only a `DocGraphDigest` to the `Component`; an absent/old
+  docgraph or bad output degrades to no digest, never a failed scan. The full doc-graph
+  is not carried or served — traversal is `docgraph` in the repo. Fields and version
+  handling: `schema/graph.md`.
 
 ## Deferred work
 Conscious deferrals live in [`docs/FOLLOWUPS.md`](docs/FOLLOWUPS.md) — check it before

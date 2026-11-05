@@ -1,4 +1,4 @@
-// Package atomicfile replaces files and directories so a concurrent reader sees
+// Package atomicfile replaces files so a concurrent reader sees
 // either the old content or the new, never a partial write or a gap.
 package atomicfile
 
@@ -33,45 +33,6 @@ func WriteFile(path string, data []byte, perm os.FileMode) error {
 	if err := os.Rename(tmpName, path); err != nil {
 		os.Remove(tmpName)
 		return err
-	}
-	return nil
-}
-
-// ReplaceDir fills a fresh sibling of dir via fill, then swaps it into place:
-// the old dir is renamed aside, the new one renamed in, and the old one removed.
-// A reader never sees a half-filled dir; the only gap is between the two
-// renames. If fill fails, dir is left untouched.
-func ReplaceDir(dir string, fill func(tmp string) error) error {
-	parent, base := filepath.Dir(dir), filepath.Base(dir)
-	tmp, err := os.MkdirTemp(parent, "."+base+".*.tmp")
-	if err != nil {
-		return err
-	}
-	if err := fill(tmp); err != nil {
-		os.RemoveAll(tmp)
-		return err
-	}
-	if err := os.Chmod(tmp, 0o755); err != nil {
-		os.RemoveAll(tmp)
-		return err
-	}
-	trash := ""
-	if _, err := os.Stat(dir); err == nil {
-		trash = tmp + ".old"
-		if err := os.Rename(dir, trash); err != nil {
-			os.RemoveAll(tmp)
-			return err
-		}
-	}
-	if err := os.Rename(tmp, dir); err != nil {
-		if trash != "" {
-			os.Rename(trash, dir)
-		}
-		os.RemoveAll(tmp)
-		return err
-	}
-	if trash != "" {
-		return os.RemoveAll(trash)
 	}
 	return nil
 }

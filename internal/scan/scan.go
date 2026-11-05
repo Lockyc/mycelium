@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -82,14 +81,8 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 		// exact scanned ref. Any failure is non-fatal — the component simply carries
 		// no doc-graph.
 		if raw, err := run(r.Dir, ref); err == nil {
-			if digest, full, derr := buildDigest(raw); derr == nil && digest != nil {
+			if digest, derr := buildDigest(raw); derr == nil && digest != nil {
 				comp.DocGraph = digest
-				if full != nil {
-					if m.DocGraphs == nil {
-						m.DocGraphs = map[string]json.RawMessage{}
-					}
-					m.DocGraphs[comp.ID] = full
-				}
 			}
 		}
 		m.Components = append(m.Components, comp)

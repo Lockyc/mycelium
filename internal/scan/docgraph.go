@@ -73,21 +73,20 @@ type docgraphPayload struct {
 	} `json:"islands"`
 }
 
-// buildDigest parses raw docgraph output into a digest and (for a v1 repo with
-// docs) the raw payload to serve out-of-band. Returns:
-//   - (nil, nil, nil)                  when the repo has no docs (nodes: [])
-//   - (&{SchemaVersion:N}, nil, nil)   when schemaVersion != 1 (recorded, not interpreted)
-//   - (&digest, raw, nil)              otherwise
-func buildDigest(raw []byte) (*graph.DocGraphDigest, json.RawMessage, error) {
+// buildDigest parses raw docgraph output into a digest. Returns:
+//   - (nil, nil)                  when the repo has no docs (nodes: [])
+//   - (&{SchemaVersion:N}, nil)   when schemaVersion != 1 (recorded, not interpreted)
+//   - (&digest, nil)              otherwise
+func buildDigest(raw []byte) (*graph.DocGraphDigest, error) {
 	var p docgraphPayload
 	if err := json.Unmarshal(raw, &p); err != nil {
-		return nil, nil, fmt.Errorf("parse docgraph payload: %w", err)
+		return nil, fmt.Errorf("parse docgraph payload: %w", err)
 	}
 	if p.SchemaVersion != docgraphSchemaVersion {
-		return &graph.DocGraphDigest{SchemaVersion: p.SchemaVersion}, nil, nil
+		return &graph.DocGraphDigest{SchemaVersion: p.SchemaVersion}, nil
 	}
 	if len(p.Nodes) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 	present := map[string]bool{}
 	for _, n := range p.Nodes {
@@ -108,5 +107,5 @@ func buildDigest(raw []byte) (*graph.DocGraphDigest, json.RawMessage, error) {
 		MetadataIslands:   p.Islands.Metadata,
 		EntryDocs:         entries,
 	}
-	return d, json.RawMessage(raw), nil
+	return d, nil
 }
