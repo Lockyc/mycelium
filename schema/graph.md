@@ -14,8 +14,8 @@ The sidecar documents a single repository or service (one file per repo). It is 
 
 - **`name`** (required, string): Short identifier for the component (e.g., `"orders-api"`, `"billing-web"`). Must be unique across the fleet (components and overlay nodes alike): edges, capabilities and queries reference entries by name, and `myco audit` reports a `duplicate-name` finding when two share one.
 - **`summary`** (required, string): One-line human-readable description of purpose or value.
-- **`kind`** (optional, string): Component category. Valid values: `service`, `app`, `library`, `docs`, `infra`, `tool`.
-- **`status`** (optional, enum): Lifecycle stage. Valid values: `active`, `wip`, `experimental`, `archived`. Indicates maintenance level and stability.
+- **`kind`** (optional, string): Component category. Valid values: `service`, `app`, `site` (a website), `library`, `docs`, `infra`, `tool`.
+- **`status`** (optional, enum): Lifecycle stage. Valid values: `active`, `wip`, `experimental`, `dormant` (kept, but not being worked on), `archived`. Indicates maintenance level and stability.
 - **`tags`** (optional, array of strings): Labels for what the component is *about* — domain, topic, lifecycle, target platform (e.g., `["orders", "billing"]`, `["prelaunch", "macos"]`). Used to group related components.
 - **`stack`** (optional, array of strings): What the component is *built with* — languages, frameworks, runtimes, datastores, defining libraries (e.g., `["go", "postgres"]`, `["typescript", "react"]`).
 

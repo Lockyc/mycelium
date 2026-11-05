@@ -223,10 +223,11 @@ func ParseSidecar(data []byte) (Sidecar, error) {
 
 // SidecarKinds and SidecarStatuses are the valid values of the optional `kind`
 // and `status` fields (schema/graph.md). Name and summary are enforced at parse;
-// these are linted only by `myco validate`, so one bad value never aborts a scan.
+// these are linted by `myco validate` and `myco audit`, never at scan, so one bad
+// value never aborts a scan.
 var (
-	SidecarKinds    = []string{"service", "app", "library", "docs", "infra", "tool"}
-	SidecarStatuses = []string{"active", "wip", "experimental", "archived"}
+	SidecarKinds    = []string{"service", "app", "site", "library", "docs", "infra", "tool"}
+	SidecarStatuses = []string{"active", "wip", "experimental", "dormant", "archived"}
 )
 
 // LintSidecar returns one problem per sidecar field holding a value outside its

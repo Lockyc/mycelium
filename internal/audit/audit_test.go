@@ -30,7 +30,7 @@ func TestAuditFindsAllKinds(t *testing.T) {
 
 func TestAuditReportsOutOfSchemaValues(t *testing.T) {
 	g := graph.Graph{Components: []graph.Component{
-		{ID: "github.com/x/site", Name: "site", Sidecar: graph.Sidecar{Kind: "site", Status: "dormant"}},
+		{ID: "github.com/x/site", Name: "site", Sidecar: graph.Sidecar{Kind: "website", Status: "alpha"}},
 		{ID: "github.com/x/ok", Name: "ok", Sidecar: graph.Sidecar{Kind: "app", Status: "active"}},
 		{ID: "github.com/x/bare", Name: "bare"},
 	}}
@@ -40,8 +40,8 @@ func TestAuditReportsOutOfSchemaValues(t *testing.T) {
 			got = append(got, f.Detail)
 		}
 	}
-	if len(got) != 2 || !strings.Contains(got[0], "github.com/x/site") || !strings.Contains(got[0], `kind "site"`) ||
-		!strings.Contains(got[1], `status "dormant"`) {
+	if len(got) != 2 || !strings.Contains(got[0], "github.com/x/site") || !strings.Contains(got[0], `kind "website"`) ||
+		!strings.Contains(got[1], `status "alpha"`) {
 		t.Fatalf("want kind + status findings for github.com/x/site only, got %q", got)
 	}
 }
