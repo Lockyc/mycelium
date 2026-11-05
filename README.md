@@ -82,6 +82,8 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
 - **orphans** — scanned repos with no committed `mycelium.toml`;
 - **invalid sidecars** — a committed `mycelium.toml` that fails to parse (the scan
   records it and carries on);
+- **invalid values** — a `kind` or `status` outside the schema's set (`myco validate`
+  flags the same, one sidecar at a time);
 - dangling overlay edges, and edges of an unknown `type`;
 - **duplicate names** — two entries claiming one name;
 - components that vanished since the last run;

@@ -221,7 +221,7 @@ working-tree state — on every repo, bare or not. Requires **docgraph v3.1.0+**
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 
-Consistency checks (orphans, invalid sidecars, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version, stale-manifest)
+Consistency checks (orphans, invalid sidecars, out-of-set `kind`/`status` values, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version, stale-manifest)
 are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the

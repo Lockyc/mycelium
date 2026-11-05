@@ -28,6 +28,24 @@ func TestAuditFindsAllKinds(t *testing.T) {
 	}
 }
 
+func TestAuditReportsOutOfSchemaValues(t *testing.T) {
+	g := graph.Graph{Components: []graph.Component{
+		{ID: "github.com/x/site", Name: "site", Sidecar: graph.Sidecar{Kind: "site", Status: "dormant"}},
+		{ID: "github.com/x/ok", Name: "ok", Sidecar: graph.Sidecar{Kind: "app", Status: "active"}},
+		{ID: "github.com/x/bare", Name: "bare"},
+	}}
+	var got []string
+	for _, f := range Audit(g, nil) {
+		if f.Kind == "invalid-value" {
+			got = append(got, f.Detail)
+		}
+	}
+	if len(got) != 2 || !strings.Contains(got[0], "github.com/x/site") || !strings.Contains(got[0], `kind "site"`) ||
+		!strings.Contains(got[1], `status "dormant"`) {
+		t.Fatalf("want kind + status findings for github.com/x/site only, got %q", got)
+	}
+}
+
 func TestAuditReportsDocRot(t *testing.T) {
 	g := graph.Graph{Components: []graph.Component{
 		{ID: "github.com/x/rotty", Name: "rotty", DocGraph: &graph.DocGraphDigest{

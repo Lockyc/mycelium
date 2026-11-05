@@ -49,6 +49,13 @@ func Audit(g graph.Graph, previousIDs []string) []Finding {
 				Detail: fmt.Sprintf("%s %s %s — unknown edge type, so it is left out of Used by", e.From, e.Type, e.To)})
 		}
 	}
+	// Scan is lenient on kind/status so one bad value never drops a repo; the
+	// audit is where the fleet-wide view of those values lives.
+	for _, c := range g.Components {
+		for _, p := range graph.LintSidecar(c.Sidecar) {
+			out = append(out, Finding{Kind: "invalid-value", Detail: fmt.Sprintf("%s: %s", c.ID, p)})
+		}
+	}
 	for _, c := range g.Components {
 		if c.DocGraph == nil {
 			continue
