@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -160,5 +161,29 @@ func TestScanPushSurvivesBrokenSidecarAndAuditReportsIt(t *testing.T) {
 	})
 	if !strings.Contains(out, "invalid-sidecar: github.com/acme/broken") {
 		t.Fatalf("audit output lacks the invalid-sidecar finding:\n%s", out)
+	}
+}
+
+// TestAuditReadsHub: `myco audit --url` audits the hub's graph.json without a
+// local copy, and leaves no previous.json behind in the cwd.
+func TestAuditReadsHub(t *testing.T) {
+	dir := writeGraph(t)
+	srv := httptest.NewServer(http.FileServer(http.Dir(dir)))
+	defer srv.Close()
+	cwd := t.TempDir()
+	prevWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(cwd); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(prevWD)
+	out := captureStdout(t, func() error { return runAudit([]string{"--url", srv.URL}) })
+	if !strings.Contains(out, "audit: clean") {
+		t.Fatalf("want a clean audit of the hub graph, got:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(cwd, "previous.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a hub-read audit must not write previous.json (stat err: %v)", err)
 	}
 }

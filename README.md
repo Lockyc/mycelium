@@ -77,7 +77,9 @@ boundary; the hub then logs a loud warning that ingest is unauthenticated.
     myco build --manifests <dir> --overlay overlay.toml --dir ./graph
     myco audit --dir ./graph
 
-`audit` reports graph rot:
+`audit` reads a hub instead with `--url <hub>` (default `$MYCELIUM_HUB`, as for
+`query`); the vanished-since-last-run check needs a local dir and is skipped then.
+It reports graph rot:
 
 - **orphans** — scanned repos with no committed `mycelium.toml`;
 - **invalid sidecars** — a committed `mycelium.toml` that fails to parse (the scan

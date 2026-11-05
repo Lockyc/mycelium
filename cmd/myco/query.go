@@ -49,13 +49,8 @@ func runQuery(args []string) error {
 		rest = rest[1:]
 	}
 
-	// $MYCELIUM_HUB makes --url ambient, so `myco query <name>` needs no flag. An
-	// explicit --dir (without --url) still selects a local artifact over the hub.
-	effURL := *url
-	if !flagPassed(fs, "url") && flagPassed(fs, "dir") {
-		effURL = ""
-	}
-	g, err := loadQueryGraph(*dir, effURL)
+	effURL := graphURL(fs, *url)
+	g, err := loadGraph(*dir, effURL)
 	if err != nil {
 		// The common miss: no source at all — no --url, no $MYCELIUM_HUB, and no
 		// graph.json in the default cwd. Name the fix rather than leaking a bare
@@ -177,7 +172,18 @@ func flagPassed(fs *flag.FlagSet, name string) bool {
 	return set
 }
 
-func loadQueryGraph(dir, url string) (graph.Graph, error) {
+// graphURL resolves which hub (if any) a graph-reading command reads: --url,
+// defaulting to $MYCELIUM_HUB so no flag is needed — except that an explicit
+// --dir without --url still selects a local artifact over the ambient hub.
+func graphURL(fs *flag.FlagSet, url string) string {
+	if !flagPassed(fs, "url") && flagPassed(fs, "dir") {
+		return ""
+	}
+	return url
+}
+
+// loadGraph reads graph.json from the hub at url, or from dir when url is empty.
+func loadGraph(dir, url string) (graph.Graph, error) {
 	var data []byte
 	var err error
 	if url != "" {

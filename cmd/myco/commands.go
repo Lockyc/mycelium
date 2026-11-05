@@ -125,32 +125,35 @@ func runValidate(args []string) error {
 func runAudit(args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ContinueOnError)
 	dir := fs.String("dir", ".", "artifact dir (with graph.json)")
+	url := fs.String("url", os.Getenv("MYCELIUM_HUB"), "hub URL to fetch graph.json from (default $MYCELIUM_HUB); overrides --dir")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	data, err := os.ReadFile(filepath.Join(*dir, graph.GraphJSONName))
+	effURL := graphURL(fs, *url)
+	g, err := loadGraph(*dir, effURL)
 	if err != nil {
 		return err
 	}
-	var g graph.Graph
-	if err := json.Unmarshal(data, &g); err != nil {
-		return err
-	}
+	// The staleness baseline (previous.json) lives beside a local graph.json; a
+	// hub-read audit has no dir of its own to keep one in, so it skips that check.
 	var prev []string
-	if pd, err := os.ReadFile(filepath.Join(*dir, "previous.json")); err == nil {
-		if err := json.Unmarshal(pd, &prev); err != nil {
-			fmt.Fprintln(os.Stderr, "warning: ignoring unreadable previous.json:", err)
+	if effURL == "" {
+		if pd, err := os.ReadFile(filepath.Join(*dir, "previous.json")); err == nil {
+			if err := json.Unmarshal(pd, &prev); err != nil {
+				fmt.Fprintln(os.Stderr, "warning: ignoring unreadable previous.json:", err)
+			}
 		}
 	}
 	findings := audit.Audit(g, prev)
-	// persist current ids for next run's staleness check
-	var ids []string
-	for _, c := range g.Components {
-		ids = append(ids, c.ID)
-	}
-	if idsData, err := json.Marshal(ids); err == nil {
-		if err := os.WriteFile(filepath.Join(*dir, "previous.json"), idsData, 0o644); err != nil {
-			fmt.Fprintln(os.Stderr, "warning: could not persist previous.json (staleness check disabled next run):", err)
+	if effURL == "" {
+		var ids []string
+		for _, c := range g.Components {
+			ids = append(ids, c.ID)
+		}
+		if idsData, err := json.Marshal(ids); err == nil {
+			if err := os.WriteFile(filepath.Join(*dir, "previous.json"), idsData, 0o644); err != nil {
+				fmt.Fprintln(os.Stderr, "warning: could not persist previous.json (staleness check disabled next run):", err)
+			}
 		}
 	}
 	for _, f := range findings {
