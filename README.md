@@ -2,152 +2,129 @@
 
 [![Release](https://img.shields.io/github/v/release/lockyc/mycelium?sort=semver&label=release)](https://github.com/lockyc/mycelium/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555)
-![Go](https://img.shields.io/github/go-mod/go-version/Lockyc/mycelium?logo=go&logoColor=white)
-[![License](https://img.shields.io/github/license/Lockyc/mycelium)](LICENSE)
+![Go](https://img.shields.io/github/go-mod/go-version/lockyc/mycelium?logo=go&logoColor=white)
+[![License](https://img.shields.io/github/license/lockyc/mycelium)](LICENSE)
 
-`myco` reads per-repo `mycelium.toml` metadata across a set of repo roots, merges
-it with a private relationship overlay into one agent-readable graph
-(`MAP.md` + `graph.json`), audits that graph for rot, and serves it over
-HTTP. It gives a coding agent a map of an ecosystem: which repos and services
-exist and when each applies.
+A map of your repos and services that a coding agent reads before it starts work. Each repo
+commits a small `mycelium.toml` saying what it is and what it provides. `myco` gathers them
+across machines into one graph — a Markdown summary to read and JSON to query — and audits that
+graph for broken links between repos and stale entries.
 
-Both outputs are **for agents, not humans**, and serve two use cases: **read
-`MAP.md` into context to orient** (a lossy, skimmable Markdown digest), and
-**query `graph.json` to extract** (the full-fidelity graph — every field — for
-`jq`/filter/traverse). See [`schema/graph.md`](schema/graph.md#two-outputs-two-agent-use-cases).
+A sidecar:
 
-**Status:** working, pre-1.0 — the public surface (CLI flags, graph schema) can
-still shift. The architecture is distributed: **nodes** scan repo roots and push
-manifests to a central **hub**, which ingests and rebuilds the graph, then serves
-it over HTTP. The graph is only as rich as the `mycelium.toml` sidecars committed
-across the scanned repos.
+```toml
+name    = "billing-web"
+summary = "Customer-facing billing dashboard"
+kind    = "app"
+status  = "active"
+tags    = ["billing", "frontend"]
+stack   = ["typescript", "react"]
 
-## Build
+[[provides]]
+name    = "billing-ui"
+summary = "Web UI for invoices and payment methods"
+```
 
-    go install ./cmd/myco   # installs myco to the Go bin dir, on PATH
-    myco version            # or --version, -v
+What an agent gets back:
 
-Or build in place — the binary lands in the repo root, so invoke it as `./myco`:
+```console
+$ myco query component orders-api
+orders-api — Order processing and lifecycle service
+  service active
+  stack: go, postgres
+  provides order-events: Publishes order lifecycle events on the message bus
 
-    go build -o myco ./cmd/myco
+$ myco query used-by shared-lib
+  billing-web (depends-on)
+  orders-api (depends-on)
+```
 
-## Use
+## Install
 
-### Scan and collect metadata
+```bash
+go install github.com/lockyc/mycelium/cmd/myco@latest
+myco version
+```
 
-    myco scan --roots <dir>[,<dir>] --node <id> --out manifest.json
+Needs Go and git. To see a populated graph built from the bundled [`examples/`](examples/README.md)
+without any real repos, run `./scripts/demo.sh` from a clone: it builds `myco`, turns the
+examples into throwaway git repos in a temp dir, and runs scan → build → audit.
 
-Walks the repo roots, reads each committed `mycelium.toml` sidecar, gathers git
-metadata (origin remote, commit at the scanned ref), and writes a manifest (JSON) to `--out`, or stdout
-without it. `--node` names the node the manifest comes from; `--push` requires it.
+## Usage
 
-### Node (scan where the repos live, push to a hub)
+**On one machine:**
 
-    myco scan --roots <repo-store> --node <id> \
-      --exclude-owners vendor --fallback-host <host> \
-      --ref dev --push https://<hub> --token-file /path/to/token
+```bash
+myco scan --roots ~/code --node laptop --out manifests/laptop.json
+myco build --manifests manifests --overlay overlay.toml --dir ./graph
+myco audit --dir ./graph
+myco query capabilities --dir ./graph
+```
 
-Reads each repo's committed `mycelium.toml` (bare repos and working trees alike),
-skips the owners listed in `--exclude-owners`, and POSTs the manifest to the hub.
-`--fallback-host` is the host recorded for repos with no origin remote. `--ref <branch>`
-reads the sidecar from that branch (e.g. `dev`) instead of HEAD, falling back to HEAD
-per-repo when the branch is absent; omit it to read each repo's HEAD (a bare repo's default branch, or a working tree's
-checked-out branch).
+- **`scan`** walks the repo roots, reads each repo's *committed* `mycelium.toml` (bare repos and
+  working trees alike) plus its origin remote and commit, and writes a manifest. `--ref <branch>`
+  reads the sidecar from that branch instead of HEAD. With
+  [docgraph](https://github.com/lockyc/docgraph) v3.1.0+ on PATH, each repo's doc-graph digest
+  comes along too.
+- **`build`** merges the manifests with the **overlay** — a private `overlay.toml` holding what
+  no single repo can say about itself: relationships between repos, shared services, and the
+  repos deliberately left without a sidecar — into `MAP.md` and `graph.json`.
+- **`audit`** reports graph rot: repos with no sidecar, sidecars that don't parse or use an
+  unknown `kind` or `status`, overlay edges pointing at nothing, duplicate names, components that
+  vanished since the last run, docs nothing links to, and a node that has stopped scanning
+  (each finding: [`schema/graph.md`](schema/graph.md)).
+- **`query`** answers named questions — `capabilities`, `capability <name>`, `component <name>`,
+  `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
+  `search <text>`; bare `myco query` lists them. Text by default, `--json` to pipe.
+- **`validate <mycelium.toml>`** lints one sidecar before you commit it, including any
+  misspelled key the scan would silently drop.
 
-To include each repo's doc-graph digest (below), the node needs
-**[`docgraph`](https://github.com/lockyc/docgraph) v3.1.0+ on its PATH**; without it,
-or with an older one, the scan leaves the digests out and carries on.
+**Across machines:** each machine runs a **node** that scans and pushes to a central **hub**,
+which rebuilds and serves the graph over HTTP.
 
-### Hub (ingest manifests, rebuild, serve)
+```bash
+# node
+myco scan --roots <repo-store> --node <id> --ref dev \
+  --push https://<hub> --token-file /path/to/token
+# hub
+myco serve --manifests <dir> --overlay overlay.toml --dir ./graph \
+  --ingest-token-file /path/to/token --addr :8080
+```
 
-    myco serve --manifests <dir> --overlay overlay.toml \
-      --dir ./graph --ingest-token-file /path/to/token --addr :8080
+The hub serves `/MAP.md`, `/graph.json` and the same queries at `GET /q/*`, and accepts
+bearer-authenticated `POST /manifests`; each push rebuilds the graph. Set `MYCELIUM_HUB` and
+`query` and `audit` read the hub with no flag. Omit `--ingest-token-file` only behind a trusted
+network boundary.
 
-Serves `/MAP.md`, `/graph.json` and the `/q/*` queries, and accepts
-`POST /manifests` (node-keyed, bearer-authenticated); each push rebuilds the
-served graph. Each component in `graph.json` carries a compact `docGraph`
-digest when the node captured one — see
-[`schema/graph.md`](schema/graph.md#per-repo-doc-graph-docgraph).
-`--ingest-token-file` is optional — omit it only behind a trusted network
-boundary; the hub then logs a loud warning that ingest is unauthenticated.
+## Two outputs, both for agents
 
-### Build and audit locally (single-node)
+**Read `MAP.md` into context to orient** — a skimmable Markdown digest — and **query
+`graph.json` to extract** — the full graph, every field, for `jq`. The schema for sidecars, the
+overlay and the graph: [`schema/graph.md`](schema/graph.md). A snippet to drop into an agent's
+`CLAUDE.md` or `AGENTS.md` so it consults the graph before cross-cutting work:
+[`schema/consult-snippet.md`](schema/consult-snippet.md).
 
-    myco build --manifests <dir> --overlay overlay.toml --dir ./graph
-    myco audit --dir ./graph
+## Limits
 
-`audit` reads a hub instead with `--url <hub>` (default `$MYCELIUM_HUB`, as for
-`query`); the vanished-since-last-run check needs a local dir and is skipped then.
-It reports graph rot:
+The graph is only as rich as the sidecars committed across the scanned repos, and a sidecar is
+read from git, so an uncommitted edit isn't seen.
 
-- **orphans** — scanned repos with no committed `mycelium.toml`;
-- **invalid sidecars** — a committed `mycelium.toml` that fails to parse (the scan
-  records it and carries on);
-- **invalid values** — a `kind` or `status` outside the schema's set (`myco validate`
-  flags the same, one sidecar at a time);
-- dangling overlay edges, and edges of an unknown `type`;
-- **duplicate names** — two entries claiming one name;
-- components that vanished since the last run;
-- **doc-rot** — a component with docs nothing links to, or docs with no declared place
-  in its doc graph;
-- **docgraph-version** — a component whose docgraph `schemaVersion` is not 1, the
-  version Mycelium reads (including none at all);
-- **stale-manifest** — a node whose last manifest trails the freshest by more than
-  three days: it has stopped scanning, and the freshest manifest already outranks
-  it wherever both report a repo.
+## Status
 
-Repos that intentionally have no sidecar are suppressed via an
-`ignore` list of canonical ids in the private `overlay.toml` (see
-[`schema/graph.md`](schema/graph.md)).
-
-### Validate a sidecar
-
-    myco validate <mycelium.toml>
-
-Lints a single `mycelium.toml` against the schema — run it before committing a new
-sidecar. Prints the parsed name and summary on success, or the schema error —
-including any misspelled key the scan would silently drop.
-
-### Query the graph
-
-`myco query` is the first-class way to explore and discover — it answers named
-questions without your needing to know `graph.json`'s structure:
-
-    myco query <name> [args] [--url <hub> | --dir <dir>] [--json]
-
-Queries: `capabilities`, `capability <name>`, `component <name>`,
-`components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`, `search <text>`.
-Bare `myco query` prints the index. It reads a local `graph.json` (`--dir`, default
-`.`) or a hub (`--url`, default `$MYCELIUM_HUB` — set that once and no flag is needed).
-Flags may go before or after the positional. Text by default, `--json` to pipe.
-
-The hub also serves the same queries over HTTP at `GET /q/*` (`GET /q` lists them).
-For `jq` over `graph.json`, see [`schema/graph.md`](schema/graph.md#querying).
-
-## Demo
-
-See a populated graph built from the bundled examples — no real repos needed:
-
-    ./scripts/demo.sh
-
-It materialises the bundled [`examples/`](examples/README.md) into throwaway git
-repos in a temp dir and runs the full scan → build → audit pipeline.
-
-## Reference
-
-- [`schema/graph.md`](schema/graph.md) — the `mycelium.toml` sidecar and
-  `overlay.toml` schema (fields, node/edge shapes, public-safe vs private split).
-- [`schema/consult-snippet.md`](schema/consult-snippet.md) — the standing-instruction
-  snippet to drop into a consuming agent's `CLAUDE.md`/`AGENTS.md` so it consults the
-  served graph proactively.
+Working, pre-1.0: the CLI flags and graph schema can still shift. What's next:
+[docs/FOLLOWUPS.md](docs/FOLLOWUPS.md).
 
 ## Development
 
-    just build   # go build -o myco ./cmd/myco
-    just install # go install ./cmd/myco (myco onto PATH)
-    just test    # go test ./...
-    just gate    # gofmt check + vet + tests (pre-merge gate)
-    just release # cut a release from dev
+```bash
+git clone https://github.com/lockyc/mycelium && cd mycelium
+just build   # go build -o myco ./cmd/myco
+just test    # go test ./...
+just gate    # gofmt check + vet + tests
+```
 
-The branch model (`dev` trunk, `main` release branch) and release flow live in
-[`CLAUDE.md`](CLAUDE.md).
+Branch model and release process: [CLAUDE.md](CLAUDE.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
