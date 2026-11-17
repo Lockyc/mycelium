@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -24,11 +25,17 @@ func DefaultAPIBase(host string) string {
 	return "https://" + host + "/api/v1/repos"
 }
 
-// Visibility asks the forge, unauthenticated, whether the repo behind a
+// githubAPIHost is the only host that receives GITHUB_TOKEN.
+const githubAPIHost = "api.github.com"
+
+// Visibility asks the forge whether the repo behind a
 // component id (host/owner/repo) is "public" or "private". Forges hide private
 // repos from anonymous callers, so a 404 means private. Anything else that is
 // not a clear answer (network failure, 5xx, rate limit, a redirect to a login
-// page, an unreadable body) returns "" rather than guessing.
+// page, an unreadable body) returns "" rather than guessing. Requests are
+// anonymous, except that GITHUB_TOKEN, when set, is sent as a bearer token to
+// api.github.com alone (lifting GitHub's anonymous rate limit); a 404 still
+// reads as private, since the token may lack access to the repo.
 func Visibility(c *http.Client, apiBase func(host string) string, id string) string {
 	parts := strings.Split(id, "/")
 	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
@@ -37,7 +44,15 @@ func Visibility(c *http.Client, apiBase func(host string) string, id string) str
 	// A redirect is a login wall or a moved repo, never an answer about this one.
 	noRedirect := *c
 	noRedirect.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	resp, err := noRedirect.Get(apiBase(parts[0]) + "/" + parts[1] + "/" + parts[2])
+	target := apiBase(parts[0]) + "/" + parts[1] + "/" + parts[2]
+	req, err := http.NewRequest(http.MethodGet, target, nil)
+	if err != nil {
+		return ""
+	}
+	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" && req.URL.Host == githubAPIHost {
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
+	resp, err := noRedirect.Do(req)
 	if err != nil {
 		return ""
 	}

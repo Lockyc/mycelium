@@ -211,13 +211,16 @@ skipped. Nothing in `mycelium.toml` sets them (`DetectFacts`, `DetectPins`).
   overlay edge is not duplicated), so it counts toward `Used by`. A pin to a repo outside the
   graph adds nothing.
 
-**`myco scan --visibility`** asks each component's forge, unauthenticated, whether the repo is
+**`myco scan --visibility`** asks each component's forge whether the repo is
 public: GitHub's API for `github.com`, the Forgejo/Gitea `/api/v1` API for any other host. A
 `200` reads the repo's `private` field. A `404` reads as private, because forges hide
 private repos from anonymous callers — so a deleted or renamed repo also reads as private.
 Any doubtful answer (network failure, timeout, a redirect, a `5xx`, an unreadable body)
-leaves visibility unknown; anonymous GitHub's rate limit answers with a `403` or `429`, so past it
-every GitHub repo reads unknown. Without the flag the scan makes no network calls.
+leaves visibility unknown. Requests are anonymous, except that when the `GITHUB_TOKEN`
+environment variable is set it is sent as a bearer token to `api.github.com` and to no other
+host; a `404` still reads as private, since the token may lack access to the repo. Anonymous
+GitHub's rate limit (60 requests an hour) answers with a `403` or `429`, so without a token
+every GitHub repo past it reads unknown. Without the flag the scan makes no network calls.
 
 ### Per-repo doc-graph (`docGraph`)
 

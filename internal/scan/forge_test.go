@@ -3,6 +3,7 @@ package scan
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"testing"
 	"time"
@@ -124,5 +125,47 @@ func TestScanFillsVisibilityOnlyWhenAsked(t *testing.T) {
 	}
 	if got := m.Components[0].Facts.Visibility; got != "private" {
 		t.Fatalf("visibility = %q", got)
+	}
+}
+
+// rewriteTransport sends every request to the test server, keeping the URL the
+// caller built so the code under test still sees the real host.
+type rewriteTransport struct{ target string }
+
+func (rt rewriteTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	u, _ := url.Parse(rt.target)
+	r2 := r.Clone(r.Context())
+	r2.URL.Scheme, r2.URL.Host = u.Scheme, u.Host
+	return http.DefaultTransport.RoundTrip(r2)
+}
+
+func TestVisibilityGitHubToken(t *testing.T) {
+	cases := []struct {
+		name  string
+		token string
+		id    string
+		want  string
+	}{
+		{"token sent to github", "tok", "github.com/o/r", "Bearer tok"},
+		{"no token", "", "github.com/o/r", ""},
+		{"token never sent to another host", "tok", "forge.example/o/r", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Setenv("GITHUB_TOKEN", c.token)
+			var got string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				got = r.Header.Get("Authorization")
+				w.WriteHeader(404)
+			}))
+			t.Cleanup(srv.Close)
+			cl := &http.Client{Timeout: 3 * time.Second, Transport: rewriteTransport{srv.URL}}
+			if v := Visibility(cl, DefaultAPIBase, c.id); v != "private" {
+				t.Fatalf("404 must stay private, got %q", v)
+			}
+			if got != c.want {
+				t.Fatalf("Authorization = %q, want %q", got, c.want)
+			}
+		})
 	}
 }
