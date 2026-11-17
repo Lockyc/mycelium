@@ -25,10 +25,10 @@ func runQuery(args []string) error {
 	dir := fs.String("dir", ".", "artifact dir (with graph.json)")
 	url := fs.String("url", os.Getenv("MYCELIUM_HUB"), "hub URL to fetch graph.json from (default $MYCELIUM_HUB); overrides --dir")
 	asJSON := fs.Bool("json", false, "emit JSON instead of text")
-	kind := fs.String("kind", "", "components: filter by kind")
-	stack := fs.String("stack", "", "components: filter by stack member")
 	status := fs.String("status", "", "components: filter by status")
 	tag := fs.String("tag", "", "components: filter by tag")
+	ecosystem := fs.String("ecosystem", "", "components: filter by derived ecosystem (go, node, rust, swift)")
+	macApp := fs.Bool("mac-app", false, "components: only Mac apps (--mac-app=false: only non-Mac-apps)")
 	// Parse flags interspersed with positionals. Go's flag package stops at the
 	// first non-flag arg, so a plain fs.Parse would silently ignore any flag placed
 	// after the positional (`myco query used-by config-core --url X` would drop
@@ -91,7 +91,11 @@ func runQuery(args []string) error {
 		if err := noArgs(pos, sub); err != nil {
 			return err
 		}
-		cs := query.Components(g, query.ComponentFilter{Kind: *kind, Stack: *stack, Status: *status, Tag: *tag})
+		f := query.ComponentFilter{Status: *status, Tag: *tag, Ecosystem: *ecosystem}
+		if flagPassed(fs, "mac-app") {
+			f.MacApp = macApp
+		}
+		cs := query.Components(g, f)
 		return emit(*asJSON, cs, textComponents)
 	case "used-by":
 		name, err := arg1(pos, sub)
@@ -265,11 +269,15 @@ func textEntry(e query.Entry) string {
 func textComponent(c graph.Component) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s — %s\n", c.Name, c.Sidecar.Summary)
-	if meta := strings.TrimSpace(c.Sidecar.Kind + " " + c.Sidecar.Status); meta != "" {
+	macApp := ""
+	if c.Facts.MacApp {
+		macApp = "mac app"
+	}
+	if meta := strings.TrimSpace(macApp + " " + c.Sidecar.Status); meta != "" {
 		fmt.Fprintf(&b, "  %s\n", meta)
 	}
-	if len(c.Sidecar.Stack) > 0 {
-		fmt.Fprintf(&b, "  stack: %s\n", strings.Join(c.Sidecar.Stack, ", "))
+	if len(c.Facts.Ecosystems) > 0 {
+		fmt.Fprintf(&b, "  built with: %s\n", strings.Join(c.Facts.Ecosystems, ", "))
 	}
 	for _, p := range c.Sidecar.Provides {
 		fmt.Fprintf(&b, "  provides %s: %s\n", p.Name, p.Summary)

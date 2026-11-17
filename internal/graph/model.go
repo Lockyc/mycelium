@@ -33,10 +33,9 @@ type Provides struct {
 type Sidecar struct {
 	Name     string     `toml:"name" json:"name"`
 	Summary  string     `toml:"summary" json:"summary"`
-	Kind     string     `toml:"kind" json:"kind"`
 	Status   string     `toml:"status" json:"status"`
+	Paid     bool       `toml:"paid" json:"paid,omitempty"`
 	Tags     []string   `toml:"tags" json:"tags,omitempty"`
-	Stack    []string   `toml:"stack" json:"stack,omitempty"`
 	Provides []Provides `toml:"provides" json:"provides,omitempty"`
 }
 
@@ -128,10 +127,9 @@ type componentJSON struct {
 	Name     string          `json:"name"`
 	Commit   string          `json:"commit"`
 	Summary  string          `json:"summary"`
-	Kind     string          `json:"kind"`
 	Status   string          `json:"status"`
+	Paid     bool            `json:"paid,omitempty"`
 	Tags     []string        `json:"tags,omitempty"`
-	Stack    []string        `json:"stack,omitempty"`
 	Provides []Provides      `json:"provides,omitempty"`
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
 	Facts    Facts           `json:"facts"`
@@ -141,8 +139,8 @@ type componentJSON struct {
 func (c Component) MarshalJSON() ([]byte, error) {
 	return json.Marshal(componentJSON{
 		ID: c.ID, Name: c.Name, Commit: c.Commit,
-		Summary: c.Sidecar.Summary, Kind: c.Sidecar.Kind, Status: c.Sidecar.Status,
-		Tags: c.Sidecar.Tags, Stack: c.Sidecar.Stack, Provides: c.Sidecar.Provides,
+		Summary: c.Sidecar.Summary, Status: c.Sidecar.Status, Paid: c.Sidecar.Paid,
+		Tags: c.Sidecar.Tags, Provides: c.Sidecar.Provides,
 		DocGraph: c.DocGraph, Facts: c.Facts, Pins: c.Pins,
 	})
 }
@@ -155,8 +153,8 @@ func (c *Component) UnmarshalJSON(b []byte) error {
 	c.ID, c.Name, c.Commit, c.DocGraph, c.Facts, c.Pins = f.ID, f.Name, f.Commit, f.DocGraph, f.Facts, f.Pins
 	c.Sidecar = Sidecar{
 		Name:    f.Name, // reconstruct the field the flat shape drops (always == Name)
-		Summary: f.Summary, Kind: f.Kind, Status: f.Status,
-		Tags: f.Tags, Stack: f.Stack, Provides: f.Provides,
+		Summary: f.Summary, Status: f.Status, Paid: f.Paid,
+		Tags: f.Tags, Provides: f.Provides,
 	}
 	return nil
 }
@@ -212,32 +210,26 @@ func ParseSidecar(data []byte) (Sidecar, error) {
 	return sc, nil
 }
 
-// SidecarKinds and SidecarStatuses are the valid values of the optional `kind`
-// and `status` fields (schema/graph.md). Name and summary are enforced at parse;
-// these are linted by `myco validate` and `myco audit`, never at scan, so one bad
-// value never aborts a scan.
-var (
-	SidecarKinds    = []string{"service", "app", "site", "library", "docs", "infra", "tool"}
-	SidecarStatuses = []string{"active", "wip", "experimental", "dormant", "archived"}
-)
+// SidecarStatuses are the valid values of the optional `status` field
+// (schema/graph.md). Name and summary are enforced at parse; status is linted by
+// `myco validate` and `myco audit`, never at scan, so one bad value never aborts
+// a scan.
+var SidecarStatuses = []string{"active", "wip", "experimental", "dormant", "archived"}
 
-// LintSidecar returns one problem per sidecar field holding a value outside its
-// documented set; nil when the sidecar is clean. An empty optional field is fine.
+// LintSidecar returns a problem when status holds a value outside its documented
+// set; nil when the sidecar is clean. An empty status is fine.
 func LintSidecar(sc Sidecar) []string {
-	var problems []string
-	check := func(field, value string, valid []string) {
-		if value != "" && !slices.Contains(valid, value) {
-			problems = append(problems, fmt.Sprintf("%s %q is not one of: %s", field, value, strings.Join(valid, ", ")))
-		}
+	if sc.Status != "" && !slices.Contains(SidecarStatuses, sc.Status) {
+		return []string{fmt.Sprintf("status %q is not one of: %s", sc.Status, strings.Join(SidecarStatuses, ", "))}
 	}
-	check("kind", sc.Kind, SidecarKinds)
-	check("status", sc.Status, SidecarStatuses)
-	return problems
+	return nil
 }
 
 // LintSidecarKeys returns one problem per key in a sidecar's TOML that the
-// Sidecar schema does not declare — the misspellings (`stak`, `[[provide]]`, a
-// typo inside `[[provides]]`) that the lenient ParseSidecar silently drops.
+// Sidecar schema does not declare — the misspellings (`statu`, `[[provide]]`, a
+// typo inside `[[provides]]`) that the lenient ParseSidecar silently drops, and
+// keys the schema does not carry, such as `kind` and `stack`, which facts
+// derived from the tree answer.
 // Unknown keys come from a strict re-decode, so the known set is the struct's
 // own toml tags. An unknown top-level table (`[github]`, `[fleet]`) is another
 // tool's namespace and is not a problem: the set of such tools is open-ended.

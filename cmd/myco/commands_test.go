@@ -93,13 +93,18 @@ func TestValidateLintsEnums(t *testing.T) {
 	dir := t.TempDir()
 	good := filepath.Join(dir, "good.toml")
 	bad := filepath.Join(dir, "bad.toml")
-	os.WriteFile(good, []byte("name=\"x\"\nsummary=\"s\"\nkind=\"service\"\n"), 0o644)
-	os.WriteFile(bad, []byte("name=\"x\"\nsummary=\"s\"\nkind=\"servce\"\n"), 0o644)
+	os.WriteFile(good, []byte("name=\"x\"\nsummary=\"s\"\nstatus=\"active\"\n"), 0o644)
+	os.WriteFile(bad, []byte("name=\"x\"\nsummary=\"s\"\nstatus=\"actve\"\n"), 0o644)
 	if err := runValidate([]string{good}); err != nil {
 		t.Fatalf("valid sidecar rejected: %v", err)
 	}
 	if err := runValidate([]string{bad}); err == nil {
-		t.Fatal("kind typo passed validate")
+		t.Fatal("status typo passed validate")
+	}
+	legacy := filepath.Join(dir, "legacy.toml")
+	os.WriteFile(legacy, []byte("name=\"x\"\nsummary=\"s\"\nkind=\"app\"\n"), 0o644)
+	if err := runValidate([]string{legacy}); err == nil || !strings.Contains(err.Error(), `unknown key "kind"`) {
+		t.Fatalf("kind must fail validate as an unknown key, got %v", err)
 	}
 	typo := filepath.Join(dir, "typo.toml")
 	os.WriteFile(typo, []byte("name=\"x\"\nsummary=\"s\"\nstak=[\"go\"]\n[github]\ntopics_extra=[\"a\"]\n"), 0o644)

@@ -11,8 +11,8 @@ func TestParseSidecar(t *testing.T) {
 	data := []byte(`
 name = "orders-api"
 summary = "Order processing service"
-kind = "service"
 status = "active"
+paid = true
 tags = ["orders", "billing"]
 
 [[provides]]
@@ -23,7 +23,7 @@ summary = "Publishes order lifecycle events"
 	if err != nil {
 		t.Fatalf("ParseSidecar: %v", err)
 	}
-	if sc.Name != "orders-api" || sc.Kind != "service" {
+	if sc.Name != "orders-api" || sc.Status != "active" || !sc.Paid {
 		t.Fatalf("bad parse: %+v", sc)
 	}
 	if len(sc.Provides) != 1 || sc.Provides[0].Name != "order-events" {
@@ -44,8 +44,8 @@ func TestComponentMarshalsFlat(t *testing.T) {
 	c := Component{
 		ID: "github.com/acme/orders", Name: "orders", Commit: "abc",
 		Sidecar: Sidecar{
-			Name: "orders", Summary: "order svc", Kind: "service", Status: "active",
-			Stack: []string{"go"}, Provides: []Provides{{Name: "order-events", Summary: "events"}},
+			Name: "orders", Summary: "order svc", Status: "active", Paid: true,
+			Provides: []Provides{{Name: "order-events", Summary: "events"}},
 		},
 	}
 	b, err := json.Marshal(c)
@@ -56,7 +56,7 @@ func TestComponentMarshalsFlat(t *testing.T) {
 	if strings.Contains(s, `"sidecar"`) {
 		t.Fatalf("graph.json must be flat — no sidecar wrapper: %s", s)
 	}
-	for _, want := range []string{`"summary":"order svc"`, `"kind":"service"`, `"provides":[`, `"order-events"`} {
+	for _, want := range []string{`"summary":"order svc"`, `"paid":true`, `"provides":[`, `"order-events"`} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("flat output missing %s: %s", want, s)
 		}
@@ -74,8 +74,8 @@ func TestComponentFlatRoundTrip(t *testing.T) {
 	c := Component{
 		ID: "github.com/acme/orders", Name: "orders", Commit: "abc",
 		Sidecar: Sidecar{
-			Name: "orders", Summary: "order svc", Kind: "service", Status: "active",
-			Tags: []string{"billing"}, Stack: []string{"go"},
+			Name: "orders", Summary: "order svc", Status: "active", Paid: true,
+			Tags:     []string{"billing"},
 			Provides: []Provides{{Name: "order-events", Summary: "events", URL: "https://x"}},
 		},
 	}
@@ -89,7 +89,7 @@ func TestComponentFlatRoundTrip(t *testing.T) {
 	}
 	// Sidecar is fully reconstructed, including the name the flat shape drops.
 	if round.Sidecar.Name != "orders" || round.Sidecar.Summary != "order svc" ||
-		round.Sidecar.Kind != "service" || len(round.Sidecar.Provides) != 1 ||
+		!round.Sidecar.Paid || len(round.Sidecar.Provides) != 1 ||
 		round.Sidecar.Provides[0].URL != "https://x" {
 		t.Fatalf("round-trip lost sidecar fields: %+v", round.Sidecar)
 	}
@@ -130,14 +130,27 @@ func TestComponentDocGraphSerializes(t *testing.T) {
 
 func TestLintSidecar(t *testing.T) {
 	if p := LintSidecar(Sidecar{Name: "x", Summary: "s"}); p != nil {
-		t.Errorf("empty optional kind/status should lint clean, got %v", p)
+		t.Errorf("empty optional status should lint clean, got %v", p)
 	}
-	if p := LintSidecar(Sidecar{Name: "x", Summary: "s", Kind: "service", Status: "wip"}); p != nil {
+	if p := LintSidecar(Sidecar{Name: "x", Summary: "s", Status: "wip"}); p != nil {
 		t.Errorf("documented values should lint clean, got %v", p)
 	}
-	p := LintSidecar(Sidecar{Name: "x", Summary: "s", Kind: "servce", Status: "dead"})
-	if len(p) != 2 || !strings.Contains(p[0], `kind "servce"`) || !strings.Contains(p[1], `status "dead"`) {
-		t.Errorf("want one problem each for kind and status, got %v", p)
+	p := LintSidecar(Sidecar{Name: "x", Summary: "s", Status: "dead"})
+	if len(p) != 1 || !strings.Contains(p[0], `status "dead"`) {
+		t.Errorf("want one problem for status, got %v", p)
+	}
+}
+
+// kind and stack are not sidecar keys: facts derived from the tree answer both.
+// Scan ignores them; validate names them so a sidecar can drop them.
+func TestLintSidecarKeysReportsKindAndStack(t *testing.T) {
+	got := LintSidecarKeys([]byte("name = \"x\"\nsummary = \"s\"\nkind = \"app\"\nstack = [\"go\"]\n"))
+	want := []string{`unknown key "kind"`, `unknown key "stack"`}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("LintSidecarKeys = %q, want %q", got, want)
+	}
+	if _, err := ParseSidecar([]byte("name = \"x\"\nsummary = \"s\"\nkind = \"app\"\nstack = [\"go\"]\n")); err != nil {
+		t.Errorf("scan must stay lenient on kind/stack: %v", err)
 	}
 }
 
@@ -147,7 +160,7 @@ func TestLintSidecarKeys(t *testing.T) {
 		name, toml string
 		want       []string
 	}{
-		{"clean", base + "stack = [\"go\"]\n[[provides]]\nname = \"c\"\nsummary = \"cs\"\nurl = \"u\"\n", nil},
+		{"clean", base + "paid = true\n[[provides]]\nname = \"c\"\nsummary = \"cs\"\nurl = \"u\"\n", nil},
 		{"third-party tables are namespaces", base + "[github]\ntopics_extra = [\"a\"]\n[fleet]\nexempt = [\"readme\"]\nexempt_note = \"n\"\n", nil},
 		{"misspelled array key", base + "stak = [\"go\"]\n", []string{`unknown key "stak"`}},
 		{"misspelled scalar key", base + "knd = \"app\"\n", []string{`unknown key "knd"`}},

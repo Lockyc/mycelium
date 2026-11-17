@@ -25,10 +25,11 @@ type CapabilityView struct {
 }
 
 // ComponentFilter narrows Components. An empty field is a wildcard; set fields
-// are AND-combined. Stack and Tag match array membership; Kind and Status match
-// equality.
+// are AND-combined. Ecosystem and Tag match array membership; Status matches
+// equality; a non-nil MacApp matches the derived fact.
 type ComponentFilter struct {
-	Kind, Stack, Status, Tag string
+	Status, Tag, Ecosystem string
+	MacApp                 *bool
 }
 
 // Capabilities returns every capability, name-sorted, as a view.
@@ -77,7 +78,7 @@ func Capability(g graph.Graph, name string) (CapabilityView, bool) {
 // Entry is one map entry — a scanned component or an overlay node — in the
 // shape graph.json carries it: a component marshals as its `.components[]`
 // object, a node as its `.nodes[]` object (name/summary/provides, no
-// id/commit/kind/status). Exactly one field is set.
+// id/commit/status/facts). Exactly one field is set.
 type Entry struct {
 	Component *graph.Component
 	Node      *graph.OverlayNode
@@ -110,13 +111,13 @@ func Component(g graph.Graph, name string) (Entry, bool) {
 func Components(g graph.Graph, f ComponentFilter) []graph.Component {
 	out := []graph.Component{}
 	for _, c := range g.Components {
-		if f.Kind != "" && c.Sidecar.Kind != f.Kind {
+		if f.MacApp != nil && c.Facts.MacApp != *f.MacApp {
 			continue
 		}
 		if f.Status != "" && c.Sidecar.Status != f.Status {
 			continue
 		}
-		if f.Stack != "" && !slices.Contains(c.Sidecar.Stack, f.Stack) {
+		if f.Ecosystem != "" && !slices.Contains(c.Facts.Ecosystems, f.Ecosystem) {
 			continue
 		}
 		if f.Tag != "" && !slices.Contains(c.Sidecar.Tags, f.Tag) {
@@ -221,7 +222,7 @@ func Descriptors() []QueryDesc {
 		{Name: "capabilities", Example: "myco query capabilities"},
 		{Name: "capability", Args: "<name>", Example: "myco query capability monitoring"},
 		{Name: "component", Args: "<name>", Example: "myco query component warden"},
-		{Name: "components", Args: "[--kind --stack --status --tag]", Example: "myco query components --kind app"},
+		{Name: "components", Args: "[--status --tag --ecosystem --mac-app]", Example: "myco query components --ecosystem rust"},
 		{Name: "used-by", Args: "<name>", Example: "myco query used-by config-core"},
 		{Name: "uses", Args: "<name>", Example: "myco query uses lector"},
 		{Name: "search", Args: "<text>", Example: "myco query search newsletter"},

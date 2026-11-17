@@ -78,7 +78,7 @@ func TestHandlerNotFound(t *testing.T) {
 func TestQueryRoutes(t *testing.T) {
 	dir := t.TempDir()
 	const g = `{
-  "components":[{"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","kind":"app","status":"active","stack":["rust"],"provides":[{"name":"sidebar","summary":"the sidebar"}]}],
+  "components":[{"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","status":"active","facts":{"macApp":true,"ecosystems":["rust"],"versionSource":false},"provides":[{"name":"sidebar","summary":"the sidebar"}]}],
   "nodes":[{"name":"shared-postgres","summary":"managed postgres","provides":["postgres"]}],
   "capabilities":{"sidebar":["warden"],"postgres":["shared-postgres"]},
   "edges":[],"dangling_edges":[],"orphans":[]
@@ -102,8 +102,17 @@ func TestQueryRoutes(t *testing.T) {
 		t.Errorf("unknown capability should 404 json: %d %s", code, body)
 	}
 	// components filter
-	if body, code := get(t, srv.URL+"/q/components?kind=app"); code != 200 || !strings.Contains(body, "warden") {
+	if body, code := get(t, srv.URL+"/q/components?ecosystem=rust&macApp=true"); code != 200 || !strings.Contains(body, "warden") {
 		t.Errorf("/q/components filter wrong: %d %s", code, body)
+	}
+	if body, code := get(t, srv.URL+"/q/components?macApp=false"); code != 200 || strings.Contains(body, "warden") {
+		t.Errorf("/q/components macApp=false must exclude a mac app: %d %s", code, body)
+	}
+	if body, code := get(t, srv.URL+"/q/components?macApp=yes-ish"); code != 400 || !strings.Contains(body, "error") {
+		t.Errorf("unparseable macApp must 400, not silently match all: %d %s", code, body)
+	}
+	if body, code := get(t, srv.URL+"/q/components?ecosystem=go"); code != 200 || strings.Contains(body, "warden") {
+		t.Errorf("/q/components ecosystem=go must exclude warden: %d %s", code, body)
 	}
 	// component result is flat (no sidecar wrapper), same as graph.json
 	if body, _ := get(t, srv.URL+"/q/component/warden"); strings.Contains(body, `"sidecar"`) {

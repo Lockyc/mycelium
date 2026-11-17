@@ -12,15 +12,14 @@ func fixture() graph.Graph {
 	return graph.Graph{
 		Components: []graph.Component{
 			{ID: "github.com/acme/warden", Name: "warden", Sidecar: graph.Sidecar{
-				Name: "warden", Summary: "terminals console", Kind: "app", Status: "active",
-				Stack: []string{"rust", "tauri"}, Tags: []string{"macos"},
+				Name: "warden", Summary: "terminals console", Status: "active",
+				Tags:     []string{"macos"},
 				Provides: []graph.Provides{{Name: "sidebar", Summary: "the chrome sidebar"}},
-			}},
+			}, Facts: graph.Facts{MacApp: true, Ecosystems: []string{"node", "rust"}}},
 			{ID: "github.com/acme/config-core", Name: "config-core", Sidecar: graph.Sidecar{
-				Name: "config-core", Summary: "shared config", Kind: "library", Status: "active",
-				Stack:    []string{"rust"},
+				Name: "config-core", Summary: "shared config", Status: "active",
 				Provides: []graph.Provides{{Name: "config-shape", Summary: "the config TOML shape", URL: "https://x"}},
-			}},
+			}, Facts: graph.Facts{Ecosystems: []string{"rust"}}},
 		},
 		Capabilities: map[string][]string{
 			"sidebar":      {"warden"},
@@ -96,15 +95,22 @@ func TestComponentFallsThroughToNode(t *testing.T) {
 
 func TestComponentsFilter(t *testing.T) {
 	g := fixture()
-	if got := Components(g, ComponentFilter{Kind: "app"}); len(got) != 1 || got[0].Name != "warden" {
-		t.Errorf("kind=app filter wrong: %+v", got)
+	yes, no := true, false
+	if got := Components(g, ComponentFilter{MacApp: &yes}); len(got) != 1 || got[0].Name != "warden" {
+		t.Errorf("macApp=true filter wrong: %+v", got)
 	}
-	if got := Components(g, ComponentFilter{Stack: "rust"}); len(got) != 2 {
-		t.Errorf("stack=rust should match both: %+v", got)
+	if got := Components(g, ComponentFilter{MacApp: &no}); len(got) != 1 || got[0].Name != "config-core" {
+		t.Errorf("macApp=false filter wrong: %+v", got)
 	}
-	// AND across filters: rust AND app == warden only
-	if got := Components(g, ComponentFilter{Stack: "rust", Kind: "app"}); len(got) != 1 || got[0].Name != "warden" {
-		t.Errorf("stack=rust,kind=app wrong: %+v", got)
+	if got := Components(g, ComponentFilter{Ecosystem: "rust"}); len(got) != 2 {
+		t.Errorf("ecosystem=rust should match both: %+v", got)
+	}
+	// AND across filters: rust AND mac app == warden only
+	if got := Components(g, ComponentFilter{Ecosystem: "rust", MacApp: &yes}); len(got) != 1 || got[0].Name != "warden" {
+		t.Errorf("ecosystem=rust,macApp wrong: %+v", got)
+	}
+	if got := Components(g, ComponentFilter{Ecosystem: "node"}); len(got) != 1 || got[0].Name != "warden" {
+		t.Errorf("ecosystem=node wrong: %+v", got)
 	}
 	if got := Components(g, ComponentFilter{Tag: "macos"}); len(got) != 1 || got[0].Name != "warden" {
 		t.Errorf("tag=macos wrong: %+v", got)

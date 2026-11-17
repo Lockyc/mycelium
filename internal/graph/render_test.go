@@ -21,7 +21,6 @@ func TestRenderJSONPathNotLeaked(t *testing.T) {
 				Sidecar: Sidecar{
 					Name:    "widgets",
 					Summary: "widget tracking app",
-					Kind:    "app",
 					Status:  "active",
 				},
 			},
@@ -204,20 +203,20 @@ func TestRenderMarkdownRendersOverlayNodes(t *testing.T) {
 	}
 }
 
-// Stack answers "what is this built with" — non-derivable from the summary and
-// disjoint from tags (which answer "what is it about"). It is the one lossy-map
-// field worth its bytes: ~20 B an entry to say `go` vs `rust, tauri, typescript`.
-func TestRenderMarkdownRendersStack(t *testing.T) {
+// "Built with" answers what the summary can't, from the ecosystems scan derived
+// from the tree.
+func TestRenderMarkdownRendersEcosystems(t *testing.T) {
 	md := RenderMarkdown(Graph{Components: []Component{{
 		Name:    "curator",
-		Sidecar: Sidecar{Summary: "s", Stack: []string{"rust", "tauri", "typescript"}},
+		Sidecar: Sidecar{Summary: "s"},
+		Facts:   Facts{Ecosystems: []string{"go", "node"}},
 	}}})
-	if !strings.Contains(md, "Stack: rust, tauri, typescript") {
-		t.Errorf("stack not rendered in sidecar order:\n%s", md)
+	if !strings.Contains(md, "Built with: go, node\n") {
+		t.Errorf("ecosystems not rendered as Built with:\n%s", md)
 	}
 	bare := RenderMarkdown(Graph{Components: []Component{{Name: "x", Sidecar: Sidecar{Summary: "s"}}}})
-	if strings.Contains(bare, "Stack:") {
-		t.Errorf("component with no stack should render no Stack line:\n%s", bare)
+	if strings.Contains(bare, "Built with:") {
+		t.Errorf("component with no ecosystems should render no Built with line:\n%s", bare)
 	}
 }
 
@@ -284,26 +283,27 @@ func TestRenderMarkdownUsedByCapabilityTarget(t *testing.T) {
 	}
 }
 
-// ParseSidecar requires only name+summary, so kind and status are each optional.
-// Joining them unconditionally rendered a dangling separator ("_ · active_").
-func TestRenderMarkdownPartialKindStatus(t *testing.T) {
-	render := func(kind, status string) string {
+// The meta line joins the derived "mac app" with the optional status, so either
+// may be absent without leaving a dangling separator ("_ · active_").
+func TestRenderMarkdownMetaLine(t *testing.T) {
+	render := func(macApp bool, status string) string {
 		return RenderMarkdown(Graph{Components: []Component{{
 			Name:    "x",
-			Sidecar: Sidecar{Summary: "s", Kind: kind, Status: status},
+			Sidecar: Sidecar{Summary: "s", Status: status},
+			Facts:   Facts{MacApp: macApp},
 		}}})
 	}
-	if md := render("tool", "active"); !strings.Contains(md, "_tool · active_") {
+	if md := render(true, "active"); !strings.Contains(md, "_mac app · active_") {
 		t.Errorf("both present should join with a separator:\n%s", md)
 	}
-	if md := render("", "active"); !strings.Contains(md, "_active_") || strings.Contains(md, "·") {
-		t.Errorf("missing kind should render no separator:\n%s", md)
+	if md := render(false, "active"); !strings.Contains(md, "_active_") || strings.Contains(md, "·") {
+		t.Errorf("not a mac app should render status alone:\n%s", md)
 	}
-	if md := render("tool", ""); !strings.Contains(md, "_tool_") || strings.Contains(md, "·") {
+	if md := render(true, ""); !strings.Contains(md, "_mac app_") || strings.Contains(md, "·") {
 		t.Errorf("missing status should render no separator:\n%s", md)
 	}
 	// scoped to the entry: the orphan section's own "_None …_" line is italic too.
-	if md := render("", ""); !strings.Contains(md, "### x\ns\n\n") {
+	if md := render(false, ""); !strings.Contains(md, "### x\ns\n\n") {
 		t.Errorf("neither present should render no meta line at all:\n%s", md)
 	}
 }
@@ -330,7 +330,7 @@ func TestRenderMarkdownPointsToCapabilitySummaries(t *testing.T) {
 func TestRenderMarkdownRendersTags(t *testing.T) {
 	c := Graph{Components: []Component{{
 		Name:    "orders-api",
-		Sidecar: Sidecar{Summary: "order service", Kind: "app", Status: "active", Tags: []string{"local-first", "prelaunch"}},
+		Sidecar: Sidecar{Summary: "order service", Status: "active", Tags: []string{"local-first", "prelaunch"}},
 	}}}
 	md := RenderMarkdown(c)
 	if !strings.Contains(md, "`local-first` `prelaunch`") {

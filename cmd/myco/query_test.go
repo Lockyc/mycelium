@@ -15,7 +15,7 @@ func writeGraph(t *testing.T) string {
 	dir := t.TempDir()
 	const g = `{
   "components": [
-    {"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","kind":"app","status":"active","stack":["rust"],
+    {"id":"github.com/acme/warden","name":"warden","commit":"a","summary":"terminals","status":"active","facts":{"macApp":true,"ecosystems":["rust"],"versionSource":true},
      "provides":[{"name":"sidebar","summary":"the sidebar"}]}
   ],
   "capabilities": {"sidebar":["warden"]},
@@ -53,7 +53,7 @@ func TestRunQueryComponentsJSON(t *testing.T) {
 	dir := writeGraph(t)
 	// --json output must be valid JSON and contain the flat provides path.
 	out := captureStdout(t, func() error {
-		return runQuery([]string{"components", "--dir", dir, "--kind", "app", "--json"})
+		return runQuery([]string{"components", "--dir", dir, "--mac-app", "--ecosystem", "rust", "--json"})
 	})
 	var comps []map[string]any
 	if err := json.Unmarshal([]byte(out), &comps); err != nil {

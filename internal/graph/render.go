@@ -13,15 +13,15 @@ func RenderJSON(g Graph) ([]byte, error) {
 
 // entry is the render-level union of the two things that appear in the map: a
 // scanned repo (Component) and a non-repo overlay node. They render identically
-// bar the fields a node has no notion of (kind, status, tags), which are already
+// bar the fields a node has no notion of (facts, status, tags), which are already
 // rendered conditionally.
 type entry struct {
 	name       string
 	summary    string
-	kind       string
+	macApp     bool
 	status     string
 	tags       []string
-	stack      []string
+	builtWith  []string
 	provides   []string
 	usedBy     []string
 	docIslands int // content+metadata island count; a rot flag, only rendered when > 0
@@ -68,10 +68,10 @@ func entries(g Graph) []entry {
 		out = append(out, entry{
 			name:       comp.Name,
 			summary:    comp.Sidecar.Summary,
-			kind:       comp.Sidecar.Kind,
+			macApp:     comp.Facts.MacApp,
 			status:     comp.Sidecar.Status,
 			tags:       comp.Sidecar.Tags,
-			stack:      comp.Sidecar.Stack,
+			builtWith:  comp.Facts.Ecosystems,
 			provides:   provides,
 			usedBy:     rev[comp.Name],
 			docIslands: islands,
@@ -110,10 +110,13 @@ func RenderMarkdown(g Graph) string {
 	b.WriteString("## Components\n\n")
 	for _, e := range entries(g) {
 		fmt.Fprintf(&b, "### %s\n%s\n", e.name, e.summary)
-		// Only name+summary are required of a sidecar (see ParseSidecar), so join
-		// whichever of kind/status is present rather than assuming both, so a
-		// missing kind never leaves a dangling separator ("_ · active_").
-		if meta := joinNonEmpty(" · ", e.kind, e.status); meta != "" {
+		// Status is optional and most repos are not Mac apps, so join whichever is
+		// present rather than assuming both — never a dangling separator ("_ · active_").
+		macApp := ""
+		if e.macApp {
+			macApp = "mac app"
+		}
+		if meta := joinNonEmpty(" · ", macApp, e.status); meta != "" {
 			fmt.Fprintf(&b, "_%s_\n", meta)
 		}
 		if len(e.provides) > 0 {
@@ -126,8 +129,8 @@ func RenderMarkdown(g Graph) string {
 		if len(e.usedBy) > 0 {
 			fmt.Fprintf(&b, "Used by: %s\n", strings.Join(e.usedBy, ", "))
 		}
-		if len(e.stack) > 0 {
-			fmt.Fprintf(&b, "Stack: %s\n", strings.Join(e.stack, ", "))
+		if len(e.builtWith) > 0 {
+			fmt.Fprintf(&b, "Built with: %s\n", strings.Join(e.builtWith, ", "))
 		}
 		if len(e.tags) > 0 {
 			quoted := make([]string, len(e.tags))
