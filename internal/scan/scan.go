@@ -17,6 +17,12 @@ type Options struct {
 	// DocGraph runs docgraph for a repo at a git ref; nil uses the real runDocGraph.
 	// Injected so tests need no docgraph binary.
 	DocGraph DocGraphFunc
+
+	// Visibility asks each component's forge whether its repo is public. Off by
+	// default: it is the only thing scan does over the network.
+	Visibility bool
+	// APIBase maps a forge host to its repos API prefix; nil uses DefaultAPIBase.
+	APIBase func(host string) string
 }
 
 func Scan(roots []string, opts Options) (graph.Manifest, error) {
@@ -88,6 +94,9 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 			}
 		}
 		m.Components = append(m.Components, comp)
+	}
+	if opts.Visibility {
+		fillVisibility(m.Components, opts.APIBase)
 	}
 	return m, nil
 }

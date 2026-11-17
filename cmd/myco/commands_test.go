@@ -187,3 +187,12 @@ func TestAuditReadsHub(t *testing.T) {
 		t.Fatalf("a hub-read audit must not write previous.json (stat err: %v)", err)
 	}
 }
+
+// -visibility is a defined scan flag; an empty root makes no lookups, so the
+// run stays off the network.
+func TestScanAcceptsVisibilityFlag(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "m.json")
+	if err := runScan([]string{"--roots", t.TempDir(), "--node", "test", "--visibility", "--out", out}); err != nil {
+		t.Fatalf("scan -visibility: %v", err)
+	}
+}

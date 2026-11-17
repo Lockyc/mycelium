@@ -34,6 +34,7 @@ func runScan(args []string) error {
 	fallbackHost := fs.String("fallback-host", "", "host for repos with no origin remote")
 	excludeOwners := fs.String("exclude-owners", "", "comma-separated owner dirs to skip (e.g. vendor)")
 	ref := fs.String("ref", "", "git ref to read sidecars from; falls back to HEAD per-repo when absent (e.g. dev)")
+	visibility := fs.Bool("visibility", false, "ask each repo's forge whether it is public (network)")
 	out := fs.String("out", "", "manifest output path")
 	push := fs.String("push", "", "hub URL to POST the manifest to (optional)")
 	tokenFile := fs.String("token-file", "", "file holding the hub bearer token")
@@ -51,6 +52,7 @@ func runScan(args []string) error {
 		FallbackHost:  *fallbackHost,
 		ExcludeOwners: splitRoots(*excludeOwners),
 		Ref:           *ref,
+		Visibility:    *visibility,
 	})
 	if err != nil {
 		return err
