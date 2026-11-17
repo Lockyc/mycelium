@@ -2,6 +2,7 @@ package graph
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -160,5 +161,22 @@ func TestLintSidecarKeys(t *testing.T) {
 				t.Errorf("LintSidecarKeys = %q, want %q", got, c.want)
 			}
 		})
+	}
+}
+
+func TestComponentFactsRoundTrip(t *testing.T) {
+	c := Component{ID: "github.com/x/y", Name: "y", Facts: Facts{
+		MacApp: true, Updater: "sparkle", Ecosystems: []string{"swift"}, VersionSource: true, Visibility: "public",
+	}}
+	b, err := json.Marshal(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var round Component
+	if err := json.Unmarshal(b, &round); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(round.Facts, c.Facts) {
+		t.Fatalf("round-trip lost facts: %+v", round.Facts)
 	}
 }

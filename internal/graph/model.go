@@ -92,6 +92,17 @@ type Component struct {
 	// unlike Path it IS serialized downstream (meaningful in the merged graph).
 	// omitempty: a component with no docs / no docgraph carries nothing.
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
+	// Facts are derived from the repo tree at the scanned ref, never declared.
+	Facts Facts `json:"facts"`
+}
+
+// Facts is what a repo is, derived by scan from its committed tree.
+type Facts struct {
+	MacApp        bool     `json:"macApp"`
+	Updater       string   `json:"updater,omitempty"` // tauri | sparkle | electron
+	Ecosystems    []string `json:"ecosystems,omitempty"`
+	VersionSource bool     `json:"versionSource"`
+	Visibility    string   `json:"visibility,omitempty"` // public | private; empty is unknown
 }
 
 // componentJSON is the FLAT on-the-wire and in-graph shape of a Component: the
@@ -119,6 +130,7 @@ type componentJSON struct {
 	Stack    []string        `json:"stack,omitempty"`
 	Provides []Provides      `json:"provides,omitempty"`
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
+	Facts    Facts           `json:"facts"`
 }
 
 func (c Component) MarshalJSON() ([]byte, error) {
@@ -126,7 +138,7 @@ func (c Component) MarshalJSON() ([]byte, error) {
 		ID: c.ID, Name: c.Name, Commit: c.Commit,
 		Summary: c.Sidecar.Summary, Kind: c.Sidecar.Kind, Status: c.Sidecar.Status,
 		Tags: c.Sidecar.Tags, Stack: c.Sidecar.Stack, Provides: c.Sidecar.Provides,
-		DocGraph: c.DocGraph,
+		DocGraph: c.DocGraph, Facts: c.Facts,
 	})
 }
 
@@ -135,7 +147,7 @@ func (c *Component) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &f); err != nil {
 		return err
 	}
-	c.ID, c.Name, c.Commit, c.DocGraph = f.ID, f.Name, f.Commit, f.DocGraph
+	c.ID, c.Name, c.Commit, c.DocGraph, c.Facts = f.ID, f.Name, f.Commit, f.DocGraph, f.Facts
 	c.Sidecar = Sidecar{
 		Name:    f.Name, // reconstruct the field the flat shape drops (always == Name)
 		Summary: f.Summary, Kind: f.Kind, Status: f.Status,

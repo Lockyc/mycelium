@@ -75,6 +75,7 @@ func Scan(roots []string, opts Options) (graph.Manifest, error) {
 			Name:    sc.Name,
 			Commit:  strings.TrimRight(string(commit), "\r\n"),
 			Sidecar: sc,
+			Facts:   DetectFacts(r, ref),
 		}
 		// Best-effort doc-graph: docgraph reads the committed ref from the object
 		// store (docgraph v3.1.0+), so this runs on bare repos too and reflects the

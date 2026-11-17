@@ -144,7 +144,10 @@ is **flat** — its `mycelium.toml` fields sit at the top level alongside the de
   "summary":  "…", "kind": "service", "status": "active",   // declared in mycelium.toml
   "tags":     ["…"], "stack": ["…"],                        // declared
   "provides": [ { "name": "…", "summary": "…", "url": "…" } ],  // declared
-  "docGraph": { "schemaVersion": 1, "docCount": 12, … }  // derived (node capture)
+  "docGraph": { "schemaVersion": 1, "docCount": 12, … },  // derived (node capture)
+  "facts":    { "macApp": false, "updater": "tauri|sparkle|electron",  // derived from the
+                "ecosystems": ["go","node","rust","swift"],            // committed tree at
+                "versionSource": true }                                // the scanned ref
 }
 ```
 
