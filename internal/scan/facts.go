@@ -107,8 +107,12 @@ func DetectFacts(r Repo, ref string) graph.Facts {
 				f.MacApp = true
 			}
 		case base == "Info.plist":
-			if strings.Contains(show(p), "SUPublicEDKey") {
+			s := show(p)
+			if strings.Contains(s, "SUPublicEDKey") {
 				sparkle = true
+			}
+			if !inTests(p) && strings.Contains(s, "LSMinimumSystemVersion") && plistAPPL.MatchString(s) {
+				f.MacApp = true
 			}
 		case strings.HasPrefix(base, "electron-builder."):
 			if strings.Contains(show(p), "publish") {
@@ -172,25 +176,59 @@ func inVendored(p string) bool {
 	return false
 }
 
+// plistAPPL matches an application bundle's CFBundlePackageType. With the
+// macOS-only LSMinimumSystemVersion key it marks a Mac app (iOS plists carry
+// MinimumOSVersion instead).
+var plistAPPL = regexp.MustCompile(`<key>CFBundlePackageType</key>\s*<string>APPL</string>`)
+
+// inTests reports whether p sits under a Tests directory, whose plists are fixtures.
+func inTests(p string) bool {
+	for _, seg := range strings.Split(p, "/") {
+		if seg == "Tests" || seg == "tests" {
+			return true
+		}
+	}
+	return false
+}
+
+// justAssign matches a justfile `name := value` assignment.
+var justAssign = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_-]*)\s*:?=\s*(.*)$`)
+
 // installVerb matches a copy/install command as a whole word, so `mvp` or
 // `install-app.sh` is not one.
 var installVerb = regexp.MustCompile(`(^|[^A-Za-z0-9_.-])(cp|ditto|mv|rsync|install)([^A-Za-z0-9_.-]|$)`)
 
 // justfileInstallsApp reports whether a justfile puts an app into
-// /Applications: a non-comment line that references /Applications and runs a
-// copy/install verb, or one that runs the shared install-app.sh installer.
-// Merely naming /Applications (to locate another app) is not an install.
+// /Applications: a non-comment line that runs a copy/install verb and names
+// /Applications, directly or through a variable assigned a /Applications path,
+// or one that runs the shared install-app.sh installer. Merely naming
+// /Applications (to locate another app) is not an install.
 func justfileInstallsApp(src string) bool {
+	var lines, appVars []string
 	for _, line := range strings.Split(src, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+		lines = append(lines, line)
+		if m := justAssign.FindStringSubmatch(line); m != nil && strings.Contains(m[2], "/Applications") {
+			appVars = append(appVars, "{{"+m[1]+"}}")
+		}
+	}
+	for _, line := range lines {
 		if strings.Contains(line, "install-app.sh") {
 			return true
 		}
-		if strings.Contains(line, "/Applications") && installVerb.MatchString(line) {
+		if !installVerb.MatchString(line) {
+			continue
+		}
+		if strings.Contains(line, "/Applications") {
 			return true
+		}
+		for _, v := range appVars {
+			if strings.Contains(line, v) {
+				return true
+			}
 		}
 	}
 	return false

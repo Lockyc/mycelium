@@ -148,11 +148,36 @@ func TestFactsJustfileMacApp(t *testing.T) {
 		{"ditto", "install:\n\tditto build/X.app /Applications/X.app\n", true},
 		{"cp", "install:\n\tcp -R build/X.app \"/Applications/{{app}}.app\"\n", true},
 		{"installer script", "install:\n\tscripts/install-app.sh\n", true},
+		{"variable install", "installed := \"/Applications/M.app\"\ninstall:\n\tcp -R build/M.app \"{{installed}}\"\n", true},
+		{"variable only referenced", "installed := \"/Applications/M.app\"\nrun:\n\topen \"{{installed}}\"\n", false},
+		{"variable not under Applications", "dest := \"/opt/M.app\"\ninstall:\n\tcp -R build/M.app \"{{dest}}\"\n", false},
 		{"verb is a whole word", "x:\n\techo /Applications/mvp\n", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			r := factsRepo(t, map[string]string{"justfile": c.justfile})
+			if got := DetectFacts(r, "HEAD").MacApp; got != c.want {
+				t.Fatalf("MacApp = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestFactsInfoPlistMacApp(t *testing.T) {
+	mac := "<dict><key>CFBundlePackageType</key><string>APPL</string><key>LSMinimumSystemVersion</key><string>14.0</string></dict>"
+	ios := "<dict><key>CFBundlePackageType</key><string>APPL</string><key>MinimumOSVersion</key><string>16.0</string></dict>"
+	cases := []struct {
+		name, path, body string
+		want             bool
+	}{
+		{"mac app plist", "Resources/Info.plist", mac, true},
+		{"ios app plist", "ios/App/Info.plist", ios, false},
+		{"mac framework", "Resources/Info.plist", "<dict><key>CFBundlePackageType</key><string>FMWK</string><key>LSMinimumSystemVersion</key><string>14.0</string></dict>", false},
+		{"test fixture plist", "Tests/Fixtures/Info.plist", mac, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := factsRepo(t, map[string]string{c.path: c.body})
 			if got := DetectFacts(r, "HEAD").MacApp; got != c.want {
 				t.Fatalf("MacApp = %v, want %v", got, c.want)
 			}
