@@ -1,9 +1,7 @@
 name    = "mycelium"
 summary = "A cross-repo ecosystem map for agents. Each repo carries a small mycelium.toml describing what it is and what it provides; mycelium merges them into one graph an agent reads to discover the repos, services and capabilities around it."
-kind    = "tool"
 status  = "wip"
 tags    = ["graph", "agents", "metadata", "cli"]
-stack   = ["go"]
 
 [github]
 topics_extra = ["knowledge-graph", "ai-agents"]

@@ -14,17 +14,14 @@ The sidecar documents a single repository or service (one file per repo). It is 
 
 - **`name`** (required, string): Short identifier for the component (e.g., `"orders-api"`, `"billing-web"`). Must be unique across the fleet (components and overlay nodes alike): edges, capabilities and queries reference entries by name, and `myco audit` reports a `duplicate-name` finding when two share one.
 - **`summary`** (required, string): One-line human-readable description of purpose or value.
-- **`kind`** (optional, string): Component category. Valid values: `service`, `app`, `site` (a website), `library`, `docs`, `infra`, `tool`.
 - **`status`** (optional, enum): Lifecycle stage. Valid values: `active`, `wip`, `experimental`, `dormant` (kept, but not being worked on), `archived`. Indicates maintenance level and stability.
+- **`paid`** (optional, bool, default `false`): The project is sold. No tree reveals that, so the sidecar declares it.
 - **`tags`** (optional, array of strings): Labels for what the component is *about* — domain, topic, lifecycle, target platform (e.g., `["orders", "billing"]`, `["prelaunch", "macos"]`). Used to group related components.
-- **`stack`** (optional, array of strings): What the component is *built with* — languages, frameworks, runtimes, datastores, defining libraries (e.g., `["go", "postgres"]`, `["typescript", "react"]`).
 
-`tags` and `stack` are disjoint by construction: **a technology name is never a tag.**
-If a label names a language, framework, runtime, or library it belongs in `stack` —
-`rust`, `tmux`, `astro`, and `cloudflare-workers` are all `stack`, never `tags`. The
-test is the question each answers: *what is this about* (`tags`) versus *what is this
-built with* (`stack`). Both render in `MAP.md`, so a technology listed in both
-appears twice on the entry.
+**A technology name is never a tag.** What a component is built with, and whether it is
+a Mac app, are derived from its tree as `facts` (below), so the sidecar never declares
+them: a `kind` or `stack` key is not part of the schema, and `myco validate` reports it
+as an `unknown key`.
 
 ### Repeatable Blocks
 
@@ -38,7 +35,7 @@ Each block documents a discrete capability or service exported by the component.
 
 ### Other tools' tables
 
-Any other top-level **table** (e.g. `[github]`, `[fleet]`) is another tool's namespace: Mycelium ignores it. Any other top-level scalar or array key, an array of tables (`[[provide]]`), or an undeclared key inside `[[provides]]` is a misspelling — the scan drops it silently, and `myco validate` reports it as `unknown key`.
+Any other top-level **table** (e.g. `[github]`, `[fleet]`) is another tool's namespace: Mycelium ignores it. Any other top-level scalar or array key, an array of tables (`[[provide]]`), or an undeclared key inside `[[provides]]` is a misspelling or a key the schema does not carry — the scan drops it silently, and `myco validate` reports it as `unknown key`.
 
 ### Example: Public-Safe Sidecar
 
@@ -46,10 +43,8 @@ Any other top-level **table** (e.g. `[github]`, `[fleet]`) is another tool's nam
 # mycelium.toml — public-safe
 name    = "orders-api"
 summary = "Order processing service"
-kind    = "service"
 status  = "active"
 tags    = ["orders", "billing"]
-stack   = ["go", "postgres"]
 
 [[provides]]
 name    = "order-events"
@@ -119,10 +114,10 @@ or `myco serve`) then:
 
 Both outputs are for coding agents, not humans. They are the *same graph* rendered two ways; an agent picks by task:
 
-- **`MAP.md`** — the map to **read into context**. A compact Markdown digest that is intentionally **lossy**. It is **component-first**: one entry per component and overlay node, name-sorted, carrying summary, kind/status, the *names* of what it provides, who uses it, stack, and tags — then shared capabilities, relationships, and undocumented repos. It drops each capability's `summary` and `url` so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
+- **`MAP.md`** — the map to **read into context**. A compact Markdown digest that is intentionally **lossy**. It is **component-first**: one entry per component and overlay node, name-sorted, carrying summary, `mac app`/status, the *names* of what it provides, who uses it, what it is built with (`facts.ecosystems`), and tags — then shared capabilities, relationships, and undocumented repos. It drops each capability's `summary` and `url` so it stays skimmable. Fetch and read it to orient before cross-cutting work: *"what exists, and when does each apply?"* (`RenderMarkdown`.)
   - **`Used by`** reverses only the *use* edges (`consumes`, `depends-on`, `deploys-to`), so the line is an entry's blast radius: change this and these must be re-pinned or rebuilt. An edge that targets a capability counts against every provider of it (and `used-by <capability>` answers too). Thematic edges (`markets`, `sells`, `related`) are excluded — reversing them would assert something false — and appear only under `Relationships`, with their type intact.
   - **`Shared capabilities`** lists only capabilities with more than one provider. A sole provider is already stated on its own entry; there is no full capability index, because one provider is the norm and an index of them restates component names while saying nothing about the components it names. Capability-first lookup is `graph.json`'s job.
-- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `stack`, `url`s, and edges), lossless. Reach for `myco query` (below) rather than hand-writing `jq` — it needs no knowledge of this shape. Query the raw JSON directly only for a specific field, endpoint, or traversal no named query covers — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, are best fetched with `myco query capability <name>` (or `GET <hub>/q/capability/<name>`). The raw-`jq` equivalent, for the programmatic case, is `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
+- **`graph.json`** — the **complete, queryable graph**. Every field (all `provides`, `facts`, `pins`, `url`s, and edges), lossless. Reach for `myco query` (below) rather than hand-writing `jq` — it needs no knowledge of this shape. Query the raw JSON directly only for a specific field, endpoint, or traversal no named query covers — not to skim. (`RenderJSON` marshals the whole struct.) Capability summaries/urls, which `MAP.md` drops, are best fetched with `myco query capability <name>` (or `GET <hub>/q/capability/<name>`). The raw-`jq` equivalent, for the programmatic case, is `jq -r '.components[].provides[]? | "\(.name): \(.summary)"' graph.json`. `MAP.md`'s preamble carries this same pointer so an agent reading only the map still learns the summaries are recoverable.
 
 Rule of thumb: **read `MAP.md` to orient, query `graph.json` to extract** — the filenames say it.
 
@@ -134,25 +129,25 @@ committed `mycelium.toml` failed to read or parse: `id`, `name`, `error`), and `
 merged manifest's `node` and `scanned_at`, freshest first — where two report one repo, the
 freshest's entry is kept). A component
 is **flat** — its `mycelium.toml` fields sit at the top level alongside the derived
-`id`/`commit`/`docGraph`, with no wrapper. So a component serialises as:
+`id`/`commit`/`docGraph`/`facts`/`pins`, with no wrapper. So a component serialises as:
 
 ```jsonc
 .components[] = {
   "id":       "github.com/acme/orders-api",  // derived (canonical git URL)
   "name":     "orders-api",                  // derived (== the sidecar name)
   "commit":   "abc123…",                     // derived (scanned ref)
-  "summary":  "…", "kind": "service", "status": "active",   // declared in mycelium.toml
-  "tags":     ["…"], "stack": ["…"],                        // declared
+  "summary":  "…", "status": "active", "paid": true,       // declared in mycelium.toml; paid only when true
+  "tags":     ["…"],                                       // declared
   "provides": [ { "name": "…", "summary": "…", "url": "…" } ],  // declared
   "docGraph": { "schemaVersion": 1, "docCount": 12, … },  // derived (node capture)
-  "facts":    { "macApp": false, "updater": "tauri|sparkle|electron",  // derived from the
-                "ecosystems": ["go","node","rust","swift"],            // committed tree at
-                "versionSource": true }                                // the scanned ref
-  "pins":     ["github.com/acme/shared-lib"],  // derived: git-pinned Cargo deps; each naming a component becomes a depends-on edge
+  "facts":    { "macApp": false, "updater": "tauri|sparkle|electron",  // derived (see Derived
+                "ecosystems": ["go","node","rust","swift"],            // facts below)
+                "versionSource": true, "visibility": "public|private" },
+  "pins":     ["github.com/acme/shared-lib"]  // derived (see Derived facts below)
 }
 ```
 
-Every field is one segment off the component: `.components[].summary`, `.components[].stack[]`,
+Every field is one segment off the component: `.components[].summary`, `.components[].facts.ecosystems[]`,
 `.components[].provides[]`, `.components[].docGraph.contentIslands[]`. `.capabilities` is a separate
 `name → [provider names]` index (built from every component's *and* overlay node's provides),
 so it answers "who provides X" without walking components. Overlay nodes render under `.nodes`
@@ -173,18 +168,56 @@ wrong `jq` path gives. One implementation (`internal/query`) sits behind two sur
 - **CLI — `myco query` (reach for this):** `myco query` alone lists the queries;
   `myco query <name> [args]` runs one — `capabilities`, `capability <name>`,
   `component <name>` (any entry — a component, or an overlay node in its `.nodes[]` shape,
-  which has no `id`/`commit`/`kind`/`status`), `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
+  which has no `id`/`commit`/`status`/`facts`), `components --status=… --tag=… --ecosystem=… --mac-app`
+  (AND-combined; `--mac-app=false` keeps only the non-Mac-apps), `used-by <name>`, `uses <name>`,
   `search <text>`. Text by default, `--json` to pipe. It reads a local `graph.json`
   (`--dir`, default `.`) or a hub (`--url <hub>`, default `$MYCELIUM_HUB` — set that
   once and no flag is needed). Flags go before or after the positional:
   `myco query used-by --url <hub> config-core`.
 - **HTTP `/q/*` — a bonus, when the binary isn't around:** the same queries by `curl`.
   `GET <hub>/q` lists them; e.g. `GET <hub>/q/capability/monitoring`,
-  `GET <hub>/q/components?kind=app&stack=rust`, `GET <hub>/q/used-by/config-core`.
+  `GET <hub>/q/components?ecosystem=rust&macApp=true`, `GET <hub>/q/used-by/config-core`.
 
 Hand-written `jq` over the raw `graph.json` is for **specific/programmatic** cases only —
 something no named query expresses, where you accept learning the schema (below) *and*
 the silent-empty-on-wrong-path footgun `myco query` removes. It is not the discovery path.
+
+### Derived facts (`facts`, `pins`)
+
+The node derives these from each repo's committed tree at the scanned ref — the git object
+store only, so a bare repo behaves like any other, and `node_modules/` and `vendor/` are
+skipped. Nothing in `mycelium.toml` sets them (`DetectFacts`, `DetectPins`).
+
+- **`facts.macApp`** — the repo builds a macOS application: a `tauri.conf.json`; an XcodeGen
+  `project.yml` or an Xcode `project.pbxproj` declaring a macOS application target; or a
+  root `justfile` that installs into `/Applications`. `MAP.md` shows it as `mac app`.
+- **`facts.updater`** — the app's update channel, when it has one: `tauri` (a
+  `tauri.conf.json` configuring the updater), `sparkle` (a Sparkle `SUPublicEDKey` in an
+  `Info.plist` or `project.yml`), or `electron` (an `electron-builder` config with a
+  `publish` target), checked in that order.
+- **`facts.ecosystems`** — what the repo is built with, sorted: `go` (`go.mod`), `rust`
+  (`Cargo.toml`), `node` (`package.json`), `swift` (`Package.swift`, `project.yml` or an
+  `.xcodeproj`), from manifests anywhere in the tree. `MAP.md` shows it as `Built with:`.
+- **`facts.versionSource`** — the repo carries a version in one place a release can bump:
+  a root `VERSION` file, a root `Cargo.toml` or `package.json` with a literal version, or a
+  `tauri.conf.json` version (or the `Cargo.toml` beside it, including one that inherits the
+  root workspace version).
+- **`facts.visibility`** — `public` or `private`, only with `myco scan --visibility` (below);
+  absent when unknown.
+- **`pins`** — the canonical ids of the repos this one pins as git dependencies: every
+  `git =` URL in any `Cargo.toml`'s dependency tables (including dev, build, workspace and
+  target-specific ones). At merge, each pin that names another component's id becomes a
+  **`depends-on` edge** from this component to it, alongside the overlay's edges (an identical
+  overlay edge is not duplicated), so it counts toward `Used by`. A pin to a repo outside the
+  graph adds nothing.
+
+**`myco scan --visibility`** asks each component's forge, unauthenticated, whether the repo is
+public: GitHub's API for `github.com`, the Forgejo/Gitea `/api/v1` API for any other host. A
+`200` reads the repo's `private` field. A `404` reads as private, because forges hide
+private repos from anonymous callers — so a deleted or renamed repo also reads as private.
+Any doubtful answer (network failure, timeout, a redirect, a `5xx`, an unreadable body)
+leaves visibility unknown; anonymous GitHub's rate limit answers with a `403` or `429`, so past it
+every GitHub repo reads unknown. Without the flag the scan makes no network calls.
 
 ### Per-repo doc-graph (`docGraph`)
 
@@ -215,7 +248,7 @@ working-tree state — on every repo, bare or not. Requires **docgraph v3.1.0+**
 `--ref`); an older or absent binary omits the digest rather than failing the
 scan.
 
-Consistency checks (orphans, invalid sidecars, out-of-set `kind`/`status` values, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version, stale-manifest)
+Consistency checks (orphans, invalid sidecars, out-of-set `status` values, dangling edges, unknown edge types, duplicate names, staleness, doc-rot, docgraph-version, stale-manifest)
 are a separate step, `myco audit`, run against the rendered `graph.json`. Orphans — repos a node
 scanned that carry no committed `mycelium.toml` — ride in each manifest and are
 merged into the graph, so the audit reports them fleet-wide (minus any id in the

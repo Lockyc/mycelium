@@ -6,19 +6,18 @@
 [![License](https://img.shields.io/github/license/lockyc/mycelium)](LICENSE)
 
 A map of your repos and services that a coding agent reads before it starts work. Each repo
-commits a small `mycelium.toml` saying what it is and what it provides. `myco` gathers them
-across machines into one graph — a Markdown summary to read and JSON to query — and audits that
-graph for broken links between repos and stale entries.
+commits a small `mycelium.toml` saying what it is for and what it provides; `myco` reads the
+rest from the repo itself — what it is built with, whether it is a Mac app, which repos it pins.
+It gathers them across machines into one graph — a Markdown summary to read and JSON to query —
+and audits that graph for broken links between repos and stale entries.
 
 A sidecar:
 
 ```toml
 name    = "billing-web"
 summary = "Customer-facing billing dashboard"
-kind    = "app"
 status  = "active"
 tags    = ["billing", "frontend"]
-stack   = ["typescript", "react"]
 
 [[provides]]
 name    = "billing-ui"
@@ -30,8 +29,8 @@ What an agent gets back:
 ```console
 $ myco query component orders-api
 orders-api — Order processing and lifecycle service
-  service active
-  stack: go, postgres
+  active
+  built with: go
   provides order-events: Publishes order lifecycle events on the message bus
 
 $ myco query used-by shared-lib
@@ -63,21 +62,24 @@ myco query capabilities --dir ./graph
 
 - **`scan`** walks the repo roots, reads each repo's *committed* `mycelium.toml` (bare repos and
   working trees alike) plus its origin remote and commit, and writes a manifest. `--ref <branch>`
-  reads the sidecar from that branch instead of HEAD. With
+  reads the sidecar from that branch instead of HEAD. From the same commit it derives each
+  repo's facts — ecosystems, Mac app, updater, version source — and the repos it pins as git
+  dependencies, which become `depends-on` edges. `--visibility` also asks each repo's forge,
+  without credentials, whether it is public. With
   [docgraph](https://github.com/lockyc/docgraph) v3.1.0+ on PATH, each repo's doc-graph digest
   comes along too.
 - **`build`** merges the manifests with the **overlay** — a private `overlay.toml` holding what
   no single repo can say about itself: relationships between repos, shared services, and the
   repos deliberately left without a sidecar — into `MAP.md` and `graph.json`.
 - **`audit`** reports graph rot: repos with no sidecar, sidecars that don't parse or use an
-  unknown `kind` or `status`, overlay edges pointing at nothing, duplicate names, components that
+  unknown `status`, overlay edges pointing at nothing, duplicate names, components that
   vanished since the last run, docs nothing links to, and a node that has stopped scanning
   (each finding: [`schema/graph.md`](schema/graph.md)).
 - **`query`** answers named questions — `capabilities`, `capability <name>`, `component <name>`,
-  `components --kind=… --stack=… --status=… --tag=…`, `used-by <name>`, `uses <name>`,
+  `components --status=… --tag=… --ecosystem=… --mac-app`, `used-by <name>`, `uses <name>`,
   `search <text>`; bare `myco query` lists them. Text by default, `--json` to pipe.
 - **`validate <mycelium.toml>`** lints one sidecar before you commit it, including any
-  misspelled key the scan would silently drop.
+  misspelled or unsupported key (such as `kind` or `stack`) the scan would silently drop.
 
 **Across machines:** each machine runs a **node** that scans and pushes to a central **hub**,
 which rebuilds and serves the graph over HTTP.

@@ -20,7 +20,7 @@ snippet names which to reach for when.
 > endpoint, or to filter/traverse, **query `<hub URL>/graph.json`** (the full-fidelity
 > graph, every field). **Prefer the query interface over hand-written `jq`:** `GET
 > <hub URL>/q` lists every query; then e.g. `GET <hub URL>/q/capability/<name>` for a
-> capability's summary + providers, `GET <hub URL>/q/components?kind=app&stack=rust` to
+> capability's summary + providers, `GET <hub URL>/q/components?ecosystem=rust&macApp=true` to
 > filter, `GET <hub URL>/q/used-by/<name>` for blast radius, `GET <hub URL>/q/search?q=`
 > to find. Each returns already-filtered JSON — no path to construct, and an unknown
 > name is a 404, not a silent empty result. **Fallback** (only for what no named query

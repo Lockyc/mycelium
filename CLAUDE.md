@@ -14,8 +14,9 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
 - `cmd/myco` — CLI + subcommand dispatch.
 - `internal/graph` — model, identity (canonical git-URL dedup), merge, render.
 - `internal/scan` — node role: walk roots, read sidecars + git info → manifest;
-  also captures each component's docgraph doc-graph, at the scanned ref
-  (`docgraph.go`).
+  derives each component's facts and pins (`facts.go`, `pins.go`) and captures its
+  docgraph doc-graph (`docgraph.go`), all at the scanned ref; `-visibility` asks the
+  forge (`forge.go`).
 - `internal/audit` — consistency checks over `graph.json` (the list: `schema/graph.md`).
 - `internal/serve` — HTTP handler for the artifact dir and the `/q/*` query routes.
 - `internal/transport` — node push (POST manifest to hub), hub ingest (receive + validate).
@@ -36,7 +37,7 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   `schema/graph.md` is the contract for all three; reconcile it with any render change.
 - **`graph.json` flattens each component — no `sidecar` wrapper.** The declared
   `mycelium.toml` fields serialize at the component top level (`.components[].summary`,
-  `.provides[]`, `.stack[]`), alongside the derived `id`/`commit`/`docGraph` and consistent
+  `.provides[]`, `.tags[]`), alongside the derived `id`/`commit`/`docGraph`/`facts`/`pins` and consistent
   with overlay nodes — a consumer queries `.provides[]`, never `.sidecar.provides[]`. The
   `Component`/`Sidecar` struct nesting is internal-only, flattened at the JSON boundary by a
   single `componentJSON` shape shared by `Component.MarshalJSON`/`UnmarshalJSON`. **Footgun:
@@ -65,9 +66,13 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   `related` into it — "business *sells* reductable" would render as reductable being *used by*
   business, which is false. Thematic edges belong to `Relationships`, which keeps their type.
 - **Size is not the constraint — signal is.** Shaving lines buys nothing measurable, so judge a
-  field by whether it answers a question the summary can't. That is why `stack` is rendered
-  (non-derivable) and each capability's `summary` is not (it would multiply the file for a fact
-  the entry already implies).
+  field by whether it answers a question the summary can't. That is why the entry's `Built with`
+  (the derived `facts.ecosystems`) is rendered and each capability's `summary` is not (it would
+  multiply the file for a fact the entry already implies).
+- **What the tree can say is derived, never declared.** `facts` and `pins` come from the
+  committed tree at the scanned ref (`internal/scan/facts.go`, `pins.go`); the sidecar declares
+  only what no tree reveals (`summary`, `status`, `paid`, `tags`, `provides`). A declared copy
+  of a derivable fact drifts from the tree, so don't add one.
 - **Overlay nodes are entries, not just capability providers.** A `[[node]]` (a non-repo
   actor — managed service, SaaS dep) rides in `Graph.Nodes` and renders in the same
   name-sorted list as components. **Footgun:** `Merge` feeds nodes into the capability index,
