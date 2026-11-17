@@ -24,13 +24,13 @@ name    = "billing-ui"
 summary = "Web UI for invoices and payment methods"
 ```
 
-What an agent gets back:
+What an agent gets back, from the graph `./scripts/demo.sh` builds out of the bundled examples:
 
 ```console
 $ myco query component orders-api
 orders-api — Order processing and lifecycle service
   active
-  built with: go
+  built with: rust
   provides order-events: Publishes order lifecycle events on the message bus
 
 $ myco query used-by shared-lib

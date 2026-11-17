@@ -27,7 +27,7 @@ func runQuery(args []string) error {
 	asJSON := fs.Bool("json", false, "emit JSON instead of text")
 	status := fs.String("status", "", "components: filter by status")
 	tag := fs.String("tag", "", "components: filter by tag")
-	ecosystem := fs.String("ecosystem", "", "components: filter by derived ecosystem (go, node, rust, swift)")
+	ecosystem := fs.String("ecosystem", "", "components: filter by derived ecosystem")
 	macApp := fs.Bool("mac-app", false, "components: only Mac apps (--mac-app=false: only non-Mac-apps)")
 	// Parse flags interspersed with positionals. Go's flag package stops at the
 	// first non-flag arg, so a plain fs.Parse would silently ignore any flag placed

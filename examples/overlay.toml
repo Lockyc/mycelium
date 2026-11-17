@@ -18,11 +18,6 @@ to   = "postgres"
 type = "consumes"
 
 [[edge]]
-from = "orders-api"
-to   = "shared-lib"
-type = "depends-on"
-
-[[edge]]
 from = "billing-web"
 to   = "order-events"
 type = "consumes"

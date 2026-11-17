@@ -9,11 +9,13 @@ these into throwaway git repos in a temp dir and runs `myco scan` / `build` /
     KEEP=1 ./scripts/demo.sh   # keep the temp workspace to inspect the files
 
 - `repos/<name>/mycelium.toml` — one public-safe sidecar per example repo.
+- `repos/<name>/Cargo.toml`, `package.json` — stub manifests the scan derives facts from.
+  `orders-api`'s `Cargo.toml` pins `shared-lib` by git URL, which becomes a `depends-on` edge.
 - `overlay.toml` — private nodes + relationship edges merged in at build time.
 
 The three example repos (`orders-api`, `billing-web`, `shared-lib`) plus the
 overlay produce a graph with three components, three capabilities
 (`order-events`, `billing-ui`, `postgres`), and four resolved relationship
-edges, none dangling. The demo also adds two sidecar-less repos: `needs-sidecar`, which
+edges (three from the overlay, one from the pin), none dangling. The demo also adds two sidecar-less repos: `needs-sidecar`, which
 `myco audit` reports as an orphan, and `scratch`, which the overlay's `ignore` list
 suppresses. See [`schema/graph.md`](../schema/graph.md) for the full field reference.

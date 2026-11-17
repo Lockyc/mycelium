@@ -28,11 +28,11 @@ for dir in "$root"/examples/repos/*/; do
 	name=$(basename "$dir")
 	dest="$repos/$name"
 	mkdir -p "$dest"
-	cp "$dir"mycelium.toml "$dest"/
+	cp -R "$dir". "$dest"/
 	git -C "$dest" init -q
 	git -C "$dest" remote add origin "git@github.com:acme/$name.git"
-	git -C "$dest" add mycelium.toml
-	# myco reads sidecars from git HEAD, so the sidecar must be committed (not just present).
+	git -C "$dest" add -A
+	# myco reads the sidecar and derives facts from git HEAD, so both must be committed.
 	git -C "$dest" -c user.email=demo@example.com -c user.name=demo \
 		commit -q -m "example"
 done
