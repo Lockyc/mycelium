@@ -92,6 +92,17 @@ func TestFactsVersionSource(t *testing.T) {
 		{"VERSION", map[string]string{"VERSION": "1.0.0\n"}, true},
 		{"cargo workspace", map[string]string{"Cargo.toml": "[workspace.package]\nversion = \"1.0.0\"\n"}, true},
 		{"package.json", map[string]string{"package.json": `{"version":"1.0.0"}`}, true},
+		{"cargo package", map[string]string{"Cargo.toml": "[package]\nversion = \"1.0.0\"\n"}, true},
+		{"dependency version only", map[string]string{"Cargo.toml": "[package]\nname = \"a\"\n[dependencies.foo]\nversion = \"1\"\n"}, false},
+		{"tauri beside cargo", map[string]string{"src-tauri/tauri.conf.json": "{}", "src-tauri/Cargo.toml": "[package]\nversion = \"1.0.0\"\n"}, true},
+		{"tauri inherits workspace", map[string]string{
+			"Cargo.toml":                 "[workspace.package]\nversion = \"1.0.0\"\n",
+			"crates/app/tauri.conf.json": "{}",
+			"crates/app/Cargo.toml":      "[package]\nversion.workspace = true\n"}, true},
+		{"tauri inherits nothing", map[string]string{
+			"src-tauri/tauri.conf.json": "{}",
+			"src-tauri/Cargo.toml":      "[package]\nversion.workspace = true\n"}, false},
+		{"tauri conf version", map[string]string{"src-tauri/tauri.conf.json": `{"version":"1.0.0"}`}, true},
 		{"none", map[string]string{"README.md": "x", "package.json": `{"name":"x"}`}, false},
 	}
 	for _, c := range cases {
@@ -113,5 +124,14 @@ func TestFactsEcosystems(t *testing.T) {
 	want := []string{"go", "node"}
 	if got := DetectFacts(r, "HEAD").Ecosystems; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v want %v", got, want)
+	}
+}
+
+func TestFactsElectronYAML(t *testing.T) {
+	r := factsRepo(t, map[string]string{
+		"electron/electron-builder.yml": "appId: x\npublish:\n  provider: generic\n",
+	})
+	if got := DetectFacts(r, "HEAD").Updater; got != "electron" {
+		t.Fatalf("Updater = %q", got)
 	}
 }
