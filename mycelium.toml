@@ -5,6 +5,8 @@ tags    = ["graph", "agents", "metadata", "cli"]
 
 [github]
 topics_extra = ["knowledge-graph", "ai-agents"]
+description = "A cross-repo ecosystem map for agents. Each repo carries a small mycelium.toml describing what it is and what it provides; mycelium merges them into one graph an agent reads to discover the repos, services and capabilities around it."
+topics = ["agents", "ai-agents", "cli", "go", "graph", "knowledge-graph", "metadata"]
 
 [[provides]]
 name    = "ecosystem-graph"
