@@ -148,6 +148,7 @@ is **flat** — its `mycelium.toml` fields sit at the top level alongside the de
   "facts":    { "macApp": false, "updater": "tauri|sparkle|electron",  // derived from the
                 "ecosystems": ["go","node","rust","swift"],            // committed tree at
                 "versionSource": true }                                // the scanned ref
+  "pins":     ["github.com/acme/shared-lib"],  // derived: git-pinned Cargo deps; each naming a component becomes a depends-on edge
 }
 ```
 

@@ -94,6 +94,10 @@ type Component struct {
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
 	// Facts are derived from the repo tree at the scanned ref, never declared.
 	Facts Facts `json:"facts"`
+	// Pins are the canonical ids of repos this one pins as git dependencies,
+	// derived from its tree. Merge turns each that names a component into a
+	// depends-on edge.
+	Pins []string `json:"pins,omitempty"`
 }
 
 // Facts is what a repo is, derived by scan from its committed tree.
@@ -131,6 +135,7 @@ type componentJSON struct {
 	Provides []Provides      `json:"provides,omitempty"`
 	DocGraph *DocGraphDigest `json:"docGraph,omitempty"`
 	Facts    Facts           `json:"facts"`
+	Pins     []string        `json:"pins,omitempty"`
 }
 
 func (c Component) MarshalJSON() ([]byte, error) {
@@ -138,7 +143,7 @@ func (c Component) MarshalJSON() ([]byte, error) {
 		ID: c.ID, Name: c.Name, Commit: c.Commit,
 		Summary: c.Sidecar.Summary, Kind: c.Sidecar.Kind, Status: c.Sidecar.Status,
 		Tags: c.Sidecar.Tags, Stack: c.Sidecar.Stack, Provides: c.Sidecar.Provides,
-		DocGraph: c.DocGraph, Facts: c.Facts,
+		DocGraph: c.DocGraph, Facts: c.Facts, Pins: c.Pins,
 	})
 }
 
@@ -147,7 +152,7 @@ func (c *Component) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &f); err != nil {
 		return err
 	}
-	c.ID, c.Name, c.Commit, c.DocGraph, c.Facts = f.ID, f.Name, f.Commit, f.DocGraph, f.Facts
+	c.ID, c.Name, c.Commit, c.DocGraph, c.Facts, c.Pins = f.ID, f.Name, f.Commit, f.DocGraph, f.Facts, f.Pins
 	c.Sidecar = Sidecar{
 		Name:    f.Name, // reconstruct the field the flat shape drops (always == Name)
 		Summary: f.Summary, Kind: f.Kind, Status: f.Status,

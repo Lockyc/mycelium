@@ -133,6 +133,30 @@ func Merge(manifests []Manifest, ov Overlay) Graph {
 		}
 	}
 
+	// Pins derive depends-on edges: a pin naming another component's id is a
+	// dependency; a pin to anything else is not in the graph and adds nothing.
+	idName := map[string]string{}
+	for _, c := range comps {
+		idName[c.ID] = c.Name
+	}
+	have := map[Edge]bool{}
+	for _, e := range edges {
+		have[e] = true
+	}
+	for _, c := range comps {
+		for _, pin := range c.Pins {
+			to, ok := idName[pin]
+			if !ok || to == c.Name {
+				continue
+			}
+			e := Edge{From: c.Name, To: to, Type: "depends-on"}
+			if !have[e] {
+				have[e] = true
+				edges = append(edges, e)
+			}
+		}
+	}
+
 	// Orphans: repos scanned without a sidecar. A repo that is a real component
 	// on any node is not an orphan; an id in the overlay ignore list is suppressed.
 	present := map[string]bool{}

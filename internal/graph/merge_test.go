@@ -195,3 +195,29 @@ func TestInvalidSidecarsBackwardCompatible(t *testing.T) {
 		t.Errorf("a clean graph should omit invalid_sidecars: %s", out)
 	}
 }
+
+func TestMergeDerivesDependsOn(t *testing.T) {
+	a := Component{ID: "github.com/o/a", Name: "a", Pins: []string{"github.com/o/b", "github.com/o/absent"}}
+	b := Component{ID: "github.com/o/b", Name: "b"}
+	g := Merge([]Manifest{{Components: []Component{a, b}}}, Overlay{})
+	if len(g.Edges) != 1 || g.Edges[0] != (Edge{From: "a", To: "b", Type: "depends-on"}) {
+		t.Fatalf("edges=%v", g.Edges)
+	}
+	if len(g.DanglingEdges) != 0 {
+		t.Fatalf("dangling=%v", g.DanglingEdges)
+	}
+	ov := Overlay{Edges: []Edge{{From: "a", To: "b", Type: "depends-on"}}}
+	g = Merge([]Manifest{{Components: []Component{a, b}}}, ov)
+	if len(g.Edges) != 1 {
+		t.Fatalf("overlay duplicate not deduped: %v", g.Edges)
+	}
+}
+
+func TestComponentPinsRoundTrip(t *testing.T) {
+	in := Component{ID: "x/y/z", Name: "z", Pins: []string{"x/y/w"}}
+	b, _ := json.Marshal(in)
+	var out Component
+	if err := json.Unmarshal(b, &out); err != nil || len(out.Pins) != 1 {
+		t.Fatalf("%v %+v", err, out)
+	}
+}
