@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -114,7 +115,7 @@ func DetectFacts(r Repo, ref string) graph.Facts {
 				electron = true
 			}
 		case p == "justfile":
-			if strings.Contains(show(p), "/Applications") {
+			if justfileInstallsApp(show(p)) {
 				f.MacApp = true
 			}
 		case p == "VERSION":
@@ -165,6 +166,30 @@ func DetectFacts(r Repo, ref string) graph.Facts {
 func inVendored(p string) bool {
 	for _, seg := range strings.Split(p, "/") {
 		if seg == "node_modules" || seg == "vendor" {
+			return true
+		}
+	}
+	return false
+}
+
+// installVerb matches a copy/install command as a whole word, so `mvp` or
+// `install-app.sh` is not one.
+var installVerb = regexp.MustCompile(`(^|[^A-Za-z0-9_.-])(cp|ditto|mv|rsync|install)([^A-Za-z0-9_.-]|$)`)
+
+// justfileInstallsApp reports whether a justfile puts an app into
+// /Applications: a non-comment line that references /Applications and runs a
+// copy/install verb, or one that runs the shared install-app.sh installer.
+// Merely naming /Applications (to locate another app) is not an install.
+func justfileInstallsApp(src string) bool {
+	for _, line := range strings.Split(src, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.Contains(line, "install-app.sh") {
+			return true
+		}
+		if strings.Contains(line, "/Applications") && installVerb.MatchString(line) {
 			return true
 		}
 	}

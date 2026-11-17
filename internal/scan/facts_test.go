@@ -135,3 +135,27 @@ func TestFactsElectronYAML(t *testing.T) {
 		t.Fatalf("Updater = %q", got)
 	}
 }
+
+func TestFactsJustfileMacApp(t *testing.T) {
+	cases := []struct {
+		name, justfile string
+		want           bool
+	}{
+		{"finds Chrome only", "chrome := \"/Applications/Google Chrome.app\"\ntest:\n\t{{chrome}}/x\n", false},
+		{"find line mentions path", "run:\n\ttest -d \"/Applications/Google Chrome.app\" && echo ok\n", false},
+		{"comment", "# cp build/X.app /Applications/\nbuild:\n\tmake\n", false},
+		{"indented comment", "install:\n    # ditto a /Applications/\n\tmake\n", false},
+		{"ditto", "install:\n\tditto build/X.app /Applications/X.app\n", true},
+		{"cp", "install:\n\tcp -R build/X.app \"/Applications/{{app}}.app\"\n", true},
+		{"installer script", "install:\n\tscripts/install-app.sh\n", true},
+		{"verb is a whole word", "x:\n\techo /Applications/mvp\n", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := factsRepo(t, map[string]string{"justfile": c.justfile})
+			if got := DetectFacts(r, "HEAD").MacApp; got != c.want {
+				t.Fatalf("MacApp = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
