@@ -5,15 +5,14 @@
 #   ./scripts/demo.sh          # build + print the map, then clean up
 #   KEEP=1 ./scripts/demo.sh   # keep the temp workspace to inspect the files
 #
-# Doubles as a smoke test: exercises scan -> build -> audit against real (throwaway)
-# git repos.
+# The gated end-to-end test of the same pipeline is cmd/myco/testdata/script/examples_pipeline.txtar.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 work=$(mktemp -d)
 if [ -z "${KEEP:-}" ]; then trap 'rm -rf "$work"' EXIT; fi
-# Always build from the current tree, so the smoke test exercises this code.
+# Always build from the current tree, so the demo shows this code.
 myco="$work/myco"
 echo "building myco..." >&2
 (cd "$root" && go build -o "$myco" ./cmd/myco)

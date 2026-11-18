@@ -1,0 +1,236 @@
+# The bundled examples through scan -> build -> audit -> query on the built
+# binary: each stage reads what the previous one wrote, and graph.json and
+# MAP.md match the goldens below (rewrite them with -update).
+materialise $EXAMPLES repos
+mkdir manifests out
+exec myco scan --roots $WORK/repos --node demo --out manifests/demo.json
+stderr 'orphan .*needs-sidecar'
+exec myco build --manifests manifests --overlay $EXAMPLES/overlay.toml --dir out
+normalise out/graph.json
+cmp out/graph.json graph.golden.json
+normalise out/MAP.md
+cmp out/MAP.md map.golden.md
+
+# needs-sidecar is an orphan; scratch is on the overlay's ignore list.
+! exec myco audit --dir out
+stdout 'needs-sidecar'
+! stdout 'scratch'
+
+# Using a capability is using its provider (2a2731b).
+exec myco query used-by order-events --dir out
+stdout 'billing-web'
+exec myco query used-by orders-api --dir out
+stdout 'billing-web'
+exec myco query component shared-postgres --dir out
+stdout 'shared-postgres'
+
+# Input is never dropped silently.
+exec myco query used-by --dir out order-events
+stdout 'billing-web'
+! exec myco query search a b --dir out
+! exec myco scan --push http://127.0.0.1:1
+stderr 'node'
+
+-- graph.golden.json --
+{
+  "components": [
+    {
+      "id": "github.com/acme/billing-web",
+      "name": "billing-web",
+      "commit": "79d208258652b157d68f5472241b00b968f9c0fe",
+      "summary": "Customer-facing billing dashboard",
+      "status": "active",
+      "tags": [
+        "billing",
+        "frontend"
+      ],
+      "provides": [
+        {
+          "name": "billing-ui",
+          "summary": "Web UI for invoices and payment methods"
+        }
+      ],
+      "docGraph": {
+        "schemaVersion": 1,
+        "docCount": 1,
+        "contentEdgeCount": 0,
+        "metadataEdgeCount": 0,
+        "entryDocs": [
+          "README.md"
+        ]
+      },
+      "facts": {
+        "macApp": false,
+        "ecosystems": [
+          "node"
+        ],
+        "versionSource": true
+      }
+    },
+    {
+      "id": "github.com/acme/orders-api",
+      "name": "orders-api",
+      "commit": "d12f04dcc4f51abc61f3635c318eeeafd834f8fd",
+      "summary": "Order processing and lifecycle service",
+      "status": "active",
+      "tags": [
+        "orders",
+        "billing"
+      ],
+      "provides": [
+        {
+          "name": "order-events",
+          "summary": "Publishes order lifecycle events on the message bus"
+        }
+      ],
+      "docGraph": {
+        "schemaVersion": 1,
+        "docCount": 1,
+        "contentEdgeCount": 0,
+        "metadataEdgeCount": 0,
+        "entryDocs": [
+          "README.md"
+        ]
+      },
+      "facts": {
+        "macApp": false,
+        "ecosystems": [
+          "rust"
+        ],
+        "versionSource": true
+      },
+      "pins": [
+        "github.com/acme/shared-lib"
+      ]
+    },
+    {
+      "id": "github.com/acme/shared-lib",
+      "name": "shared-lib",
+      "commit": "c1e04c86fac013b9b69ff170b1414601daa073f3",
+      "summary": "Shared domain types and helpers used across services",
+      "status": "active",
+      "tags": [
+        "shared"
+      ],
+      "docGraph": {
+        "schemaVersion": 1,
+        "docCount": 1,
+        "contentEdgeCount": 0,
+        "metadataEdgeCount": 0,
+        "entryDocs": [
+          "README.md"
+        ]
+      },
+      "facts": {
+        "macApp": false,
+        "ecosystems": [
+          "rust"
+        ],
+        "versionSource": true
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "name": "shared-postgres",
+      "summary": "Shared Postgres instance",
+      "provides": [
+        "postgres"
+      ]
+    }
+  ],
+  "capabilities": {
+    "billing-ui": [
+      "billing-web"
+    ],
+    "order-events": [
+      "orders-api"
+    ],
+    "postgres": [
+      "shared-postgres"
+    ]
+  },
+  "edges": [
+    {
+      "from": "orders-api",
+      "to": "postgres",
+      "type": "consumes"
+    },
+    {
+      "from": "billing-web",
+      "to": "order-events",
+      "type": "consumes"
+    },
+    {
+      "from": "billing-web",
+      "to": "shared-lib",
+      "type": "depends-on"
+    },
+    {
+      "from": "orders-api",
+      "to": "shared-lib",
+      "type": "depends-on"
+    }
+  ],
+  "dangling_edges": [],
+  "orphans": [
+    {
+      "id": "github.com/acme/needs-sidecar",
+      "name": "needs-sidecar"
+    }
+  ],
+  "sources": [
+    {
+      "node": "demo",
+      "scanned_at": "<time>"
+    }
+  ]
+}
+-- map.golden.md --
+# Mycelium map
+
+A lossy overview to read whole and orient — *what exists, and when does each apply?* To look anything up, **query the graph with `myco query`** (the first-class way — it answers named questions without your needing to know `graph.json`'s structure): `myco query` alone lists the queries; e.g. `myco query capability <name>`, `myco query used-by <name>`. Capability summaries and urls are dropped here to stay skimmable — recover them with `myco query capability <name>`.
+
+## Components
+
+### billing-web
+Customer-facing billing dashboard
+_active_
+Provides: **billing-ui**
+Built with: node
+`billing` `frontend`
+
+### orders-api
+Order processing and lifecycle service
+_active_
+Provides: **order-events**
+Used by: billing-web
+Built with: rust
+`orders` `billing`
+
+### shared-lib
+Shared domain types and helpers used across services
+_active_
+Used by: billing-web, orders-api
+Built with: rust
+`shared`
+
+### shared-postgres
+Shared Postgres instance
+Provides: **postgres**
+Used by: orders-api
+
+## Relationships
+
+- orders-api consumes postgres
+- billing-web consumes order-events
+- billing-web depends-on shared-lib
+- orders-api depends-on shared-lib
+
+## Undocumented repos
+
+**Gaps in this map, not a normal state.** Each repo below was scanned but carries no `mycelium.toml`, so its purpose and capabilities are missing here — treat this map as incomplete while any remain.
+
+Read such a repo directly for now. **If you are working in one, close the gap in that change:** commit a `mycelium.toml` (identity + `provides`), or add its id to the overlay's `ignore` list if it is deliberately undocumented. Already added one and still see it here? Check the filename — `mycelium.toml` is the only name read.
+
+- **needs-sidecar** — github.com/acme/needs-sidecar
