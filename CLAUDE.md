@@ -85,7 +85,8 @@ private overlay → render `MAP.md`/`graph.json` → audit → serve.
   as the repo, and the served graph is access-gated). Relationship edges + non-repo
   private nodes live in the overlay regardless.
 - Repo roots are always configurable — never hardcode a path.
-- Only third-party runtime dep: `go-toml/v2` (tests also use `rapid`). Git via `os/exec`,
+- Only third-party runtime dep: `go-toml/v2` (tests also use `rapid` and
+  `testscript`). Git via `os/exec`,
   JSON/HTTP via stdlib.
 - **Sidecars are read from a committed ref, default HEAD** — only committed `mycelium.toml`
   is seen; working-tree edits are not scanned. A node may pass `--ref <branch>` (e.g. `dev`)

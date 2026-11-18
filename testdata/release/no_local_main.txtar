@@ -1,0 +1,16 @@
+# A fresh clone of dev has no local main branch; the release creates it from
+# origin rather than failing (3619594).
+mkrelrepo
+exec git clone -q -b dev $WORK/origin.git $WORK/fresh
+cd $WORK/fresh
+! exec git rev-parse -q --verify refs/heads/main
+exec just release
+stdout 'released v0.2.0'
+
+exec git rev-parse dev
+cp stdout $WORK/dev.sha
+exec git -C $WORK/origin.git rev-parse main
+cmp stdout $WORK/dev.sha
+exec git -C $WORK/origin.git rev-parse v0.2.0^{commit}
+cmp stdout $WORK/dev.sha
+grep '^release create v0.2.0 ' $GH_LOG

@@ -1,0 +1,18 @@
+# origin/main carries a commit dev lacks: both ref updates are fast-forward
+# only, so the release stops instead of rewinding main, and no tag goes out
+# (20f0ddb).
+mkrelrepo
+exec git clone -q $WORK/origin.git $WORK/other
+cd $WORK/other
+exec git commit -q --allow-empty -m 'out-of-band fix on main'
+exec git push -q origin main
+exec git rev-parse main
+cp stdout $WORK/main.before
+
+cd $WORK/repo
+! exec just release
+stderr 'main diverged from dev'
+exec git -C $WORK/origin.git rev-parse main
+cmp stdout $WORK/main.before
+! exec git -C $WORK/origin.git rev-parse -q --verify refs/tags/v0.2.0
+! exists $GH_LOG

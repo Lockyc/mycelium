@@ -1,0 +1,25 @@
+# The primary checkout holds main and dev lives in a worktree: git will not
+# fetch into a branch a worktree has checked out, so main is fast-forwarded in
+# its own checkout instead (873480f).
+mkrelrepo
+cd $WORK/repo
+exec git checkout -q main
+exec git worktree add -q $WORK/devwt dev
+cd $WORK/devwt
+exec just release
+stdout 'released v0.2.0'
+
+# origin/main, the primary checkout's main and the tag all sit on dev.
+exec git rev-parse dev
+cp stdout $WORK/dev.sha
+exec git -C $WORK/origin.git rev-parse main
+cmp stdout $WORK/dev.sha
+exec git -C $WORK/repo rev-parse HEAD
+cmp stdout $WORK/dev.sha
+exec git -C $WORK/origin.git rev-parse v0.2.0^{commit}
+cmp stdout $WORK/dev.sha
+
+# The release went out with a non-empty body naming the commits since v0.1.0.
+grep '^release create v0.2.0 --target main --title v0.2.0 --notes-file ' $GH_LOG
+grep '^- bump to 0.2.0$' $GH_NOTES
+grep 'compare/v0.1.0...v0.2.0' $GH_NOTES

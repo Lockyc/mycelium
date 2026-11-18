@@ -1,0 +1,9 @@
+# The gate tests the checkout it runs in but the release ships local dev, so a
+# release from any other branch is refused before anything moves (a5f6807).
+mkrelrepo
+cd $WORK/repo
+exec git checkout -q -b feature
+! exec just release
+stderr 'not on dev'
+! exec git -C $WORK/origin.git rev-parse -q --verify refs/tags/v0.2.0
+! exists $GH_LOG

@@ -1,0 +1,15 @@
+# A release with nothing to say stops before anything is pushed, so it never
+# leaves a public tag with no release (e1192a7, 2a57bf3).
+mkrelrepo
+exec git -C $WORK/origin.git rev-parse main
+cp stdout $WORK/main.before
+cd $WORK/repo
+! exec just release $WORK/empty.md
+stderr 'refusing to publish v0.2.0'
+! exec git -C $WORK/origin.git rev-parse -q --verify refs/tags/v0.2.0
+! exec git rev-parse -q --verify refs/tags/v0.2.0
+exec git -C $WORK/origin.git rev-parse main
+cmp stdout $WORK/main.before
+! exists $GH_LOG
+
+-- empty.md --
