@@ -32,6 +32,37 @@ test:
 fuzz time="60s":
     go test ./internal/graph -run '^$' -fuzz FuzzCanonicalID -fuzztime {{time}}
 
+# Roots: $FACTS_ROOTS (default ~/Developer). Snapshot: $XDG_STATE_HOME/mycelium/facts.json, outside the repo.
+# `just facts-diff update` accepts the current facts as the new snapshot.
+# Diff every repo's derived facts against the accepted snapshot before a facts change ships (local only)
+[group("check")]
+facts-diff mode="diff":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    state="${XDG_STATE_HOME:-$HOME/.local/state}/mycelium"
+    snap="$state/facts.json"
+    scratch="$(mktemp -d)"
+    trap 'rm -rf "$scratch"' EXIT
+    go build -o "$scratch/myco" ./cmd/myco
+    if ! "$scratch/myco" scan --roots "${FACTS_ROOTS:-$HOME/Developer}" --node facts-diff \
+        --out "$scratch/manifest.json" 2>"$scratch/scan.log"; then
+      cat "$scratch/scan.log" >&2
+      exit 1
+    fi
+    jq -S '[.components[] | {id, facts}] | sort_by(.id)' "$scratch/manifest.json" > "$scratch/facts.json"
+    if [ "{{mode}}" = update ] || [ ! -f "$snap" ]; then
+      mkdir -p "$state"
+      cp "$scratch/facts.json" "$snap"
+      echo "✓ snapshot written: $snap ($(jq length "$snap") repos)"
+      exit 0
+    fi
+    if diff -u "$snap" "$scratch/facts.json"; then
+      echo "✓ no fact changes across $(jq length "$snap") repos"
+    else
+      echo "✗ facts changed — turn each intended flip into a facts_test case, then: just facts-diff update" >&2
+      exit 1
+    fi
+
 # go vet static checks
 [group("check")]
 vet:
