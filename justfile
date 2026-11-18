@@ -27,6 +27,11 @@ demo:
 test:
     go test ./...
 
+# Fuzz CanonicalID past its seeds (occasional, not in gate): just fuzz 5m
+[group("check")]
+fuzz time="60s":
+    go test ./internal/graph -run '^$' -fuzz FuzzCanonicalID -fuzztime {{time}}
+
 # go vet static checks
 [group("check")]
 vet:
