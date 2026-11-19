@@ -185,8 +185,8 @@ the silent-empty-on-wrong-path footgun `myco query` removes. It is not the disco
 ### Derived facts (`facts`, `pins`)
 
 The node derives these from each repo's committed tree at the scanned ref — the git object
-store only, so a bare repo behaves like any other, and `node_modules/` and `vendor/` are
-skipped. Nothing in `mycelium.toml` sets them (`DetectFacts`, `DetectPins`).
+store only, so a bare repo behaves like any other, and dependency and sample trees
+(`inVendored`) are skipped. Nothing in `mycelium.toml` sets them (`DetectFacts`, `DetectPins`).
 
 - **`facts.macApp`** — the repo builds a macOS application: a `tauri.conf.json`; an XcodeGen
   `project.yml` or an Xcode `project.pbxproj` declaring a macOS application target; or a

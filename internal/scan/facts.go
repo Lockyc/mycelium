@@ -165,11 +165,13 @@ func DetectFacts(r Repo, ref string) graph.Facts {
 	return f
 }
 
-// inVendored reports whether p sits under a dependency directory whose
-// manifests describe someone else's project.
+// inVendored reports whether p sits under a directory whose manifests describe
+// some other project: a dependency (node_modules, vendor) or a sample or
+// fixture tree (examples, testdata, fixtures).
 func inVendored(p string) bool {
 	for _, seg := range strings.Split(p, "/") {
-		if seg == "node_modules" || seg == "vendor" {
+		switch seg {
+		case "node_modules", "vendor", "examples", "testdata", "fixtures":
 			return true
 		}
 	}

@@ -120,6 +120,9 @@ func TestFactsEcosystems(t *testing.T) {
 		"package.json":                `{}`,
 		"node_modules/dep/Cargo.toml": "",
 		"vendor/dep/Package.swift":    "",
+		"examples/demo/Cargo.toml":    "",
+		"testdata/app/Package.swift":  "",
+		"fixtures/site/Cargo.toml":    "",
 	})
 	want := []string{"go", "node"}
 	if got := DetectFacts(r, "HEAD").Ecosystems; !reflect.DeepEqual(got, want) {
