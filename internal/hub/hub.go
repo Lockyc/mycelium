@@ -70,9 +70,9 @@ func Build(manifestsDir, overlayPath, outDir string) error {
 	return atomicfile.WriteFile(filepath.Join(outDir, graph.MapName), []byte(graph.RenderMarkdown(g)), 0o644)
 }
 
-// Handler builds the mux: the artifact routes (MAP.md, graph.json, and the
-// root alias) plus the authenticated ingest endpoint, whose onIngest re-runs
-// Build (serialized).
+// Handler builds the mux: the unauthenticated read routes (MAP.md, graph.json,
+// the root alias and the /q query routes) plus the authenticated ingest
+// endpoint, whose onIngest re-runs Build (serialized).
 func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 	var mu sync.Mutex
 	rebuild := func() error {
@@ -86,7 +86,7 @@ func Handler(manifestsDir, overlayPath, dir, ingestToken string) http.Handler {
 	}
 	mux := http.NewServeMux()
 	mux.Handle(transport.ManifestPath, transport.IngestHandler(manifestsDir, ingestToken, rebuild))
-	// static routes (/MAP.md, /graph.json, /) come last as the fallback.
+	// read routes (static + /q) come last as the fallback.
 	mux.Handle("/", serve.Handler(dir))
 	return mux
 }
