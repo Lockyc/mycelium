@@ -189,8 +189,9 @@ store only, so a bare repo behaves like any other, and `node_modules/` and `vend
 skipped. Nothing in `mycelium.toml` sets them (`DetectFacts`, `DetectPins`).
 
 - **`facts.macApp`** — the repo builds a macOS application: a `tauri.conf.json`; an XcodeGen
-  `project.yml` or an Xcode `project.pbxproj` declaring a macOS application target; or a
-  root `justfile` that installs into `/Applications`. `MAP.md` shows it as `mac app`.
+  `project.yml` or an Xcode `project.pbxproj` declaring a macOS application target; an
+  `Info.plist` (outside a Tests dir) declaring a macOS application bundle (`CFBundlePackageType`
+  APPL with `LSMinimumSystemVersion`); or a root `justfile` that installs into `/Applications`. `MAP.md` shows it as `mac app`.
 - **`facts.updater`** — the app's update channel, when it has one: `tauri` (a
   `tauri.conf.json` configuring the updater), `sparkle` (a Sparkle `SUPublicEDKey` in an
   `Info.plist` or `project.yml`), or `electron` (an `electron-builder` config with a
