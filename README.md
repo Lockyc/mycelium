@@ -65,7 +65,8 @@ myco query capabilities --dir ./graph
   reads the sidecar from that branch instead of HEAD. From the same commit it derives each
   repo's facts — ecosystems, Mac app, updater, version source — and the repos it pins as git
   dependencies, which become `depends-on` edges. `--visibility` also asks each repo's forge,
-  without credentials, whether it is public. With
+  anonymously (or with `$GITHUB_TOKEN` for github.com, when set; `schema/graph.md`), whether it is
+  public. With
   [docgraph](https://github.com/lockyc/docgraph) v3.1.0+ on PATH, each repo's doc-graph digest
   comes along too.
 - **`build`** merges the manifests with the **overlay** — a private `overlay.toml` holding what
