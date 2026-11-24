@@ -210,11 +210,42 @@ func TestEmptyTokenFileIsRefused(t *testing.T) {
 	}
 }
 
-// -visibility is a defined scan flag; an empty root makes no lookups, so the
-// run stays off the network.
+// -visibility is a defined scan flag; a root holding only an orphan has no
+// component to look up, so the run stays off the network.
 func TestScanAcceptsVisibilityFlag(t *testing.T) {
+	root := t.TempDir()
+	repo := filepath.Join(root, "acme", "bare")
+	if err := os.MkdirAll(repo, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v %s", err, out)
+	}
 	out := filepath.Join(t.TempDir(), "m.json")
-	if err := runScan([]string{"--roots", t.TempDir(), "--node", "test", "--visibility", "--out", out}); err != nil {
+	if err := runScan([]string{"--roots", root, "--node", "test", "--visibility", "--out", out}); err != nil {
 		t.Fatalf("scan -visibility: %v", err)
+	}
+}
+
+// A scan that finds nothing (an unset --roots, an unmounted share) must fail
+// rather than write or push an empty manifest, which would replace the node's
+// last good manifest on the hub and drop its repos from the graph.
+func TestScanRefusesEmptyResult(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "m.json")
+	if err := runScan([]string{"--roots", " , ", "--node", "n", "--out", out}); err == nil || !strings.Contains(err.Error(), "--roots") {
+		t.Fatalf("scan with empty --roots: got %v, want a --roots error", err)
+	}
+	manDir := t.TempDir()
+	srv := httptest.NewServer(hub.Handler(manDir, "", t.TempDir(), ""))
+	defer srv.Close()
+	err := runScan([]string{"--roots", t.TempDir(), "--node", "n", "--out", out, "--push", srv.URL})
+	if err == nil || !strings.Contains(err.Error(), "no repos found") {
+		t.Fatalf("scan of a root with no repos: got %v, want a 'no repos found' error", err)
+	}
+	if _, err := os.Stat(out); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("an empty scan wrote %s (stat err: %v)", out, err)
+	}
+	if entries, _ := os.ReadDir(manDir); len(entries) != 0 {
+		t.Fatalf("an empty scan reached the hub: %v", entries)
 	}
 }

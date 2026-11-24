@@ -63,11 +63,15 @@ func runScan(args []string) error {
 	if *push != "" && *node == "" {
 		return fmt.Errorf("scan --push needs --node (the hub rejects a manifest without a node id)")
 	}
+	rootList := splitRoots(*roots)
+	if len(rootList) == 0 {
+		return fmt.Errorf("scan needs --roots (comma-separated repo roots)")
+	}
 	token, err := readToken(*tokenFile)
 	if err != nil {
 		return err
 	}
-	m, err := scan.Scan(splitRoots(*roots), scan.Options{
+	m, err := scan.Scan(rootList, scan.Options{
 		Node:          *node,
 		Source:        *source,
 		Now:           time.Now().UTC().Format(time.RFC3339),
@@ -78,6 +82,11 @@ func runScan(args []string) error {
 	})
 	if err != nil {
 		return err
+	}
+	// The hub replaces a node's manifest on each push, so an empty one (a root
+	// whose share isn't mounted) would erase every repo the node holds.
+	if len(m.Components)+len(m.Orphans)+len(m.InvalidSidecars) == 0 {
+		return fmt.Errorf("no repos found under %s; refusing to write or push an empty manifest", strings.Join(rootList, ", "))
 	}
 	for _, o := range m.Orphans {
 		fmt.Fprintln(os.Stderr, "warning: orphan (no committed mycelium.toml):", o.Path)
