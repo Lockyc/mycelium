@@ -26,6 +26,24 @@ func splitRoots(s string) []string {
 	return out
 }
 
+// readToken reads a bearer token file. A path that is set but holds no token is
+// an error: an unpopulated secret mount would otherwise leave hub ingest open, so
+// running without a token is only possible by omitting the flag.
+func readToken(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	token := strings.TrimSpace(string(b))
+	if token == "" {
+		return "", fmt.Errorf("token file %s is empty", path)
+	}
+	return token, nil
+}
+
 func runScan(args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	roots := fs.String("roots", "", "comma-separated repo roots")
@@ -44,6 +62,10 @@ func runScan(args []string) error {
 	// The hub refuses a manifest with no node id; say so before scanning the whole store.
 	if *push != "" && *node == "" {
 		return fmt.Errorf("scan --push needs --node (the hub rejects a manifest without a node id)")
+	}
+	token, err := readToken(*tokenFile)
+	if err != nil {
+		return err
 	}
 	m, err := scan.Scan(splitRoots(*roots), scan.Options{
 		Node:          *node,
@@ -75,14 +97,6 @@ func runScan(args []string) error {
 		}
 	}
 	if *push != "" {
-		token := ""
-		if *tokenFile != "" {
-			b, err := os.ReadFile(*tokenFile)
-			if err != nil {
-				return err
-			}
-			token = strings.TrimSpace(string(b))
-		}
 		if err := transport.Push(*push, token, m); err != nil {
 			return err
 		}
@@ -181,13 +195,9 @@ func runServe(args []string) error {
 	if *manifests == "" {
 		return fmt.Errorf("serve: --manifests <dir> is required")
 	}
-	token := ""
-	if *ingestToken != "" {
-		b, err := os.ReadFile(*ingestToken)
-		if err != nil {
-			return err
-		}
-		token = strings.TrimSpace(string(b))
+	token, err := readToken(*ingestToken)
+	if err != nil {
+		return err
 	}
 	fmt.Println("serving map + graph + ingest on", *addr)
 	return hub.Serve(*manifests, *overlayPath, *dir, token, *addr)

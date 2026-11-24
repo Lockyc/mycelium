@@ -193,6 +193,23 @@ func TestAuditReadsHub(t *testing.T) {
 	}
 }
 
+// A token file that is empty (an unpopulated secret mount) must stop serve, not
+// start a hub whose ingest accepts anyone; scan refuses it the same way.
+func TestEmptyTokenFileIsRefused(t *testing.T) {
+	empty := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(empty, []byte(" \n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := runServe([]string{"--manifests", t.TempDir(), "--dir", t.TempDir(), "--ingest-token-file", empty, "--addr", "127.0.0.1:0"})
+	if err == nil || !strings.Contains(err.Error(), "is empty") {
+		t.Fatalf("serve with an empty --ingest-token-file: got %v, want an 'is empty' error", err)
+	}
+	err = runScan([]string{"--roots", t.TempDir(), "--node", "n", "--push", "http://127.0.0.1:1", "--token-file", empty})
+	if err == nil || !strings.Contains(err.Error(), "is empty") {
+		t.Fatalf("scan with an empty --token-file: got %v, want an 'is empty' error", err)
+	}
+}
+
 // -visibility is a defined scan flag; an empty root makes no lookups, so the
 // run stays off the network.
 func TestScanAcceptsVisibilityFlag(t *testing.T) {
