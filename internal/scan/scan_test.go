@@ -232,3 +232,33 @@ func TestScanRecordsInvalidSidecarAndContinues(t *testing.T) {
 		}
 	}
 }
+
+// A repo git refuses to open (dubious ownership: a store owned by another user,
+// such as a forge's git user) is an invalid sidecar carrying git's reason, never
+// an orphan, which would tell the fleet to add a mycelium.toml that exists.
+func TestScanUnreadableRepoIsInvalidNotOrphan(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "acme", "owned")
+	mkWorking(t, dir)
+	commitSidecar(t, dir, "name=\"owned\"\nsummary=\"s\"\n")
+
+	t.Setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
+	m, err := Scan([]string{root}, Options{Node: "n", FallbackHost: "git.example.com", DocGraph: func(string, string) ([]byte, error) { return nil, errDocGraphNotInstalled }})
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if len(m.Orphans) != 0 || len(m.Components) != 0 {
+		t.Fatalf("orphans = %+v, components = %+v; want neither", m.Orphans, m.Components)
+	}
+	if len(m.InvalidSidecars) != 1 {
+		t.Fatalf("invalid = %+v, want the unreadable repo", m.InvalidSidecars)
+	}
+	inv := m.InvalidSidecars[0]
+	if !strings.Contains(inv.Error, "dubious ownership") {
+		t.Errorf("error = %q, want git's reason", inv.Error)
+	}
+	resolved, _ := filepath.EvalSymlinks(root)
+	if strings.Contains(inv.Error, root) || strings.Contains(inv.Error, resolved) {
+		t.Errorf("error leaks a node-local path: %q", inv.Error)
+	}
+}
