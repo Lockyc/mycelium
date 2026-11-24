@@ -102,14 +102,20 @@ func TestQueryRoutes(t *testing.T) {
 		t.Errorf("unknown capability should 404 json: %d %s", code, body)
 	}
 	// components filter
-	if body, code := get(t, srv.URL+"/q/components?ecosystem=rust&macApp=true"); code != 200 || !strings.Contains(body, "warden") {
+	if body, code := get(t, srv.URL+"/q/components?ecosystem=rust&mac-app=true"); code != 200 || !strings.Contains(body, "warden") {
 		t.Errorf("/q/components filter wrong: %d %s", code, body)
 	}
-	if body, code := get(t, srv.URL+"/q/components?macApp=false"); code != 200 || strings.Contains(body, "warden") {
-		t.Errorf("/q/components macApp=false must exclude a mac app: %d %s", code, body)
+	if body, code := get(t, srv.URL+"/q/components?mac-app=false"); code != 200 || strings.Contains(body, "warden") {
+		t.Errorf("/q/components mac-app=false must exclude a mac app: %d %s", code, body)
 	}
-	if body, code := get(t, srv.URL+"/q/components?macApp=yes-ish"); code != 400 || !strings.Contains(body, "error") {
-		t.Errorf("unparseable macApp must 400, not silently match all: %d %s", code, body)
+	if body, code := get(t, srv.URL+"/q/components?mac-app=yes-ish"); code != 400 || !strings.Contains(body, "error") {
+		t.Errorf("unparseable mac-app must 400, not silently match all: %d %s", code, body)
+	}
+	// an unknown or misspelt filter is a 400 naming it, never every component
+	for _, q := range []string{"ecosystm=rust", "macApp=true"} {
+		if body, code := get(t, srv.URL+"/q/components?"+q); code != 400 || !strings.Contains(body, "unknown filter") {
+			t.Errorf("/q/components?%s must 400 as an unknown filter: %d %s", q, code, body)
+		}
 	}
 	if body, code := get(t, srv.URL+"/q/components?ecosystem=go"); code != 200 || strings.Contains(body, "warden") {
 		t.Errorf("/q/components ecosystem=go must exclude warden: %d %s", code, body)

@@ -25,10 +25,10 @@ func runQuery(args []string) error {
 	dir := fs.String("dir", ".", "artifact dir (with graph.json)")
 	url := fs.String("url", os.Getenv("MYCELIUM_HUB"), "hub URL to fetch graph.json from (default $MYCELIUM_HUB); overrides --dir")
 	asJSON := fs.Bool("json", false, "emit JSON instead of text")
-	status := fs.String("status", "", "components: filter by status")
-	tag := fs.String("tag", "", "components: filter by tag")
-	ecosystem := fs.String("ecosystem", "", "components: filter by derived ecosystem")
-	macApp := fs.Bool("mac-app", false, "components: only Mac apps (--mac-app=false: only non-Mac-apps)")
+	filters := map[string]string{}
+	for _, p := range query.ComponentFilterParams {
+		fs.Var(filterFlag{name: p.Name, isBool: p.Bool, into: filters}, p.Name, "components: "+p.Usage)
+	}
 	// Parse flags interspersed with positionals. Go's flag package stops at the
 	// first non-flag arg, so a plain fs.Parse would silently ignore any flag placed
 	// after the positional (`myco query used-by config-core --url X` would drop
@@ -91,9 +91,9 @@ func runQuery(args []string) error {
 		if err := noArgs(pos, sub); err != nil {
 			return err
 		}
-		f := query.ComponentFilter{Status: *status, Tag: *tag, Ecosystem: *ecosystem}
-		if flagPassed(fs, "mac-app") {
-			f.MacApp = macApp
+		f, err := query.ParseComponentFilter(filters)
+		if err != nil {
+			return err
 		}
 		cs := query.Components(g, f)
 		return emit(*asJSON, cs, textComponents)
@@ -127,6 +127,19 @@ func runQuery(args []string) error {
 		return fmt.Errorf("unknown query %q\n\n%s", sub, queryIndex())
 	}
 }
+
+// filterFlag records a components filter flag's raw value under its name for
+// query.ParseComponentFilter, which owns the parsing. A Bool filter may be given
+// bare (`--mac-app`), meaning true.
+type filterFlag struct {
+	name   string
+	isBool bool
+	into   map[string]string
+}
+
+func (f filterFlag) String() string     { return "" }
+func (f filterFlag) IsBoolFlag() bool   { return f.isBool }
+func (f filterFlag) Set(v string) error { f.into[f.name] = v; return nil }
 
 // arg1 returns the one positional a query takes. More than one is an error, not
 // a silent truncation: `search config core` answering for "config" alone is a

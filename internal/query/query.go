@@ -8,8 +8,10 @@ package query
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -30,6 +32,63 @@ type CapabilityView struct {
 type ComponentFilter struct {
 	Status, Tag, Ecosystem string
 	MacApp                 *bool
+}
+
+// FilterParam is one components filter. Name is spelt the same as a CLI flag
+// (`--mac-app`) and a /q/components query parameter (`?mac-app=true`); a Bool
+// filter takes true or false, and as a flag may be given bare.
+type FilterParam struct {
+	Name, Usage string
+	Bool        bool
+}
+
+// ComponentFilterParams are the components filters ParseComponentFilter accepts.
+var ComponentFilterParams = []FilterParam{
+	{Name: "status", Usage: "filter by status"},
+	{Name: "tag", Usage: "filter by tag"},
+	{Name: "ecosystem", Usage: "filter by derived ecosystem"},
+	{Name: "mac-app", Usage: "only Mac apps (--mac-app=false: only non-Mac-apps)", Bool: true},
+}
+
+// ParseComponentFilter builds a ComponentFilter from filter names to values.
+// An unknown name or a non-boolean Bool filter is an error: ignoring it would
+// answer with every component, the silent wrong result this package removes.
+func ParseComponentFilter(params map[string]string) (ComponentFilter, error) {
+	var f ComponentFilter
+	for k, v := range params {
+		switch k {
+		case "status":
+			f.Status = v
+		case "tag":
+			f.Tag = v
+		case "ecosystem":
+			f.Ecosystem = v
+		case "mac-app":
+			b, err := strconv.ParseBool(v)
+			if err != nil {
+				return ComponentFilter{}, fmt.Errorf("mac-app must be true or false, got %q", v)
+			}
+			f.MacApp = &b
+		default:
+			names := make([]string, len(ComponentFilterParams))
+			for i, p := range ComponentFilterParams {
+				names[i] = p.Name
+			}
+			return ComponentFilter{}, fmt.Errorf("unknown filter %q (filters: %s)", k, strings.Join(names, ", "))
+		}
+	}
+	return f, nil
+}
+
+func componentFilterArgs() string {
+	var b strings.Builder
+	for i, p := range ComponentFilterParams {
+		if i > 0 {
+			b.WriteString(" ")
+		}
+		b.WriteString("--" + p.Name)
+	}
+	return "[" + b.String() + "]"
 }
 
 // Capabilities returns every capability, name-sorted, as a view.
@@ -222,7 +281,7 @@ func Descriptors() []QueryDesc {
 		{Name: "capabilities", Example: "myco query capabilities"},
 		{Name: "capability", Args: "<name>", Example: "myco query capability monitoring"},
 		{Name: "component", Args: "<name>", Example: "myco query component warden"},
-		{Name: "components", Args: "[--status --tag --ecosystem --mac-app]", Example: "myco query components --ecosystem rust"},
+		{Name: "components", Args: componentFilterArgs(), Example: "myco query components --ecosystem rust"},
 		{Name: "used-by", Args: "<name>", Example: "myco query used-by config-core"},
 		{Name: "uses", Args: "<name>", Example: "myco query uses lector"},
 		{Name: "search", Args: "<text>", Example: "myco query search newsletter"},

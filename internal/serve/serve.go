@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -49,15 +48,18 @@ func Handler(dir string) http.Handler {
 			}
 			writeJSON(w, http.StatusOK, e)
 		case "components":
-			qs := r.URL.Query()
-			f := query.ComponentFilter{Status: qs.Get("status"), Tag: qs.Get("tag"), Ecosystem: qs.Get("ecosystem")}
-			if v := qs.Get("macApp"); v != "" {
-				b, err := strconv.ParseBool(v)
-				if err != nil {
-					writeErr(w, http.StatusBadRequest, "macApp must be true or false: "+v)
+			params := map[string]string{}
+			for k, vs := range r.URL.Query() {
+				if len(vs) > 1 {
+					writeErr(w, http.StatusBadRequest, "filter given more than once: "+k)
 					return
 				}
-				f.MacApp = &b
+				params[k] = vs[0]
+			}
+			f, err := query.ParseComponentFilter(params)
+			if err != nil {
+				writeErr(w, http.StatusBadRequest, err.Error())
+				return
 			}
 			writeJSON(w, http.StatusOK, query.Components(g, f))
 		case "used-by":

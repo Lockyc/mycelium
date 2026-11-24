@@ -3,6 +3,7 @@ package query
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/lockyc/mycelium/internal/graph"
@@ -219,6 +220,42 @@ func TestDescriptorsCoverAllQueries(t *testing.T) {
 	for _, want := range []string{"capabilities", "capability", "component", "components", "used-by", "uses", "search"} {
 		if !names[want] {
 			t.Errorf("Descriptors() missing %q", want)
+		}
+	}
+}
+
+func TestParseComponentFilter(t *testing.T) {
+	yes := true
+	f, err := ParseComponentFilter(map[string]string{"status": "active", "tag": "macos", "ecosystem": "rust", "mac-app": "true"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (ComponentFilter{Status: "active", Tag: "macos", Ecosystem: "rust", MacApp: &yes}); !reflect.DeepEqual(f, want) {
+		t.Errorf("parsed %+v, want %+v", f, want)
+	}
+	if f, err := ParseComponentFilter(nil); err != nil || f.MacApp != nil {
+		t.Errorf("no params must be the wildcard filter, got %+v %v", f, err)
+	}
+	for _, bad := range []map[string]string{{"ecosystm": "rust"}, {"macApp": "true"}, {"mac-app": "yes-ish"}} {
+		if _, err := ParseComponentFilter(bad); err == nil {
+			t.Errorf("ParseComponentFilter(%v) accepted a bad filter", bad)
+		}
+	}
+}
+
+// The index advertises exactly the filter names ParseComponentFilter accepts.
+func TestDescriptorsAdvertiseComponentFilters(t *testing.T) {
+	for _, d := range Descriptors() {
+		if d.Name != "components" {
+			continue
+		}
+		for _, p := range ComponentFilterParams {
+			if !strings.Contains(d.Args, "--"+p.Name) {
+				t.Errorf("components descriptor %q does not advertise %q", d.Args, p.Name)
+			}
+			if _, err := ParseComponentFilter(map[string]string{p.Name: "true"}); err != nil {
+				t.Errorf("advertised filter %q is rejected: %v", p.Name, err)
+			}
 		}
 	}
 }

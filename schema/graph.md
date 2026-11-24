@@ -176,7 +176,7 @@ wrong `jq` path gives. One implementation (`internal/query`) sits behind two sur
   `myco query used-by --url <hub> config-core`.
 - **HTTP `/q/*` — a bonus, when the binary isn't around:** the same queries by `curl`.
   `GET <hub>/q` lists them; e.g. `GET <hub>/q/capability/monitoring`,
-  `GET <hub>/q/components?ecosystem=rust&macApp=true`, `GET <hub>/q/used-by/config-core`.
+  `GET <hub>/q/components?ecosystem=rust&mac-app=true`, `GET <hub>/q/used-by/config-core`.
 
 Hand-written `jq` over the raw `graph.json` is for **specific/programmatic** cases only —
 something no named query expresses, where you accept learning the schema (below) *and*
