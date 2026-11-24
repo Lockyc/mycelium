@@ -91,6 +91,29 @@ func TestRenderMarkdownUndocumentedRepos(t *testing.T) {
 	}
 }
 
+// A repo whose sidecar is broken has no entry, so the map must list it rather
+// than claim every scanned repo has one.
+func TestRenderMarkdownListsInvalidSidecars(t *testing.T) {
+	md := RenderMarkdown(Graph{InvalidSidecars: []InvalidSidecar{
+		{ID: "github.com/acme/broken", Name: "broken", Error: "parse sidecar:\n  line 1: bad", Path: "/node/broken"},
+	}})
+	if strings.Contains(md, "_None") {
+		t.Errorf("map claims no gaps while a sidecar is broken:\n%s", md)
+	}
+	for _, want := range []string{
+		"not a normal state",
+		"- **broken** — github.com/acme/broken: `mycelium.toml` could not be read or parsed: parse sidecar: line 1: bad",
+		"myco validate",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("invalid-sidecar listing lacks %q:\n%s", want, md)
+		}
+	}
+	if strings.Contains(md, "/node/") {
+		t.Error("node-local path leaked into markdown")
+	}
+}
+
 // The map is component-first: an entry carries its own capabilities inline, so a
 // reader learns what a thing is and what it provides without jumping. There is no
 // full capability index — it was a near-bijection (one provider for all but a

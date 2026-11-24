@@ -190,9 +190,10 @@ func RenderMarkdown(g Graph) string {
 	// noticing anything is wrong. This section's reader is the only routine
 	// reader the signal has; if the wording doesn't prompt a fix, nothing does.
 	b.WriteString("\n## Undocumented repos\n\n")
-	if len(g.Orphans) == 0 {
+	if len(g.Orphans) == 0 && len(g.InvalidSidecars) == 0 {
 		b.WriteString("_None — every scanned repo has an entry above._\n")
-	} else {
+	}
+	if len(g.Orphans) > 0 {
 		b.WriteString("**Gaps in this map, not a normal state.** Each repo below was scanned " +
 			"but carries no `mycelium.toml`, so its purpose and capabilities are missing here — " +
 			"treat this map as incomplete while any remain.\n\n" +
@@ -204,6 +205,22 @@ func RenderMarkdown(g Graph) string {
 		sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })
 		for _, o := range orphans {
 			fmt.Fprintf(&b, "- **%s** — %s\n", o.Name, o.ID)
+		}
+	}
+	// A broken sidecar is the same defect as a missing one: the repo has no entry.
+	if len(g.InvalidSidecars) > 0 {
+		if len(g.Orphans) > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("**Broken sidecars: gaps in this map, not a normal state.** Each repo below " +
+			"commits a `mycelium.toml` that could not be read or parsed, so it has no entry " +
+			"above. **If you are working in one, fix the file in that change**; " +
+			"`myco validate mycelium.toml` names the problem.\n\n")
+		invalid := append([]InvalidSidecar(nil), g.InvalidSidecars...)
+		sort.Slice(invalid, func(i, j int) bool { return invalid[i].Name < invalid[j].Name })
+		for _, inv := range invalid {
+			fmt.Fprintf(&b, "- **%s** — %s: `mycelium.toml` could not be read or parsed: %s\n",
+				inv.Name, inv.ID, strings.Join(strings.Fields(inv.Error), " "))
 		}
 	}
 	return b.String()
